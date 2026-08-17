@@ -1,0 +1,4 @@
+[build]
+  base = "hanzi-app"
+  command = "npm run build"
+  publish = "hanzi-app/dist"
