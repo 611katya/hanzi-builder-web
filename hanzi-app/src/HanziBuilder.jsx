@@ -806,7 +806,7 @@ function Header() {
           color: COLORS.ink,
         }}
       >
-        拼 字 游 戏
+        学部首学汉字
       </div>
       <div
         style={{
@@ -828,7 +828,7 @@ function Header() {
 /* ---------- Tabs ---------- */
 function Tabs({ tab, setTab }) {
   const items = [
-    { id: "play", label: "Chơi · 游戏" },
+    { id: "play", label: "Học · 学习" },
     { id: "add", label: "Thêm chữ · 添加" },
     { id: "radicals", label: "Bộ thủ · 部首" },
   ];
@@ -931,7 +931,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         onChange={(e) => setSelectedList(e.target.value)}
         style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block" }}
       >
-        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Chơi tất cả danh sách</option>
+        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
         <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>🔁 Cần ôn lại ({needsReview.length})</option>
         {allLists.map((l) => (
           <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
@@ -1007,7 +1007,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         <span>Điểm: <strong style={{ color: COLORS.ink }}>{score}</strong></span>
         <span>Chuỗi đúng: <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
         <span>
-          {playable.length} chữ có thể chơi
+          {playable.length} chữ có thể học
           {selectedList === REVIEW_LIST_VALUE ? " (🔁 Cần ôn lại)" : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
         </span>
       </div>
