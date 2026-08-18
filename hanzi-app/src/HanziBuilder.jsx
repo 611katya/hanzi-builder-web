@@ -1045,11 +1045,11 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
         <CharacterGrid state={status}>
           {status === "correct" ? (
-            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
+            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: "#595900" }}>
               {target.char}
             </div>
           ) : status === "revealed" ? (
-            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: COLORS.gold }}>
+            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: "#595900" }}>
               {target.char}
             </div>
           ) : selectedChips.length === 0 ? (
@@ -1065,10 +1065,10 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       </div>
 
       <div style={{ textAlign: "center", minHeight: 22, marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
-        {status === "correct" && <span style={{ color: COLORS.bamboo }}>✓ Chính xác! {target.char} ({target.pinyin}) — {target.meaning}</span>}
+        {status === "correct" && <span style={{ color: "#584C25" }}>✓ Chính xác! {target.char} ({target.pinyin}) — {target.meaning}</span>}
         {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {target.components.join(" + ")} = {target.char}</span>}
         {status === "revealed" && (
-          <span style={{ color: COLORS.gold }}>
+          <span style={{ color: "#584C25" }}>
             💡 Đáp án: {target.components.join(" + ")} = {target.char} ({target.pinyin}) — {target.meaning}, Hán Việt: {target.sv}
           </span>
         )}
@@ -1107,7 +1107,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
           </button>
         )}
         {status !== "playing" && (
-          <button onClick={buildRound} className="seal-btn" style={sealBtnStyle}>
+          <button onClick={buildRound} className="seal-btn" style={{ ...sealBtnStyle, background: "#556B2F" }}>
             Chữ tiếp theo →
           </button>
         )}
