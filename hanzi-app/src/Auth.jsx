@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient.js";
 
 const COLORS = {
-  paper: "#EDE6D6",
-  ink: "#2B2925",
-  inkSoft: "#6B6357",
-  seal: "#AE3A2A",
-  gold: "#A9822F",
-  grid: "#C9BC9E",
-  card: "#F6F1E4",
+  paper: "#F1F7F5",
+  ink: "#2B3A3E",
+  inkSoft: "#71868A",
+  seal: "#6FA3C0",
+  gold: "#5FAFAE",
+  grid: "#D7E6E1",
+  card: "#FFFFFF",
+  error: "#D9917F",
 };
 
 export function useSession() {
@@ -107,7 +108,7 @@ export function AuthScreen({ onGuest }) {
             style={{
               fontSize: 12.5,
               marginTop: 8,
-              color: message.type === "error" ? COLORS.seal : "#4C6E52",
+              color: message.type === "error" ? COLORS.error : "#5E9973",
               fontWeight: 600,
             }}
           >
@@ -122,7 +123,7 @@ export function AuthScreen({ onGuest }) {
             width: "100%",
             marginTop: 16,
             background: COLORS.seal,
-            color: "#F6EEE2",
+            color: "#FBFEFD",
             border: "none",
             borderRadius: 7,
             padding: "10px 0",

@@ -312,18 +312,19 @@ const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
 
 const COLORS = {
-  paper: "#EDE6D6",
-  paperDark: "#E2D8C0",
-  card: "#F6F1E4",
-  ink: "#2B2925",
-  inkSoft: "#6B6357",
-  seal: "#AE3A2A",
-  sealDark: "#8A2E21",
-  bamboo: "#4C6E52",
-  bambooDark: "#3A5540",
-  gold: "#A9822F",
-  grid: "#C9BC9E",
-  chipBg: "#FBF8EF",
+  paper: "#F1F7F5",
+  paperDark: "#E4F0EB",
+  card: "#FFFFFF",
+  ink: "#2B3A3E",
+  inkSoft: "#71868A",
+  seal: "#6FA3C0",
+  sealDark: "#4A7C99",
+  bamboo: "#8FC1A0",
+  bambooDark: "#5E9973",
+  gold: "#5FAFAE",
+  grid: "#D7E6E1",
+  chipBg: "#F5FAF8",
+  error: "#D9917F",
 };
 
 function uid() {
@@ -387,7 +388,7 @@ function getLists(c) {
 /* ---------- Mizige (米字格) target grid — the signature element ---------- */
 function CharacterGrid({ children, state }) {
   const borderColor =
-    state === "correct" ? COLORS.bamboo : state === "wrong" ? COLORS.seal : state === "revealed" ? COLORS.gold : COLORS.grid;
+    state === "correct" ? COLORS.bamboo : state === "wrong" ? COLORS.error : state === "revealed" ? COLORS.gold : COLORS.grid;
   return (
     <div
       style={{
@@ -483,22 +484,22 @@ class ErrorBoundary extends React.Component {
             padding: 30,
             maxWidth: 600,
             margin: "40px auto",
-            background: "#F6F1E4",
-            border: "1px solid #C9BC9E",
+            background: "#FFFFFF",
+            border: "1px solid #D7E6E1",
             borderRadius: 10,
-            color: "#2B2925",
+            color: "#2B3A3E",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 8, color: "#AE3A2A" }}>Đã xảy ra lỗi · Something went wrong</div>
-          <div style={{ fontSize: 13, marginBottom: 14, color: "#6B6357" }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: "#D9917F" }}>Đã xảy ra lỗi · Something went wrong</div>
+          <div style={{ fontSize: 13, marginBottom: 14, color: "#71868A" }}>
             {String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error)}
           </div>
           <button
             onClick={() => this.setState({ error: null })}
             style={{
-              background: "#AE3A2A",
+              background: "#D9917F",
               border: "none",
-              color: "#F6EEE2",
+              color: "#FBFEFD",
               borderRadius: 7,
               padding: "9px 18px",
               fontSize: 13.5,
@@ -1055,7 +1056,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
             <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>chạm vào<br />bộ thủ bên dưới</div>
           ) : (
             selectedChips.map((c, i) => (
-              <span key={i} style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 40, color: status === "wrong" ? COLORS.seal : COLORS.ink }}>
+              <span key={i} style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 40, color: status === "wrong" ? COLORS.error : COLORS.ink }}>
                 {c.char}
               </span>
             ))
@@ -1065,7 +1066,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
 
       <div style={{ textAlign: "center", minHeight: 22, marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
         {status === "correct" && <span style={{ color: COLORS.bamboo }}>✓ Chính xác! {target.char} ({target.pinyin}) — {target.meaning}</span>}
-        {status === "wrong" && <span style={{ color: COLORS.seal }}>✗ Chưa đúng. Đáp án đúng: {target.components.join(" + ")} = {target.char}</span>}
+        {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {target.components.join(" + ")} = {target.char}</span>}
         {status === "revealed" && (
           <span style={{ color: COLORS.gold }}>
             💡 Đáp án: {target.components.join(" + ")} = {target.char} ({target.pinyin}) — {target.meaning}, Hán Việt: {target.sv}
@@ -1128,7 +1129,7 @@ const ghostBtnStyle = {
 const sealBtnStyle = {
   background: COLORS.seal,
   border: "none",
-  color: "#F6EEE2",
+  color: "#FBFEFD",
   borderRadius: 7,
   padding: "10px 22px",
   fontSize: 14,
@@ -1398,7 +1399,7 @@ function AddTab({
               fontSize: 12,
               fontWeight: 600,
               marginTop: 8,
-              color: backupMessage.type === "error" ? COLORS.seal : COLORS.bamboo,
+              color: backupMessage.type === "error" ? COLORS.error : COLORS.bamboo,
             }}
           >
             {backupMessage.text}
@@ -1620,7 +1621,7 @@ function AddTab({
         )}
 
         {message && (
-          <div style={{ marginTop: 14, fontSize: 13, color: message.type === "error" ? COLORS.seal : COLORS.bamboo, fontWeight: 600 }}>
+          <div style={{ marginTop: 14, fontSize: 13, color: message.type === "error" ? COLORS.error : COLORS.bamboo, fontWeight: 600 }}>
             {message.text}
           </div>
         )}
@@ -1755,7 +1756,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
               fontSize: 12.5,
               fontWeight: 600,
               marginBottom: 10,
-              color: exportMessage.type === "error" ? COLORS.seal : COLORS.bamboo,
+              color: exportMessage.type === "error" ? COLORS.error : COLORS.bamboo,
             }}
           >
             {exportMessage.text}
@@ -1920,7 +1921,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
               border: `1px solid ${COLORS.grid}`,
               borderRadius: "50%",
               background: COLORS.chipBg,
-              color: COLORS.seal,
+              color: COLORS.error,
               cursor: "pointer",
             }}
           >
@@ -2143,13 +2144,13 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
               style={{
                 marginTop: 8,
                 paddingTop: 8,
-                borderTop: `1px dashed ${COLORS.seal}`,
+                borderTop: `1px dashed ${COLORS.error}`,
                 display: "flex",
                 flexDirection: "column",
                 gap: 6,
               }}
             >
-              <div style={{ fontSize: 11, color: COLORS.seal, fontWeight: 600 }}>Xóa chữ "{c.char}"?</div>
+              <div style={{ fontSize: 11, color: COLORS.error, fontWeight: 600 }}>Xóa chữ "{c.char}"?</div>
               <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
                 <button
                   type="button"
@@ -2158,9 +2159,9 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
                     setMode("view");
                   }}
                   style={{
-                    background: COLORS.seal,
+                    background: COLORS.error,
                     border: "none",
-                    color: "#F6EEE2",
+                    color: "#FBFEFD",
                     borderRadius: 5,
                     padding: "4px 10px",
                     fontSize: 11.5,
@@ -2286,7 +2287,7 @@ function RadicalsTab({ bushouList }) {
                 height: 30,
                 borderRadius: "50%",
                 background: COLORS.seal,
-                color: "#F6EEE2",
+                color: "#FBFEFD",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

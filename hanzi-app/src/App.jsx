@@ -36,7 +36,7 @@ export default function App() {
     <div>
       <TopBar>
         <span>Browsing as guest — changes won't be saved</span>
-        <button onClick={() => setShowAuth(true)} style={{ ...buttonStyle, background: "#AE3A2A", borderColor: "#AE3A2A", color: "#F6EEE2" }}>
+        <button onClick={() => setShowAuth(true)} style={{ ...buttonStyle, background: "#6FA3C0", borderColor: "#6FA3C0", color: "#FBFEFD" }}>
           Log in / Sign up
         </button>
       </TopBar>
@@ -56,7 +56,7 @@ function TopBar({ children }) {
         padding: "8px 16px",
         fontSize: 12.5,
         fontFamily: "system-ui, sans-serif",
-        color: "#6B6357",
+        color: "#71868A",
       }}
     >
       {children}
@@ -65,7 +65,7 @@ function TopBar({ children }) {
 }
 
 const buttonStyle = {
-  border: "1px solid #C9BC9E",
+  border: "1px solid #D7E6E1",
   background: "transparent",
   borderRadius: 6,
   padding: "4px 10px",
