@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
+import { useLang } from "./i18n.jsx";
 
 /* ============================================================
    拼字 · GHÉP CHỮ — a Hanzi-building game
@@ -663,47 +664,6 @@ function HanziBuilderApp({ userId }) {
     [userId]
   );
 
-  const handleExportBackup = useCallback(() => {
-    const payload = {
-      app: "hanzi-builder-backup",
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      customBushou,
-      customChars,
-      deletedChars,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `hanzi-builder-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [customBushou, customChars, deletedChars]);
-
-  // With real per-account storage, backup/restore is now mostly a convenience
-  // (e.g. moving data between two different Supabase projects) rather than the
-  // only way to sync devices — logging in already does that automatically.
-  const handleImportBackup = useCallback(
-    async (text) => {
-      const data = JSON.parse(text);
-      if (!data || typeof data !== "object") throw new Error("Invalid backup file.");
-
-      const importedBushou = Array.isArray(data.customBushou) ? data.customBushou : [];
-      const importedChars = Array.isArray(data.customChars) ? data.customChars : [];
-      const importedDeleted = Array.isArray(data.deletedChars) ? data.deletedChars : [];
-
-      for (const b of importedBushou) await addBushouRow(b);
-      for (const c of importedChars) await addCharacterRow(c);
-      for (const ch of importedDeleted) await deleteCharacterRow(ch);
-
-      return { charsCount: importedChars.length, bushouCount: importedBushou.length };
-    },
-    [addBushouRow, addCharacterRow, deleteCharacterRow]
-  );
-
   const bushouList = useMemo(() => {
     const map = new Map();
     [...SEED_BUSHOU, ...customBushou].forEach((b) => map.set(b.char, b));
@@ -782,8 +742,6 @@ function HanziBuilderApp({ userId }) {
             onAddBushou={addBushouRow}
             onUpdateCharacter={updateCharacterRow}
             onDeleteCharacter={deleteCharacterRow}
-            onExportBackup={handleExportBackup}
-            onImportBackup={handleImportBackup}
           />
         ) : (
           <RadicalsTab bushouList={bushouList} />
@@ -795,6 +753,7 @@ function HanziBuilderApp({ userId }) {
 
 /* ---------- Header ---------- */
 function Header() {
+  const { t } = useLang();
   return (
     <div style={{ textAlign: "center", marginBottom: 22 }}>
       <div
@@ -816,10 +775,10 @@ function Header() {
           marginTop: 2,
         }}
       >
-        Ghép Bộ Thủ Thành Chữ Hán
+        {t("appSubtitle")}
       </div>
       <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginTop: 6, letterSpacing: 0.3 }}>
-        Build complete characters from their 部首 (bushou) components
+        {t("appTagline")}
       </div>
     </div>
   );
@@ -827,10 +786,11 @@ function Header() {
 
 /* ---------- Tabs ---------- */
 function Tabs({ tab, setTab }) {
+  const { t } = useLang();
   const items = [
-    { id: "play", label: "Học · 学习" },
-    { id: "add", label: "Thêm chữ · 添加" },
-    { id: "radicals", label: "Bộ thủ · 部首" },
+    { id: "play", label: t("tabPlay") },
+    { id: "add", label: t("tabAdd") },
+    { id: "radicals", label: t("tabRadicals") },
   ];
   return (
     <div
@@ -870,6 +830,7 @@ function Tabs({ tab, setTab }) {
 const REVIEW_LIST_VALUE = "__needs_review__";
 
 function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview }) {
+  const { t } = useLang();
   const [round, setRound] = useState(null); // { target, palette: [{id,char}], correctIds }
   const [selected, setSelected] = useState([]); // array of palette ids
   const [status, setStatus] = useState("playing"); // playing | correct | wrong | revealed
@@ -931,8 +892,8 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         onChange={(e) => setSelectedList(e.target.value)}
         style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block" }}
       >
-        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
-        <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>🔁 Cần ôn lại ({needsReview.length})</option>
+        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("playAllLists")}</option>
+        <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("playNeedsReview")} ({needsReview.length})</option>
         {allLists.map((l) => (
           <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
             {l}
@@ -948,10 +909,10 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         {listPicker}
         <div style={{ textAlign: "center", padding: 50, color: COLORS.inkSoft }}>
           {selectedList === REVIEW_LIST_VALUE
-            ? "Danh sách ôn lại đang trống — nó chỉ chứa những chữ bạn đã dùng nút \"Xem đáp án\". Trả lời đúng một chữ sẽ tự động xóa nó khỏi danh sách này."
+            ? t("playEmptyReview")
             : playable.length === 0
-            ? 'Danh sách này chưa có chữ nào chơi được — có thể vì các chữ trong đó chưa có bộ thủ cấu thành. Ở tab "Thêm chữ", hãy dùng nút "🔍 Tự động điền" trước khi lưu để hệ thống tự nhận diện bộ thủ.'
-            : 'Chưa có chữ nào trong kho dữ liệu. Hãy thêm chữ ở tab "Thêm chữ".'}
+            ? t("playEmptyList")
+            : t("playEmptyAll")}
         </div>
       </div>
     );
@@ -1004,11 +965,11 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
     <div>
       {listPicker}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, fontSize: 13, color: COLORS.inkSoft }}>
-        <span>Điểm: <strong style={{ color: COLORS.ink }}>{score}</strong></span>
-        <span>Chuỗi đúng: <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
+        <span>{t("playScore")}: <strong style={{ color: COLORS.ink }}>{score}</strong></span>
+        <span>{t("playStreak")}: <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
         <span>
-          {playable.length} chữ có thể học
-          {selectedList === REVIEW_LIST_VALUE ? " (🔁 Cần ôn lại)" : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
+          {playable.length} {t("playCharsAvailable")}
+          {selectedList === REVIEW_LIST_VALUE ? ` (${t("playNeedsReview")})` : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
         </span>
       </div>
 
@@ -1028,7 +989,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 8, fontSize: 14.5 }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{target.pinyin}</strong></span>
-          <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>
+          <span style={{ color: COLORS.bamboo }}>{t("playHanViet")}: <strong>{target.sv}</strong></span>
         </div>
       </div>
 
@@ -1044,7 +1005,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
               {target.char}
             </div>
           ) : selectedChips.length === 0 ? (
-            <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>chọn<br />bộ thủ bên dưới</div>
+            <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>{t("playChooseLine1")}<br />{t("playChooseLine2")}</div>
           ) : (
             selectedChips.map((c, i) => (
               <span key={i} style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 40, color: status === "wrong" ? COLORS.error : COLORS.ink }}>
@@ -1056,11 +1017,11 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       </div>
 
       <div style={{ textAlign: "center", minHeight: 22, marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
-        {status === "correct" && <span style={{ color: COLORS.gold }}>✓ Chính xác! {target.char} ({target.pinyin}) — {target.meaning}</span>}
-        {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {target.components.join(" + ")} = {target.char}</span>}
+        {status === "correct" && <span style={{ color: COLORS.gold }}>{t("playCorrect")} {target.char} ({target.pinyin}) — {target.meaning}</span>}
+        {status === "wrong" && <span style={{ color: COLORS.error }}>{t("playWrong")} {target.components.join(" + ")} = {target.char}</span>}
         {status === "revealed" && (
           <span style={{ color: COLORS.gold }}>
-            💡 Đáp án: {target.components.join(" + ")} = {target.char} ({target.pinyin}) — {target.meaning}, Hán Việt: {target.sv}
+            {t("playRevealed")} {target.components.join(" + ")} = {target.char} ({target.pinyin}) — {target.meaning}, {t("playHanViet")}: {target.sv}
           </span>
         )}
       </div>
@@ -1080,7 +1041,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
         {status === "playing" && (
           <button onClick={handleReset} className="ghost-btn" style={ghostBtnStyle}>
-            Undo - Chọn lại
+            {t("playUndo")}
           </button>
         )}
         {status === "playing" && (
@@ -1089,12 +1050,12 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
             className="ghost-btn"
             style={{ ...ghostBtnStyle, borderColor: COLORS.gold, color: COLORS.gold }}
           >
-            💡 Xem đáp án
+            {t("playShowAnswer")}
           </button>
         )}
         {status !== "playing" && (
           <button onClick={buildRound} className="seal-btn" style={sealBtnStyle}>
-            Chữ tiếp theo →
+            {t("playNext")}
           </button>
         )}
       </div>
@@ -1132,8 +1093,6 @@ function AddTab({
   onAddBushou,
   onUpdateCharacter,
   onDeleteCharacter,
-  onExportBackup,
-  onImportBackup,
 }) {
   const [charInput, setCharInput] = useState("");
   const [meaning, setMeaning] = useState("");
@@ -1151,30 +1110,6 @@ function AddTab({
   const [ncSv, setNcSv] = useState("");
   const [ncStrokes, setNcStrokes] = useState("");
   const lastLookedUpRef = useRef("");
-  const [backupMessage, setBackupMessage] = useState(null);
-  const fileInputRef = useRef(null);
-
-  function handleImportFileChange(e) {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    setBackupMessage(null);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const result = await onImportBackup(String(reader.result));
-        setBackupMessage({
-          type: "success",
-          text: `Đã nhập ${result.charsCount} chữ và ${result.bushouCount} bộ thủ từ file sao lưu.`,
-        });
-      } catch (err) {
-        console.error("Import backup failed:", err);
-        setBackupMessage({ type: "error", text: "File sao lưu không hợp lệ hoặc bị lỗi." });
-      }
-    };
-    reader.onerror = () => setBackupMessage({ type: "error", text: "Không đọc được file." });
-    reader.readAsText(file);
-    e.target.value = "";
-  }
 
   const existingLists = useMemo(() => {
     const set = new Set();
@@ -1338,61 +1273,6 @@ function AddTab({
 
   return (
     <div>
-      <div
-        style={{
-          background: "rgba(169,130,47,0.06)",
-          border: `1px dashed ${COLORS.gold}`,
-          borderRadius: 8,
-          padding: "12px 14px",
-          marginBottom: 18,
-        }}
-      >
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: COLORS.gold, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6, textAlign: "center" }}>
-          Sao lưu &amp; đồng bộ giữa các thiết bị
-        </div>
-        <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 10 }}>
-          Dữ liệu chỉ được lưu trong cuộc trò chuyện này. Để mang dữ liệu sang máy/điện thoại khác: tải file sao lưu ở đây, rồi mở lại đúng cuộc trò chuyện này trên thiết bị kia và nhập file vào.
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={onExportBackup}
-            className="ghost-btn"
-            style={{ ...ghostBtnStyle, borderColor: COLORS.gold, color: COLORS.gold }}
-          >
-            ⬇ Tải file sao lưu
-          </button>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current && fileInputRef.current.click()}
-            className="ghost-btn"
-            style={{ ...ghostBtnStyle, borderColor: COLORS.gold, color: COLORS.gold }}
-          >
-            ⬆ Nhập từ file sao lưu
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={handleImportFileChange}
-            style={{ display: "none" }}
-          />
-        </div>
-        {backupMessage && (
-          <div
-            style={{
-              textAlign: "center",
-              fontSize: 12,
-              fontWeight: 600,
-              marginTop: 8,
-              color: backupMessage.type === "error" ? COLORS.error : COLORS.bamboo,
-            }}
-          >
-            {backupMessage.text}
-          </div>
-        )}
-      </div>
-
       <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 18, textAlign: "center" }}>
         Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, âm Hán Việt, và xếp vào một danh sách (list) tuỳ chọn.
       </div>
