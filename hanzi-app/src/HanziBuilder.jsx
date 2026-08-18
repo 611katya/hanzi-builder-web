@@ -312,19 +312,19 @@ const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
 
 const COLORS = {
-  paper: "#F1F7F5",
-  paperDark: "#E4F0EB",
-  card: "#FFFFFF",
-  ink: "#2B3A3E",
-  inkSoft: "#71868A",
-  seal: "#6FA3C0",
-  sealDark: "#4A7C99",
-  bamboo: "#8FC1A0",
-  bambooDark: "#5E9973",
-  gold: "#5FAFAE",
-  grid: "#D7E6E1",
-  chipBg: "#F5FAF8",
-  error: "#D9917F",
+  paper: "#F2EDE6",
+  paperDark: "#E8E1D4",
+  card: "#FBF9F5",
+  ink: "#33302B",
+  inkSoft: "#7A756B",
+  seal: "#B8842E",
+  sealDark: "#8C6420",
+  bamboo: "#7C8A5E",
+  bambooDark: "#5F6D44",
+  gold: "#C9974B",
+  grid: "#E3DCCF",
+  chipBg: "#F7F3EC",
+  error: "#B15A45",
 };
 
 function uid() {
@@ -484,22 +484,22 @@ class ErrorBoundary extends React.Component {
             padding: 30,
             maxWidth: 600,
             margin: "40px auto",
-            background: "#FFFFFF",
-            border: "1px solid #D7E6E1",
+            background: "#FBF9F5",
+            border: "1px solid #E3DCCF",
             borderRadius: 10,
-            color: "#2B3A3E",
+            color: "#33302B",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 8, color: "#D9917F" }}>Đã xảy ra lỗi · Something went wrong</div>
-          <div style={{ fontSize: 13, marginBottom: 14, color: "#71868A" }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: "#B15A45" }}>Đã xảy ra lỗi · Something went wrong</div>
+          <div style={{ fontSize: 13, marginBottom: 14, color: "#7A756B" }}>
             {String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error)}
           </div>
           <button
             onClick={() => this.setState({ error: null })}
             style={{
-              background: "#D9917F",
+              background: "#B15A45",
               border: "none",
-              color: "#FBFEFD",
+              color: "#FCFAF6",
               borderRadius: 7,
               padding: "9px 18px",
               fontSize: 13.5,
@@ -1129,7 +1129,7 @@ const ghostBtnStyle = {
 const sealBtnStyle = {
   background: COLORS.seal,
   border: "none",
-  color: "#FBFEFD",
+  color: "#FCFAF6",
   borderRadius: 7,
   padding: "10px 22px",
   fontSize: 14,
@@ -2161,7 +2161,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
                   style={{
                     background: COLORS.error,
                     border: "none",
-                    color: "#FBFEFD",
+                    color: "#FCFAF6",
                     borderRadius: 5,
                     padding: "4px 10px",
                     fontSize: 11.5,
@@ -2287,7 +2287,7 @@ function RadicalsTab({ bushouList }) {
                 height: 30,
                 borderRadius: "50%",
                 background: COLORS.seal,
-                color: "#FBFEFD",
+                color: "#FCFAF6",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
