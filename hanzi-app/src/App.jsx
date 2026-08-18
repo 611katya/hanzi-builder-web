@@ -1,14 +1,21 @@
 import React, { useState } from "react";
-import { useSession, AuthScreen } from "./Auth.jsx";
+import { useSession, useRecoveryMode, AuthScreen, ResetPasswordScreen } from "./Auth.jsx";
 import { supabase } from "./supabaseClient.js";
 import HanziBuilder from "./HanziBuilder.jsx";
 
 export default function App() {
   const session = useSession();
   const [showAuth, setShowAuth] = useState(false);
+  const [recovery, setRecovery] = useRecoveryMode();
 
   if (session === undefined) {
     return <div style={{ padding: 40, textAlign: "center", fontFamily: "system-ui" }}>Loading…</div>;
+  }
+
+  // Arrived via a "reset your password" email link — show the reset form
+  // no matter what, even though Supabase has already signed them in.
+  if (recovery) {
+    return <ResetPasswordScreen onDone={() => setRecovery(false)} />;
   }
 
   // Logged in: always show the full app, regardless of how they got here.
