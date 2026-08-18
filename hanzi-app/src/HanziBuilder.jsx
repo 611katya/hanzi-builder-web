@@ -530,8 +530,19 @@ function HanziBuilderApp({ userId }) {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("play");
 
-  /* ---------- load this user's data from Supabase ---------- */
+  /* ---------- load this user's data from Supabase (skipped for guests) ---------- */
   useEffect(() => {
+    if (!userId) {
+      // Guest mode: no account, nothing to load — play with seed data only,
+      // any additions stay in memory for this browser tab and are not saved.
+      setCustomBushou([]);
+      setCustomChars([]);
+      setDeletedChars([]);
+      setNeedsReview([]);
+      setLoaded(true);
+      return;
+    }
+
     let cancelled = false;
 
     (async () => {
@@ -572,6 +583,7 @@ function HanziBuilderApp({ userId }) {
         const without = prev.filter((b) => b.char !== entry.char);
         return [...without, entry];
       });
+      if (!userId) return; // guest mode: keep in memory only, nothing to save
       const { error } = await supabase
         .from("custom_bushou")
         .upsert(bushouToRow(entry, userId), { onConflict: "user_id,char" });
@@ -583,6 +595,7 @@ function HanziBuilderApp({ userId }) {
   const addCharacterRow = useCallback(
     async (entry) => {
       setCustomChars((prev) => [...prev, entry]);
+      if (!userId) return; // guest mode: keep in memory only, nothing to save
       const { error } = await supabase
         .from("custom_characters")
         .upsert(charToRow(entry, userId), { onConflict: "user_id,char" });
@@ -599,6 +612,7 @@ function HanziBuilderApp({ userId }) {
         const merged = { ...base, ...updatedFields, char };
         return existing ? prev.map((c) => (c.char === char ? merged : c)) : [...prev, merged];
       });
+      if (!userId) return; // guest mode: keep in memory only, nothing to save
       // Read the merged record back out of state on the next tick isn't safe (stale closure),
       // so recompute the same merge here for what we send to the database.
       const existing = customChars.find((c) => c.char === char);
@@ -617,6 +631,7 @@ function HanziBuilderApp({ userId }) {
     async (char) => {
       setCustomChars((prev) => prev.filter((c) => c.char !== char));
       setDeletedChars((prev) => (prev.includes(char) ? prev : [...prev, char]));
+      if (!userId) return; // guest mode: keep in memory only, nothing to save
       await supabase.from("custom_characters").delete().eq("user_id", userId).eq("char", char);
       const { error } = await supabase
         .from("deleted_characters")
@@ -629,6 +644,7 @@ function HanziBuilderApp({ userId }) {
   const persistNeedsReview = useCallback(
     async (next, char, adding) => {
       setNeedsReview(next);
+      if (!userId) return; // guest mode: keep in memory only, nothing to save
       if (adding) {
         const { error } = await supabase
           .from("needs_review")

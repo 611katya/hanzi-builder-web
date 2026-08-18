@@ -1,18 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSession, AuthScreen } from "./Auth.jsx";
 import { supabase } from "./supabaseClient.js";
 import HanziBuilder from "./HanziBuilder.jsx";
 
 export default function App() {
   const session = useSession();
+  const [guest, setGuest] = useState(false);
 
   if (session === undefined) {
     return <div style={{ padding: 40, textAlign: "center", fontFamily: "system-ui" }}>Loading…</div>;
   }
 
-  if (!session) {
-    return <AuthScreen />;
+  if (!session && !guest) {
+    return <AuthScreen onGuest={() => setGuest(true)} />;
   }
+
+  const isGuest = !session && guest;
 
   return (
     <div>
@@ -28,22 +31,44 @@ export default function App() {
           color: "#6B6357",
         }}
       >
-        <span>{session.user.email}</span>
-        <button
-          onClick={() => supabase.auth.signOut()}
-          style={{
-            border: "1px solid #C9BC9E",
-            background: "transparent",
-            borderRadius: 6,
-            padding: "4px 10px",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
-        >
-          Log out
-        </button>
+        {isGuest ? (
+          <>
+            <span>Browsing as guest — changes won't be saved</span>
+            <button
+              onClick={() => setGuest(false)}
+              style={{
+                border: "1px solid #AE3A2A",
+                background: "#AE3A2A",
+                color: "#F6EEE2",
+                borderRadius: 6,
+                padding: "4px 10px",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Sign up to save progress
+            </button>
+          </>
+        ) : (
+          <>
+            <span>{session.user.email}</span>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              style={{
+                border: "1px solid #C9BC9E",
+                background: "transparent",
+                borderRadius: 6,
+                padding: "4px 10px",
+                fontSize: 12,
+                cursor: "pointer",
+              }}
+            >
+              Log out
+            </button>
+          </>
+        )}
       </div>
-      <HanziBuilder userId={session.user.id} />
+      <HanziBuilder userId={isGuest ? null : session.user.id} />
     </div>
   );
 }

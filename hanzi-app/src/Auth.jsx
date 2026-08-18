@@ -25,7 +25,7 @@ export function useSession() {
   return session;
 }
 
-export function AuthScreen() {
+export function AuthScreen({ onGuest }) {
   const [mode, setMode] = useState("login"); // login | signup
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -151,6 +151,32 @@ export function AuthScreen() {
               </a>
             </>
           )}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 14px" }}>
+          <div style={{ flex: 1, borderTop: `1px solid ${COLORS.grid}` }} />
+          <span style={{ fontSize: 11, color: COLORS.inkSoft }}>or</span>
+          <div style={{ flex: 1, borderTop: `1px solid ${COLORS.grid}` }} />
+        </div>
+
+        <button
+          type="button"
+          onClick={onGuest}
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: `1px solid ${COLORS.grid}`,
+            color: COLORS.inkSoft,
+            borderRadius: 7,
+            padding: "10px 0",
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          Try it without signing up
+        </button>
+        <div style={{ textAlign: "center", marginTop: 6, fontSize: 11, color: COLORS.inkSoft }}>
+          You can play right away — sign up later to save your progress.
         </div>
       </form>
     </div>
