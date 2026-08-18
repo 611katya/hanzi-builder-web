@@ -312,19 +312,19 @@ const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
 
 const COLORS = {
-  paper: "#F2EDE6",
-  paperDark: "#E8E1D4",
-  card: "#FBF9F5",
-  ink: "#33302B",
-  inkSoft: "#7A756B",
-  seal: "#B8842E",
-  sealDark: "#8C6420",
-  bamboo: "#7C8A5E",
-  bambooDark: "#5F6D44",
-  gold: "#C9974B",
-  grid: "#E3DCCF",
-  chipBg: "#F7F3EC",
-  error: "#B15A45",
+  paper: "#F2F0E1",
+  paperDark: "#E7E4CE",
+  card: "#FAF9EF",
+  ink: "#2A2A16",
+  inkSoft: "#7A7A56",
+  seal: "#556B2F",
+  sealDark: "#3E4E22",
+  bamboo: "#595900",
+  bambooDark: "#3F3F00",
+  gold: "#584C25",
+  grid: "#DDD9BB",
+  chipBg: "#F6F4E6",
+  error: "#A6432E",
 };
 
 function uid() {
@@ -484,22 +484,22 @@ class ErrorBoundary extends React.Component {
             padding: 30,
             maxWidth: 600,
             margin: "40px auto",
-            background: "#FBF9F5",
-            border: "1px solid #E3DCCF",
+            background: "#FAF9EF",
+            border: "1px solid #DDD9BB",
             borderRadius: 10,
-            color: "#33302B",
+            color: "#2A2A16",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 8, color: "#B15A45" }}>Đã xảy ra lỗi · Something went wrong</div>
-          <div style={{ fontSize: 13, marginBottom: 14, color: "#7A756B" }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: "#A6432E" }}>Đã xảy ra lỗi · Something went wrong</div>
+          <div style={{ fontSize: 13, marginBottom: 14, color: "#7A7A56" }}>
             {String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error)}
           </div>
           <button
             onClick={() => this.setState({ error: null })}
             style={{
-              background: "#B15A45",
+              background: "#A6432E",
               border: "none",
-              color: "#FCFAF6",
+              color: "#FBF9EF",
               borderRadius: 7,
               padding: "9px 18px",
               fontSize: 13.5,
@@ -1045,11 +1045,11 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
         <CharacterGrid state={status}>
           {status === "correct" ? (
-            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: "#595900" }}>
+            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
               {target.char}
             </div>
           ) : status === "revealed" ? (
-            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: "#595900" }}>
+            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
               {target.char}
             </div>
           ) : selectedChips.length === 0 ? (
@@ -1065,10 +1065,10 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       </div>
 
       <div style={{ textAlign: "center", minHeight: 22, marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
-        {status === "correct" && <span style={{ color: "#584C25" }}>✓ Chính xác! {target.char} ({target.pinyin}) — {target.meaning}</span>}
+        {status === "correct" && <span style={{ color: COLORS.gold }}>✓ Chính xác! {target.char} ({target.pinyin}) — {target.meaning}</span>}
         {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {target.components.join(" + ")} = {target.char}</span>}
         {status === "revealed" && (
-          <span style={{ color: "#584C25" }}>
+          <span style={{ color: COLORS.gold }}>
             💡 Đáp án: {target.components.join(" + ")} = {target.char} ({target.pinyin}) — {target.meaning}, Hán Việt: {target.sv}
           </span>
         )}
@@ -1107,7 +1107,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
           </button>
         )}
         {status !== "playing" && (
-          <button onClick={buildRound} className="seal-btn" style={{ ...sealBtnStyle, background: "#556B2F" }}>
+          <button onClick={buildRound} className="seal-btn" style={sealBtnStyle}>
             Chữ tiếp theo →
           </button>
         )}
@@ -1129,7 +1129,7 @@ const ghostBtnStyle = {
 const sealBtnStyle = {
   background: COLORS.seal,
   border: "none",
-  color: "#FCFAF6",
+  color: "#FBF9EF",
   borderRadius: 7,
   padding: "10px 22px",
   fontSize: 14,
@@ -2161,7 +2161,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
                   style={{
                     background: COLORS.error,
                     border: "none",
-                    color: "#FCFAF6",
+                    color: "#FBF9EF",
                     borderRadius: 5,
                     padding: "4px 10px",
                     fontSize: 11.5,
@@ -2287,7 +2287,7 @@ function RadicalsTab({ bushouList }) {
                 height: 30,
                 borderRadius: "50%",
                 background: COLORS.seal,
-                color: "#FCFAF6",
+                color: "#FBF9EF",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
