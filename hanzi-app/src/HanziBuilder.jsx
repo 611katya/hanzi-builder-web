@@ -440,7 +440,7 @@ function Chip({ info, onClick, disabled, big, tone }) {
       title={info ? `${info.pinyin} · ${info.meaning} · SV: ${info.sv}` : ""}
       className="hanzi-chip"
       style={{
-        fontFamily: "'Noto Serif SC', serif",
+        fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
         fontSize: big ? 30 : 26,
         width: big ? 56 : 48,
         height: big ? 56 : 48,
@@ -799,7 +799,7 @@ function Header() {
     <div style={{ textAlign: "center", marginBottom: 22 }}>
       <div
         style={{
-          fontFamily: "'Noto Serif SC', serif",
+          fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
           fontSize: 44,
           fontWeight: 700,
           letterSpacing: 4,
@@ -810,8 +810,7 @@ function Header() {
       </div>
       <div
         style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontStyle: "italic",
+          fontFamily: "Calibri, 'Segoe UI', sans-serif",
           fontSize: 20,
           color: COLORS.sealDark,
           marginTop: 2,
@@ -930,12 +929,12 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       <select
         value={selectedList}
         onChange={(e) => setSelectedList(e.target.value)}
-        style={{ ...inputStyle, width: 260, textAlign: "center", display: "inline-block" }}
+        style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block" }}
       >
-        <option value="Tất cả">Chơi tất cả danh sách</option>
-        <option value={REVIEW_LIST_VALUE}>🔁 Cần ôn lại ({needsReview.length})</option>
+        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Chơi tất cả danh sách</option>
+        <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>🔁 Cần ôn lại ({needsReview.length})</option>
         {allLists.map((l) => (
-          <option key={l} value={l}>
+          <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
             {l}
           </option>
         ))}
@@ -988,11 +987,6 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
     }
   }
 
-  function handleRemoveLast() {
-    if (status !== "playing") return;
-    setSelected(selected.slice(0, -1));
-  }
-
   function handleReset() {
     setSelected([]);
     setStatus("playing");
@@ -1029,9 +1023,6 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", color: COLORS.gold, fontWeight: 700, marginBottom: 6 }}>
-          Gợi ý · Hint
-        </div>
         <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, color: COLORS.ink }}>
           {target.meaning}
         </div>
@@ -1045,18 +1036,18 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
         <CharacterGrid state={status}>
           {status === "correct" ? (
-            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
+            <div className="pop" style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
               {target.char}
             </div>
           ) : status === "revealed" ? (
-            <div className="pop" style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
+            <div className="pop" style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
               {target.char}
             </div>
           ) : selectedChips.length === 0 ? (
-            <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>chạm vào<br />bộ thủ bên dưới</div>
+            <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>chọn<br />bộ thủ bên dưới</div>
           ) : (
             selectedChips.map((c, i) => (
-              <span key={i} style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 40, color: status === "wrong" ? COLORS.error : COLORS.ink }}>
+              <span key={i} style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 40, color: status === "wrong" ? COLORS.error : COLORS.ink }}>
                 {c.char}
               </span>
             ))
@@ -1088,13 +1079,8 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
 
       <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
         {status === "playing" && (
-          <button onClick={handleRemoveLast} className="ghost-btn" style={ghostBtnStyle}>
-            Xóa 1 · Undo
-          </button>
-        )}
-        {status === "playing" && (
           <button onClick={handleReset} className="ghost-btn" style={ghostBtnStyle}>
-            Làm lại
+            Undo - Chọn lại
           </button>
         )}
         {status === "playing" && (
@@ -1427,7 +1413,7 @@ function AddTab({
               }
             }}
             placeholder="例：好"
-            style={{ ...inputStyle, fontFamily: "'Noto Serif SC', serif", fontSize: 22, width: 90, textAlign: "center" }}
+            style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 22, width: 90, textAlign: "center" }}
             maxLength={4}
           />
           <button
@@ -1470,7 +1456,7 @@ function AddTab({
               value={compInput}
               onChange={(e) => setCompInput(e.target.value)}
               placeholder="gõ 1 bộ thủ, vd: 女"
-              style={{ ...inputStyle, fontFamily: "'Noto Serif SC', serif", width: 140 }}
+              style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", width: 140 }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -1486,7 +1472,7 @@ function AddTab({
           {newCompDraft && (
             <div style={{ marginTop: 12, padding: 12, background: "rgba(169,130,47,0.08)", borderRadius: 8, border: `1px dashed ${COLORS.gold}` }}>
               <div style={{ fontSize: 12.5, marginBottom: 8 }}>
-                Bộ thủ <strong style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 18 }}>{newCompDraft.char}</strong> chưa có trong kho — hãy điền thông tin:
+                Bộ thủ <strong style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18 }}>{newCompDraft.char}</strong> chưa có trong kho — hãy điền thông tin:
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <input value={ncPinyin} onChange={(e) => setNcPinyin(e.target.value)} placeholder="pinyin" style={{ ...inputStyle, width: 100 }} />
@@ -1731,11 +1717,11 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
           <select
             value={listFilter}
             onChange={(e) => setListFilter(e.target.value)}
-            style={{ ...inputStyle, width: 170, flex: "none" }}
+            style={{ ...selectStyle, width: 170, flex: "none" }}
           >
-            <option value="Tất cả">Tất cả danh sách</option>
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
             {allLists.map((l) => (
-              <option key={l} value={l}>
+              <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                 {l}
               </option>
             ))}
@@ -1932,7 +1918,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
 
       {mode === "edit" ? (
         <div style={{ textAlign: "left" }}>
-          <div style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
+          <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
             {c.char}
           </div>
           <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa</label>
@@ -2000,13 +1986,13 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
               onChange={(e) => {
                 if (e.target.value) addListToEdit(e.target.value);
               }}
-              style={{ ...inputStyle, width: "100%", fontSize: 12.5, padding: "5px 8px", marginBottom: 8 }}
+              style={{ ...selectStyle, width: "100%", fontSize: 12.5, padding: "5px 8px", marginBottom: 8 }}
             >
-              <option value="">— Recent Lists —</option>
+              <option value="" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>— Recent Lists —</option>
               {allLists
                 .filter((l) => !lists.includes(l))
                 .map((l) => (
-                  <option key={l} value={l}>
+                  <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                     {l}
                   </option>
                 ))}
@@ -2020,7 +2006,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <span
                     style={{
-                      fontFamily: "'Noto Serif SC', serif",
+                      fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
                       fontSize: 14,
                       color: COLORS.gold,
                       padding: "1px 5px",
@@ -2043,7 +2029,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
               value={compInput}
               onChange={(e) => setCompInput(e.target.value)}
               placeholder="+ bộ thủ"
-              style={{ ...inputStyle, fontFamily: "'Noto Serif SC', serif", fontSize: 12.5, padding: "5px 8px" }}
+              style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 12.5, padding: "5px 8px" }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -2063,7 +2049,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
           {newCompDraft && (
             <div style={{ padding: 8, background: "rgba(169,130,47,0.08)", borderRadius: 6, border: `1px dashed ${COLORS.gold}`, marginBottom: 6 }}>
               <div style={{ fontSize: 11, marginBottom: 6 }}>
-                Bộ thủ <strong style={{ fontFamily: "'Noto Serif SC', serif" }}>{newCompDraft.char}</strong> chưa có — điền thông tin:
+                Bộ thủ <strong style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif" }}>{newCompDraft.char}</strong> chưa có — điền thông tin:
               </div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 <input value={ncPinyin} onChange={(e) => setNcPinyin(e.target.value)} placeholder="pinyin" style={{ ...inputStyle, fontSize: 11.5, padding: "4px 6px", width: 60 }} />
@@ -2104,7 +2090,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
           >
             {getLists(c).join(" · ")}
           </div>
-          <div style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 32, color: COLORS.ink }}>{c.char}</div>
+          <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 32, color: COLORS.ink }}>{c.char}</div>
           <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{c.pinyin}</div>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{c.meaning}</div>
           <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {c.sv}</div>
@@ -2125,7 +2111,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
                   key={i}
                   title={`${findBushou(comp).pinyin} · ${findBushou(comp).meaning} · HV: ${findBushou(comp).sv}`}
                   style={{
-                    fontFamily: "'Noto Serif SC', serif",
+                    fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
                     fontSize: 16,
                     color: COLORS.gold,
                     padding: "2px 5px",
@@ -2212,6 +2198,15 @@ const inputStyle = {
   color: COLORS.ink,
   outline: "none",
   flex: 1,
+};
+
+const selectStyle = {
+  ...inputStyle,
+  background: COLORS.chipBg,
+  color: COLORS.ink,
+  fontWeight: 700,
+  border: `1.5px solid ${COLORS.seal}`,
+  cursor: "pointer",
 };
 
 const smallXStyle = {
@@ -2316,7 +2311,7 @@ function RadicalsTab({ bushouList }) {
                   textAlign: "center",
                 }}
               >
-                <div style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 30, color: COLORS.ink }}>{b.char}</div>
+                <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 30, color: COLORS.ink }}>{b.char}</div>
                 <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{b.pinyin}</div>
                 <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{b.meaning}</div>
                 <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {b.sv}</div>
