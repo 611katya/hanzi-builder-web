@@ -5,70 +5,70 @@ import HanziBuilder from "./HanziBuilder.jsx";
 
 export default function App() {
   const session = useSession();
-  const [guest, setGuest] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   if (session === undefined) {
     return <div style={{ padding: 40, textAlign: "center", fontFamily: "system-ui" }}>Loading…</div>;
   }
 
-  if (!session && !guest) {
-    return <AuthScreen onGuest={() => setGuest(true)} />;
+  // Logged in: always show the full app, regardless of how they got here.
+  if (session) {
+    return (
+      <div>
+        <TopBar>
+          <span>{session.user.email}</span>
+          <button onClick={() => supabase.auth.signOut()} style={buttonStyle}>
+            Log out
+          </button>
+        </TopBar>
+        <HanziBuilder userId={session.user.id} />
+      </div>
+    );
   }
 
-  const isGuest = !session && guest;
+  // Not logged in, and the person chose to log in / sign up right now.
+  if (showAuth) {
+    return <AuthScreen onGuest={() => setShowAuth(false)} />;
+  }
 
+  // Default landing experience: play immediately, no account required.
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: 10,
-          padding: "8px 16px",
-          fontSize: 12.5,
-          fontFamily: "system-ui, sans-serif",
-          color: "#6B6357",
-        }}
-      >
-        {isGuest ? (
-          <>
-            <span>Browsing as guest — changes won't be saved</span>
-            <button
-              onClick={() => setGuest(false)}
-              style={{
-                border: "1px solid #AE3A2A",
-                background: "#AE3A2A",
-                color: "#F6EEE2",
-                borderRadius: 6,
-                padding: "4px 10px",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              Sign up to save progress
-            </button>
-          </>
-        ) : (
-          <>
-            <span>{session.user.email}</span>
-            <button
-              onClick={() => supabase.auth.signOut()}
-              style={{
-                border: "1px solid #C9BC9E",
-                background: "transparent",
-                borderRadius: 6,
-                padding: "4px 10px",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              Log out
-            </button>
-          </>
-        )}
-      </div>
-      <HanziBuilder userId={isGuest ? null : session.user.id} />
+      <TopBar>
+        <span>Browsing as guest — changes won't be saved</span>
+        <button onClick={() => setShowAuth(true)} style={{ ...buttonStyle, background: "#AE3A2A", borderColor: "#AE3A2A", color: "#F6EEE2" }}>
+          Log in / Sign up
+        </button>
+      </TopBar>
+      <HanziBuilder userId={null} />
     </div>
   );
 }
+
+function TopBar({ children }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 16px",
+        fontSize: 12.5,
+        fontFamily: "system-ui, sans-serif",
+        color: "#6B6357",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+const buttonStyle = {
+  border: "1px solid #C9BC9E",
+  background: "transparent",
+  borderRadius: 6,
+  padding: "4px 10px",
+  fontSize: 12,
+  cursor: "pointer",
+};

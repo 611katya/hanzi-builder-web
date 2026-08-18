@@ -173,11 +173,8 @@ export function AuthScreen({ onGuest }) {
             cursor: "pointer",
           }}
         >
-          Try it without signing up
+          ← Continue browsing without an account
         </button>
-        <div style={{ textAlign: "center", marginTop: 6, fontSize: 11, color: COLORS.inkSoft }}>
-          You can play right away — sign up later to save your progress.
-        </div>
       </form>
     </div>
   );
