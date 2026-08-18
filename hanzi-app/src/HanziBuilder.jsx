@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient.js";
-import { useLang } from "./i18n.jsx";
 
 /* ============================================================
    拼字 · GHÉP CHỮ — a Hanzi-building game
@@ -753,7 +752,6 @@ function HanziBuilderApp({ userId }) {
 
 /* ---------- Header ---------- */
 function Header() {
-  const { t } = useLang();
   return (
     <div style={{ textAlign: "center", marginBottom: 22 }}>
       <div
@@ -775,10 +773,10 @@ function Header() {
           marginTop: 2,
         }}
       >
-        {t("appSubtitle")}
+        Ghép Bộ Thủ Thành Chữ Hán
       </div>
       <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginTop: 6, letterSpacing: 0.3 }}>
-        {t("appTagline")}
+        Build complete characters from their 部首 (bushou) components
       </div>
     </div>
   );
@@ -786,11 +784,10 @@ function Header() {
 
 /* ---------- Tabs ---------- */
 function Tabs({ tab, setTab }) {
-  const { t } = useLang();
   const items = [
-    { id: "play", label: t("tabPlay") },
-    { id: "add", label: t("tabAdd") },
-    { id: "radicals", label: t("tabRadicals") },
+    { id: "play", label: "Học · 学习" },
+    { id: "add", label: "Thêm chữ · 添加" },
+    { id: "radicals", label: "Bộ thủ · 部首" },
   ];
   return (
     <div
@@ -830,7 +827,6 @@ function Tabs({ tab, setTab }) {
 const REVIEW_LIST_VALUE = "__needs_review__";
 
 function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview }) {
-  const { t } = useLang();
   const [round, setRound] = useState(null); // { target, palette: [{id,char}], correctIds }
   const [selected, setSelected] = useState([]); // array of palette ids
   const [status, setStatus] = useState("playing"); // playing | correct | wrong | revealed
@@ -892,8 +888,8 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         onChange={(e) => setSelectedList(e.target.value)}
         style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block" }}
       >
-        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("playAllLists")}</option>
-        <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("playNeedsReview")} ({needsReview.length})</option>
+        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+        <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>🔁 Cần ôn lại ({needsReview.length})</option>
         {allLists.map((l) => (
           <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
             {l}
@@ -909,10 +905,10 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         {listPicker}
         <div style={{ textAlign: "center", padding: 50, color: COLORS.inkSoft }}>
           {selectedList === REVIEW_LIST_VALUE
-            ? t("playEmptyReview")
+            ? "Danh sách ôn lại đang trống — nó chỉ chứa những chữ bạn đã dùng nút \"Xem đáp án\". Trả lời đúng một chữ sẽ tự động xóa nó khỏi danh sách này."
             : playable.length === 0
-            ? t("playEmptyList")
-            : t("playEmptyAll")}
+            ? 'Danh sách này chưa có chữ nào chơi được — có thể vì các chữ trong đó chưa có bộ thủ cấu thành. Ở tab "Thêm chữ", hãy dùng nút "🔍 Tự động điền" trước khi lưu để hệ thống tự nhận diện bộ thủ.'
+            : 'Chưa có chữ nào trong kho dữ liệu. Hãy thêm chữ ở tab "Thêm chữ".'}
         </div>
       </div>
     );
@@ -965,11 +961,11 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
     <div>
       {listPicker}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, fontSize: 13, color: COLORS.inkSoft }}>
-        <span>{t("playScore")}: <strong style={{ color: COLORS.ink }}>{score}</strong></span>
-        <span>{t("playStreak")}: <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
+        <span>Điểm: <strong style={{ color: COLORS.ink }}>{score}</strong></span>
+        <span>Chuỗi đúng: <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
         <span>
-          {playable.length} {t("playCharsAvailable")}
-          {selectedList === REVIEW_LIST_VALUE ? ` (${t("playNeedsReview")})` : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
+          {playable.length} chữ có thể học
+          {selectedList === REVIEW_LIST_VALUE ? " (🔁 Cần ôn lại)" : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
         </span>
       </div>
 
@@ -989,7 +985,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 8, fontSize: 14.5 }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{target.pinyin}</strong></span>
-          <span style={{ color: COLORS.bamboo }}>{t("playHanViet")}: <strong>{target.sv}</strong></span>
+          <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>
         </div>
       </div>
 
@@ -1005,7 +1001,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
               {target.char}
             </div>
           ) : selectedChips.length === 0 ? (
-            <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>{t("playChooseLine1")}<br />{t("playChooseLine2")}</div>
+            <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>chọn<br />bộ thủ bên dưới</div>
           ) : (
             selectedChips.map((c, i) => (
               <span key={i} style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 40, color: status === "wrong" ? COLORS.error : COLORS.ink }}>
@@ -1017,11 +1013,11 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       </div>
 
       <div style={{ textAlign: "center", minHeight: 22, marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
-        {status === "correct" && <span style={{ color: COLORS.gold }}>{t("playCorrect")} {target.char} ({target.pinyin}) — {target.meaning}</span>}
-        {status === "wrong" && <span style={{ color: COLORS.error }}>{t("playWrong")} {target.components.join(" + ")} = {target.char}</span>}
+        {status === "correct" && <span style={{ color: COLORS.gold }}>✓ Chính xác! {target.char} ({target.pinyin}) — {target.meaning}</span>}
+        {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {target.components.join(" + ")} = {target.char}</span>}
         {status === "revealed" && (
           <span style={{ color: COLORS.gold }}>
-            {t("playRevealed")} {target.components.join(" + ")} = {target.char} ({target.pinyin}) — {target.meaning}, {t("playHanViet")}: {target.sv}
+            💡 Đáp án: {target.components.join(" + ")} = {target.char} ({target.pinyin}) — {target.meaning}, Hán Việt: {target.sv}
           </span>
         )}
       </div>
@@ -1041,7 +1037,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
         {status === "playing" && (
           <button onClick={handleReset} className="ghost-btn" style={ghostBtnStyle}>
-            {t("playUndo")}
+            Undo - Chọn lại
           </button>
         )}
         {status === "playing" && (
@@ -1050,12 +1046,12 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
             className="ghost-btn"
             style={{ ...ghostBtnStyle, borderColor: COLORS.gold, color: COLORS.gold }}
           >
-            {t("playShowAnswer")}
+            💡 Xem đáp án
           </button>
         )}
         {status !== "playing" && (
           <button onClick={buildRound} className="seal-btn" style={sealBtnStyle}>
-            {t("playNext")}
+            Chữ tiếp theo →
           </button>
         )}
       </div>
