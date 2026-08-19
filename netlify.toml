@@ -2,3 +2,6 @@
   base = "hanzi-app"
   command = "npm run build"
   publish = "dist"
+
+[functions]
+  directory = "netlify/functions"

@@ -1188,17 +1188,15 @@ function AddTab({
     if (!target) return;
     setLookupStatus("loading");
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/.netlify/functions/lookup-character", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 500,
-          system:
-            'You are a Chinese dictionary lookup tool. Given a single Chinese character, respond with ONLY a raw JSON object (no markdown, no code fences, no extra text) in exactly this shape: {"pinyin": "...", "meaning": "...", "sino_vietnamese": "...", "components": [{"char": "...", "pinyin": "...", "meaning": "...", "sino_vietnamese": "..."}]}. "pinyin" is Hanyu Pinyin with tone marks (e.g. hǎo). "meaning" is a short English gloss, a few words. "sino_vietnamese" is the standard Sino-Vietnamese (Hán Việt) reading, lowercase Vietnamese with correct diacritics (e.g. hảo). "components" is the ordered list of bushou (radical/graphical components, e.g. 女+子 for 好) that combine to form the character, each with its own pinyin/meaning/sino_vietnamese in the same style; if the character is itself a single indivisible radical, components can be an empty array. If given more than one character or something unrecognized, respond with {"pinyin": "", "meaning": "", "sino_vietnamese": "", "components": []}.',
-          messages: [{ role: "user", content: target }],
-        }),
+        body: JSON.stringify({ char: target }),
       });
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || `Lookup failed (${response.status})`);
+      }
       const data = await response.json();
       const text = (data.content || []).map((b) => b.text || "").join("");
       const clean = text.replace(/```json|```/g, "").trim();
