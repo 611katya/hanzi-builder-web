@@ -307,6 +307,36 @@ const SEED_CHARACTERS = [
   { char: "们", pinyin: "men", meaning: "(plural marker)", sv: "môn", components: ["亻", "门"], lists: ["Cơ bản"] },
 ];
 
+/* ---------- Seed data: multi-character words ----------
+   A word is playable as long as EVERY character in it already exists in
+   characterList with its own components — those per-character radicals are
+   looked up live via buildCharGroups rather than duplicated here, so words
+   automatically become playable/unplayable as the underlying characters
+   are added, edited, or removed. */
+const SEED_WORDS = [
+  { word: "你好", chars: ["你", "好"], pinyin: "nǐ hǎo", meaning: "hello", sv: "nễ hảo", lists: ["Cơ bản"] },
+  { word: "你们", chars: ["你", "们"], pinyin: "nǐ men", meaning: "you (plural)", sv: "nễ môn", lists: ["Cơ bản"] },
+  { word: "他们", chars: ["他", "们"], pinyin: "tā men", meaning: "they, them", sv: "tha môn", lists: ["Cơ bản"] },
+  { word: "妈妈", chars: ["妈", "妈"], pinyin: "māma", meaning: "mom", sv: "ma ma", lists: ["Cơ bản"] },
+  { word: "汉语", chars: ["汉", "语"], pinyin: "hàn yǔ", meaning: "Chinese language", sv: "hán ngữ", lists: ["Cơ bản"] },
+  { word: "明星", chars: ["明", "星"], pinyin: "míng xīng", meaning: "celebrity, star", sv: "minh tinh", lists: ["Cơ bản"] },
+  { word: "花草", chars: ["花", "草"], pinyin: "huā cǎo", meaning: "flowers and plants", sv: "hoa thảo", lists: ["Cơ bản"] },
+  { word: "安家", chars: ["安", "家"], pinyin: "ān jiā", meaning: "to settle down, make a home", sv: "an gia", lists: ["Cơ bản"] },
+];
+
+// Looks up each character's own components from characterList. Returns null
+// (meaning "not playable yet") if any character is missing or is itself an
+// indivisible single component.
+function buildCharGroups(chars, characterList) {
+  const groups = [];
+  for (const ch of chars) {
+    const found = characterList.find((c) => c.char === ch);
+    if (!found || !Array.isArray(found.components) || found.components.length < 2) return null;
+    groups.push({ char: ch, components: found.components });
+  }
+  return groups;
+}
+
 /* ---------- Fonts + design tokens ---------- */
 const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
@@ -386,14 +416,17 @@ function getLists(c) {
 }
 
 /* ---------- Mizige (米字格) target grid — the signature element ---------- */
-function CharacterGrid({ children, state }) {
+function CharacterGrid({ children, state, size = 168 }) {
   const borderColor =
     state === "correct" ? COLORS.bamboo : state === "wrong" ? COLORS.error : state === "revealed" ? COLORS.gold : COLORS.grid;
+  const mid = size / 2;
+  const inset = size * 0.024; // matches the original 4px inset at 168px
+  const far = size - inset;
   return (
     <div
       style={{
-        width: 168,
-        height: 168,
+        width: size,
+        height: size,
         position: "relative",
         border: `2.5px solid ${borderColor}`,
         background: COLORS.card,
@@ -404,14 +437,14 @@ function CharacterGrid({ children, state }) {
       }}
     >
       <svg
-        width="168"
-        height="168"
+        width={size}
+        height={size}
         style={{ position: "absolute", inset: 0, opacity: 0.55 }}
       >
-        <line x1="84" y1="4" x2="84" y2="164" stroke={COLORS.grid} strokeWidth="1" strokeDasharray="4 4" />
-        <line x1="4" y1="84" x2="164" y2="84" stroke={COLORS.grid} strokeWidth="1" strokeDasharray="4 4" />
-        <line x1="4" y1="4" x2="164" y2="164" stroke={COLORS.grid} strokeWidth="1" strokeDasharray="3 5" />
-        <line x1="164" y1="4" x2="4" y2="164" stroke={COLORS.grid} strokeWidth="1" strokeDasharray="3 5" />
+        <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="4 4" />
+        <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="4 4" />
+        <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="3 5" />
+        <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="3 5" />
       </svg>
       <div
         style={{
@@ -827,47 +860,75 @@ function Tabs({ tab, setTab }) {
 const REVIEW_LIST_VALUE = "__needs_review__";
 
 function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview }) {
-  const [round, setRound] = useState(null); // { target, palette: [{id,char}], correctIds }
-  const [selected, setSelected] = useState([]); // array of palette ids
+  const [round, setRound] = useState(null); // { target, palette: [{id,char}] }
+  const [selected, setSelected] = useState([]); // array of palette ids, in click order
   const [status, setStatus] = useState("playing"); // playing | correct | wrong | revealed
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [selectedList, setSelectedList] = useState("Tất cả");
   const usedRef = useRef(new Set());
 
-  const allLists = useMemo(() => {
-    const set = new Set();
-    characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  // Every playable "thing" - single characters and multi-character words -
+  // normalized into one shape: { key, display, pinyin, meaning, sv, lists,
+  // charGroups }. charGroups has one entry per character to build, each
+  // with its own required components — this is what lets a word render as
+  // several boxes instead of one.
+  const allCandidates = useMemo(() => {
+    const singles = characterList.map((c) => ({
+      key: c.char,
+      display: c.char,
+      pinyin: c.pinyin,
+      meaning: c.meaning,
+      sv: c.sv,
+      lists: getLists(c),
+      charGroups: buildCharGroups([c.char], characterList),
+    }));
+    const words = SEED_WORDS.map((w) => ({
+      key: w.word,
+      display: w.word,
+      pinyin: w.pinyin,
+      meaning: w.meaning,
+      sv: w.sv || "",
+      lists: w.lists || ["Cơ bản"],
+      charGroups: buildCharGroups(w.chars, characterList),
+    }));
+    return [...singles, ...words].filter((item) => item.charGroups !== null);
   }, [characterList]);
 
+  const allLists = useMemo(() => {
+    const set = new Set();
+    allCandidates.forEach((c) => c.lists.forEach((l) => set.add(l.trim())));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [allCandidates]);
+
   const playable = useMemo(() => {
-    return characterList.filter((c) => {
-      if (!Array.isArray(c.components) || c.components.length < 2) return false;
-      if (selectedList === REVIEW_LIST_VALUE) return needsReview.includes(c.char);
+    return allCandidates.filter((c) => {
+      if (selectedList === REVIEW_LIST_VALUE) return needsReview.includes(c.key);
       if (selectedList === "Tất cả") return true;
-      return getLists(c).some((l) => l.trim() === selectedList);
+      return c.lists.some((l) => l.trim() === selectedList);
     });
-  }, [characterList, selectedList, needsReview]);
+  }, [allCandidates, selectedList, needsReview]);
 
   const buildRound = useCallback(() => {
     if (playable.length === 0) {
       setRound(null);
       return;
     }
-    let pool = playable.filter((c) => !usedRef.current.has(c.char));
+    let pool = playable.filter((c) => !usedRef.current.has(c.key));
     if (pool.length === 0) {
       usedRef.current = new Set();
       pool = playable;
     }
     const target = pool[Math.floor(Math.random() * pool.length)];
-    usedRef.current.add(target.char);
+    usedRef.current.add(target.key);
 
-    const correctChips = target.components.map((ch) => ({ id: uid(), char: ch, correct: true }));
+    const neededComponents = target.charGroups.flatMap((g) => g.components);
+    const correctChips = neededComponents.map((ch) => ({ id: uid(), char: ch, correct: true }));
 
     const PALETTE_SIZE = 36;
-    const distractPool = shuffle(bushouList.filter((b) => !target.components.includes(b.char)));
-    const distractCount = Math.min(distractPool.length, Math.max(0, PALETTE_SIZE - target.components.length));
+    const neededSet = new Set(neededComponents);
+    const distractPool = shuffle(bushouList.filter((b) => !neededSet.has(b.char)));
+    const distractCount = Math.min(distractPool.length, Math.max(0, PALETTE_SIZE - neededComponents.length));
     const distractChips = distractPool.slice(0, distractCount).map((b) => ({ id: uid(), char: b.char, correct: false }));
 
     setRound({ target, palette: shuffle([...correctChips, ...distractChips]) });
@@ -915,7 +976,12 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
   }
 
   const { target, palette } = round;
-  const selectedChips = selected.map((id) => palette.find((p) => p.id === id));
+
+  // Cumulative index boundaries so we know which selected chips belong to
+  // which box: box i owns selected[boundaries[i] .. boundaries[i+1]).
+  const boundaries = [0];
+  target.charGroups.forEach((g) => boundaries.push(boundaries[boundaries.length - 1] + g.components.length));
+  const totalNeeded = boundaries[boundaries.length - 1];
 
   function multisetEqual(a, b) {
     if (a.length !== b.length) return false;
@@ -925,18 +991,25 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
     return Object.keys(ca).every((k) => ca[k] === cb[k]) && Object.keys(cb).length === Object.keys(ca).length;
   }
 
+  function selectedCharsForBox(i, fromList) {
+    return fromList.slice(boundaries[i], boundaries[i + 1]).map((pid) => palette.find((p) => p.id === pid).char);
+  }
+
+  // Per-box correctness, used both for the final overall result and for
+  // coloring each box individually (a word can be half-right).
+  const boxCorrectness = target.charGroups.map((g, i) => multisetEqual(selectedCharsForBox(i, selected), g.components));
+
   function handleChipClick(id) {
     if (status !== "playing") return;
     const next = [...selected, id];
     setSelected(next);
-    if (next.length === target.components.length) {
-      const chosenChars = next.map((pid) => palette.find((p) => p.id === pid).char);
-      const isCorrect = multisetEqual(chosenChars, target.components);
-      if (isCorrect) {
+    if (next.length === totalNeeded) {
+      const allCorrect = target.charGroups.every((g, i) => multisetEqual(selectedCharsForBox(i, next), g.components));
+      if (allCorrect) {
         setStatus("correct");
-        setScore((s) => s + 10);
+        setScore((s) => s + 10 * target.charGroups.length);
         setStreak((s) => s + 1);
-        onClearNeedsReview && onClearNeedsReview(target.char);
+        onClearNeedsReview && onClearNeedsReview(target.key);
       } else {
         setStatus("wrong");
         setStreak(0);
@@ -954,8 +1027,11 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
     setSelected([]);
     setStatus("revealed");
     setStreak(0);
-    onMarkNeedsReview && onMarkNeedsReview(target.char);
+    onMarkNeedsReview && onMarkNeedsReview(target.key);
   }
+
+  const answerBreakdown = target.charGroups.map((g) => `${g.components.join(" + ")} = ${g.char}`).join(", ");
+  const isWord = target.charGroups.length > 1;
 
   return (
     <div>
@@ -964,7 +1040,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         <span>Điểm: <strong style={{ color: COLORS.ink }}>{score}</strong></span>
         <span>Chuỗi đúng: <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
         <span>
-          {playable.length} chữ có thể học
+          {playable.length} {isWord || playable.some((p) => p.charGroups.length > 1) ? "mục" : "chữ"} có thể học
           {selectedList === REVIEW_LIST_VALUE ? " (🔁 Cần ôn lại)" : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
         </span>
       </div>
@@ -983,41 +1059,59 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
         <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, color: COLORS.ink }}>
           {target.meaning}
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 8, fontSize: 14.5 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 8, fontSize: 14.5, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{target.pinyin}</strong></span>
-          <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>
+          {target.sv && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>}
         </div>
       </div>
 
-      {/* Build area */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-        <CharacterGrid state={status}>
-          {status === "correct" ? (
-            <div className="pop" style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
-              {target.char}
-            </div>
-          ) : status === "revealed" ? (
-            <div className="pop" style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 78, color: COLORS.bamboo }}>
-              {target.char}
-            </div>
-          ) : selectedChips.length === 0 ? (
-            <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>chọn<br />bộ thủ bên dưới</div>
-          ) : (
-            selectedChips.map((c, i) => (
-              <span key={i} style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 40, color: status === "wrong" ? COLORS.error : COLORS.ink }}>
-                {c.char}
-              </span>
-            ))
-          )}
-        </CharacterGrid>
+      {/* Build area: one box per character in the word */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+        {target.charGroups.map((g, i) => {
+          const boxState =
+            status === "correct" || status === "revealed"
+              ? status
+              : status === "wrong"
+              ? boxCorrectness[i]
+                ? "correct"
+                : "wrong"
+              : "playing";
+          const charsInBox = selectedCharsForBox(i, selected);
+          return (
+            <CharacterGrid key={i} state={boxState} size={isWord ? 110 : 168}>
+              {status === "correct" || status === "revealed" ? (
+                <div className="pop" style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: isWord ? 54 : 78, color: COLORS.bamboo }}>
+                  {g.char}
+                </div>
+              ) : charsInBox.length === 0 ? (
+                i === 0 ? (
+                  <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>chọn<br />bộ thủ bên dưới</div>
+                ) : null
+              ) : (
+                charsInBox.map((ch, ci) => (
+                  <span
+                    key={ci}
+                    style={{
+                      fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                      fontSize: isWord ? 26 : 40,
+                      color: status === "wrong" && !boxCorrectness[i] ? COLORS.error : COLORS.ink,
+                    }}
+                  >
+                    {ch}
+                  </span>
+                ))
+              )}
+            </CharacterGrid>
+          );
+        })}
       </div>
 
       <div style={{ textAlign: "center", minHeight: 22, marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
-        {status === "correct" && <span style={{ color: COLORS.gold }}>✓ Chính xác! {target.char} ({target.pinyin}) — {target.meaning}</span>}
-        {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {target.components.join(" + ")} = {target.char}</span>}
+        {status === "correct" && <span style={{ color: COLORS.gold }}>✓ Chính xác! {target.display} ({target.pinyin}) — {target.meaning}</span>}
+        {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {answerBreakdown}</span>}
         {status === "revealed" && (
           <span style={{ color: COLORS.gold }}>
-            💡 Đáp án: {target.components.join(" + ")} = {target.char} ({target.pinyin}) — {target.meaning}, Hán Việt: {target.sv}
+            💡 Đáp án: {answerBreakdown} ({target.pinyin}) — {target.meaning}{target.sv ? `, Hán Việt: ${target.sv}` : ""}
           </span>
         )}
       </div>
