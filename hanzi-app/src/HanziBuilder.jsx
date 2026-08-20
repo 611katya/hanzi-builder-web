@@ -265,6 +265,21 @@ const SEED_BUSHOU = [
   { char: "鼻", pinyin: "bí", meaning: "nose", sv: "tị", strokes: 14 },
   // 17 strokes
   { char: "龠", pinyin: "yuè", meaning: "flute, pipes", sv: "thược", strokes: 17 },
+  // added for advanced vocabulary (管辖/削弱/局面/执掌/支持/采纳/竞相/序幕)
+  { char: "官", pinyin: "guān", meaning: "official", sv: "quan", strokes: 8 },
+  { char: "害", pinyin: "hài", meaning: "harm", sv: "hại", strokes: 10 },
+  { char: "肖", pinyin: "xiào", meaning: "resemble", sv: "tiếu", strokes: 7 },
+  { char: "刂", pinyin: "dāo", meaning: "knife (side form)", sv: "đao", strokes: 2 },
+  { char: "句", pinyin: "jù", meaning: "sentence, phrase", sv: "cú", strokes: 5 },
+  { char: "九", pinyin: "jiǔ", meaning: "nine", sv: "cửu", strokes: 2 },
+  { char: "尚", pinyin: "shàng", meaning: "still, to esteem", sv: "thượng", strokes: 8 },
+  { char: "寺", pinyin: "sì", meaning: "temple", sv: "tự", strokes: 6 },
+  { char: "爫", pinyin: "zhǎo", meaning: "claw (top form)", sv: "trảo", strokes: 4 },
+  { char: "内", pinyin: "nèi", meaning: "inside", sv: "nội", strokes: 4 },
+  { char: "予", pinyin: "yǔ", meaning: "to give", sv: "dư", strokes: 4 },
+  { char: "莫", pinyin: "mò", meaning: "do not, none", sv: "mạc", strokes: 10 },
+  { char: "丆", pinyin: "hàn", meaning: "slanting stroke (variant top)", sv: "hán", strokes: 2 },
+  { char: "由", pinyin: "yóu", meaning: "from, cause", sv: "do", strokes: 5 },
 ];
 
 /* ---------- Seed data: complete characters ---------- */
@@ -305,6 +320,27 @@ const SEED_CHARACTERS = [
   { char: "你", pinyin: "nǐ", meaning: "you", sv: "nễ", components: ["亻", "尔"], lists: ["Cơ bản"] },
   { char: "他", pinyin: "tā", meaning: "he, him", sv: "tha", components: ["亻", "也"], lists: ["Cơ bản"] },
   { char: "们", pinyin: "men", meaning: "(plural marker)", sv: "môn", components: ["亻", "门"], lists: ["Cơ bản"] },
+  // advanced vocabulary, added for 管辖/削弱/局面/执掌/支持/采纳/竞相/序幕
+  { char: "管", pinyin: "guǎn", meaning: "tube; to manage, administer", sv: "quản", components: ["竹", "官"], lists: ["Nâng cao"] },
+  { char: "辖", pinyin: "xiá", meaning: "to govern, have jurisdiction", sv: "hạt", components: ["车", "害"], lists: ["Nâng cao"] },
+  { char: "削", pinyin: "xuē", meaning: "to pare, cut down", sv: "tước", components: ["肖", "刂"], lists: ["Nâng cao"] },
+  { char: "弱", pinyin: "ruò", meaning: "weak", sv: "nhược", components: ["弓", "冫", "弓", "冫"], lists: ["Nâng cao"] },
+  { char: "局", pinyin: "jú", meaning: "situation; bureau, office", sv: "cục", components: ["尸", "句"], lists: ["Nâng cao"] },
+  // note: 面 is technically an atomic Kangxi radical with no standard sub-decomposition —
+  // this split is a visual/mnemonic aid for this app only, not classical etymology.
+  { char: "面", pinyin: "miàn", meaning: "face; aspect", sv: "diện", components: ["丆", "由"], lists: ["Nâng cao"] },
+  // note: 执's classical form is 幸+丸; this uses the common simplified-handwriting
+  // visual split (扌+九) as a memorable approximation.
+  { char: "执", pinyin: "zhí", meaning: "to hold, carry out", sv: "chấp", components: ["扌", "九"], lists: ["Nâng cao"] },
+  { char: "掌", pinyin: "zhǎng", meaning: "palm; to be in charge of", sv: "chưởng", components: ["尚", "手"], lists: ["Nâng cao"] },
+  { char: "支", pinyin: "zhī", meaning: "branch; to support", sv: "chi", components: ["十", "又"], lists: ["Nâng cao"] },
+  { char: "持", pinyin: "chí", meaning: "to hold, maintain", sv: "trì", components: ["扌", "寺"], lists: ["Nâng cao"] },
+  { char: "采", pinyin: "cǎi", meaning: "to pick, gather", sv: "thái", components: ["爫", "木"], lists: ["Nâng cao"] },
+  { char: "纳", pinyin: "nà", meaning: "to admit, accept", sv: "nạp", components: ["纟", "内"], lists: ["Nâng cao"] },
+  // note: 竞's classical form merges 立+兄; this uses a common simplified visual split.
+  { char: "竞", pinyin: "jìng", meaning: "to compete", sv: "cạnh", components: ["立", "儿"], lists: ["Nâng cao"] },
+  { char: "序", pinyin: "xù", meaning: "order; preface", sv: "tự", components: ["广", "予"], lists: ["Nâng cao"] },
+  { char: "幕", pinyin: "mù", meaning: "curtain, screen", sv: "mạc", components: ["莫", "巾"], lists: ["Nâng cao"] },
 ];
 
 /* ---------- Seed data: multi-character words ----------
@@ -314,14 +350,14 @@ const SEED_CHARACTERS = [
    automatically become playable/unplayable as the underlying characters
    are added, edited, or removed. */
 const SEED_WORDS = [
-  { word: "你好", chars: ["你", "好"], pinyin: "nǐ hǎo", meaning: "hello", sv: "nễ hảo", lists: ["Cơ bản"] },
-  { word: "你们", chars: ["你", "们"], pinyin: "nǐ men", meaning: "you (plural)", sv: "nễ môn", lists: ["Cơ bản"] },
-  { word: "他们", chars: ["他", "们"], pinyin: "tā men", meaning: "they, them", sv: "tha môn", lists: ["Cơ bản"] },
-  { word: "妈妈", chars: ["妈", "妈"], pinyin: "māma", meaning: "mom", sv: "ma ma", lists: ["Cơ bản"] },
-  { word: "汉语", chars: ["汉", "语"], pinyin: "hàn yǔ", meaning: "Chinese language", sv: "hán ngữ", lists: ["Cơ bản"] },
-  { word: "明星", chars: ["明", "星"], pinyin: "míng xīng", meaning: "celebrity, star", sv: "minh tinh", lists: ["Cơ bản"] },
-  { word: "花草", chars: ["花", "草"], pinyin: "huā cǎo", meaning: "flowers and plants", sv: "hoa thảo", lists: ["Cơ bản"] },
-  { word: "安家", chars: ["安", "家"], pinyin: "ān jiā", meaning: "to settle down, make a home", sv: "an gia", lists: ["Cơ bản"] },
+  { word: "管辖", chars: ["管", "辖"], pinyin: "guǎnxiá", meaning: "to have jurisdiction over, administer", sv: "quản hạt", lists: ["Nâng cao"] },
+  { word: "削弱", chars: ["削", "弱"], pinyin: "xuēruò", meaning: "to weaken", sv: "tước nhược", lists: ["Nâng cao"] },
+  { word: "局面", chars: ["局", "面"], pinyin: "júmiàn", meaning: "situation, aspect", sv: "cục diện", lists: ["Nâng cao"] },
+  { word: "执掌", chars: ["执", "掌"], pinyin: "zhízhǎng", meaning: "to take charge of, wield", sv: "chấp chưởng", lists: ["Nâng cao"] },
+  { word: "支持", chars: ["支", "持"], pinyin: "zhīchí", meaning: "to support", sv: "chi trì", lists: ["Nâng cao"] },
+  { word: "采纳", chars: ["采", "纳"], pinyin: "cǎinà", meaning: "to adopt, accept (advice)", sv: "thái nạp", lists: ["Nâng cao"] },
+  { word: "竞相", chars: ["竞", "相"], pinyin: "jìngxiāng", meaning: "to vie with one another", sv: "cạnh tương", lists: ["Nâng cao"] },
+  { word: "序幕", chars: ["序", "幕"], pinyin: "xùmù", meaning: "prologue, prelude", sv: "tự mạc", lists: ["Nâng cao"] },
 ];
 
 // Looks up each character's own components from characterList. Returns null
