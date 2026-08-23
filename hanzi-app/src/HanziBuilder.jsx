@@ -1839,6 +1839,10 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
     setListTypeahead("");
   }
 
+  function toggleList(name) {
+    setSelectedLists((prev) => (prev.includes(name) ? prev.filter((l) => l !== name) : [...prev, name]));
+  }
+
   function removeList(name) {
     setSelectedLists((prev) => prev.filter((l) => l !== name));
   }
@@ -2037,6 +2041,29 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                   <option key={l} value={l} />
                 ))}
               </datalist>
+              {existingLists.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                  {existingLists.map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => toggleList(l)}
+                      style={{
+                        fontSize: 11.5,
+                        padding: "3px 9px",
+                        borderRadius: 999,
+                        border: `1px solid ${selectedLists.includes(l) ? COLORS.seal : COLORS.grid}`,
+                        background: selectedLists.includes(l) ? "rgba(85,107,47,0.08)" : "transparent",
+                        color: selectedLists.includes(l) ? COLORS.seal : COLORS.inkSoft,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {selectedLists.includes(l) ? "✓ " : ""}
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </FieldRow>
 
