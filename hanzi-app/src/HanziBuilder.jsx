@@ -2058,9 +2058,9 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                 Từ của bạn ({customWords.length})
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {customWords.map((w) => (
+                {customWords.map((w, idx) => (
                   <div
-                    key={w.word}
+                    key={`${w.word}-${idx}`}
                     style={{
                       display: "flex",
                       alignItems: "center",
