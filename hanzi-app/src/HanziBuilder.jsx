@@ -432,6 +432,27 @@ function charToRow(c, userId) {
     lists: c.lists || [],
   };
 }
+function rowToWord(row) {
+  return {
+    word: row.word,
+    chars: row.chars || [],
+    pinyin: row.pinyin,
+    meaning: row.meaning,
+    sv: row.sv,
+    lists: row.lists || [],
+  };
+}
+function wordToRow(w, userId) {
+  return {
+    user_id: userId,
+    word: w.word,
+    chars: w.chars || [],
+    pinyin: w.pinyin,
+    meaning: w.meaning,
+    sv: w.sv,
+    lists: w.lists || [],
+  };
+}
 
 function shuffle(arr) {
   const a = [...arr];
@@ -595,6 +616,7 @@ export default function HanziBuilder({ userId }) {
 function HanziBuilderApp({ userId }) {
   const [customBushou, setCustomBushou] = useState([]);
   const [customChars, setCustomChars] = useState([]);
+  const [customWords, setCustomWords] = useState([]);
   const [deletedChars, setDeletedChars] = useState([]);
   const [needsReview, setNeedsReview] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -616,9 +638,10 @@ function HanziBuilderApp({ userId }) {
     let cancelled = false;
 
     (async () => {
-      const [bushouRes, charsRes, deletedRes, reviewRes] = await Promise.all([
+      const [bushouRes, charsRes, wordsRes, deletedRes, reviewRes] = await Promise.all([
         supabase.from("custom_bushou").select("*").eq("user_id", userId),
         supabase.from("custom_characters").select("*").eq("user_id", userId),
+        supabase.from("custom_words").select("*").eq("user_id", userId),
         supabase.from("deleted_characters").select("char").eq("user_id", userId),
         supabase.from("needs_review").select("char").eq("user_id", userId),
       ]);
@@ -630,6 +653,9 @@ function HanziBuilderApp({ userId }) {
 
       if (charsRes.error) console.error("Load characters failed:", charsRes.error);
       else setCustomChars(charsRes.data.map(rowToChar));
+
+      if (wordsRes.error) console.error("Load words failed:", wordsRes.error);
+      else setCustomWords(wordsRes.data.map(rowToWord));
 
       if (deletedRes.error) console.error("Load deleted list failed:", deletedRes.error);
       else setDeletedChars(deletedRes.data.map((r) => r.char));
@@ -711,6 +737,31 @@ function HanziBuilderApp({ userId }) {
     [userId]
   );
 
+  const addWordRow = useCallback(
+    async (entry) => {
+      setCustomWords((prev) => {
+        const without = prev.filter((w) => w.word !== entry.word);
+        return [...without, entry];
+      });
+      if (!userId) return; // guest mode: keep in memory only, nothing to save
+      const { error } = await supabase
+        .from("custom_words")
+        .upsert(wordToRow(entry, userId), { onConflict: "user_id,word" });
+      if (error) console.error("Could not save word:", error);
+    },
+    [userId]
+  );
+
+  const deleteWordRow = useCallback(
+    async (word) => {
+      setCustomWords((prev) => prev.filter((w) => w.word !== word));
+      if (!userId) return; // guest mode: keep in memory only, nothing to save
+      const { error } = await supabase.from("custom_words").delete().eq("user_id", userId).eq("word", word);
+      if (error) console.error("Could not delete word:", error);
+    },
+    [userId]
+  );
+
   const persistNeedsReview = useCallback(
     async (next, char, adding) => {
       setNeedsReview(next);
@@ -744,6 +795,12 @@ function HanziBuilderApp({ userId }) {
     deletedChars.forEach((ch) => map.delete(ch));
     return Array.from(map.values());
   }, [customChars, deletedChars]);
+
+  const wordList = useMemo(() => {
+    const map = new Map();
+    [...SEED_WORDS, ...customWords].forEach((w) => map.set(w.word, w));
+    return Array.from(map.values());
+  }, [customWords]);
 
   const findBushou = useCallback(
     (ch) => bushouList.find((b) => b.char === ch) || { char: ch, pinyin: "—", meaning: "unknown", sv: "—" },
@@ -791,6 +848,7 @@ function HanziBuilderApp({ userId }) {
         ) : tab === "play" ? (
           <PlayTab
             characterList={characterList}
+            wordList={wordList}
             bushouList={bushouList}
             findBushou={findBushou}
             needsReview={needsReview}
@@ -806,10 +864,14 @@ function HanziBuilderApp({ userId }) {
           <AddTab
             bushouList={bushouList}
             characterList={characterList}
+            wordList={wordList}
+            customWords={customWords}
             onAddCharacter={addCharacterRow}
             onAddBushou={addBushouRow}
             onUpdateCharacter={updateCharacterRow}
             onDeleteCharacter={deleteCharacterRow}
+            onAddWord={addWordRow}
+            onDeleteWord={deleteWordRow}
           />
         ) : (
           <RadicalsTab bushouList={bushouList} />
@@ -895,7 +957,7 @@ function Tabs({ tab, setTab }) {
 /* ================= PLAY TAB ================= */
 const REVIEW_LIST_VALUE = "__needs_review__";
 
-function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview }) {
+function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview }) {
   const [round, setRound] = useState(null); // { target, palette: [{id,char}] }
   const [selected, setSelected] = useState([]); // array of palette ids, in click order
   const [status, setStatus] = useState("playing"); // playing | correct | wrong | revealed
@@ -919,7 +981,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       lists: getLists(c),
       charGroups: buildCharGroups([c.char], characterList),
     }));
-    const words = SEED_WORDS.map((w) => ({
+    const words = wordList.map((w) => ({
       key: w.word,
       display: w.word,
       pinyin: w.pinyin,
@@ -929,7 +991,7 @@ function PlayTab({ characterList, bushouList, findBushou, needsReview, onMarkNee
       charGroups: buildCharGroups(w.chars, characterList),
     }));
     return [...singles, ...words].filter((item) => item.charGroups !== null);
-  }, [characterList]);
+  }, [characterList, wordList]);
 
   const allLists = useMemo(() => {
     const set = new Set();
@@ -1215,10 +1277,14 @@ const sealBtnStyle = {
 function AddTab({
   bushouList,
   characterList,
+  wordList,
+  customWords,
   onAddCharacter,
   onAddBushou,
   onUpdateCharacter,
   onDeleteCharacter,
+  onAddWord,
+  onDeleteWord,
 }) {
   const [charInput, setCharInput] = useState("");
   const [meaning, setMeaning] = useState("");
@@ -1623,6 +1689,17 @@ function AddTab({
         </div>
       </div>
 
+      <AddWordPanel
+        characterList={characterList}
+        wordList={wordList}
+        customWords={customWords}
+        bushouList={bushouList}
+        onAddCharacter={onAddCharacter}
+        onAddBushou={onAddBushou}
+        onAddWord={onAddWord}
+        onDeleteWord={onDeleteWord}
+      />
+
       <CharacterListPanel
         characterList={characterList}
         bushouList={bushouList}
@@ -1630,6 +1707,326 @@ function AddTab({
         onUpdateCharacter={onUpdateCharacter}
         onAddBushou={onAddBushou}
       />
+    </div>
+  );
+}
+
+/* ---------- Add word: build a multi-character word from characters that
+   already exist (or can be auto-filled on the spot), tag it with lists,
+   and save it. Only shows/manages the current user's own custom words —
+   the built-in seed words aren't editable here. ---------- */
+function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord }) {
+  const [expanded, setExpanded] = useState(false);
+  const [wordInput, setWordInput] = useState("");
+  const [pinyin, setPinyin] = useState("");
+  const [meaning, setMeaning] = useState("");
+  const [sv, setSv] = useState("");
+  const [selectedLists, setSelectedLists] = useState([]);
+  const [listTypeahead, setListTypeahead] = useState("");
+  const [message, setMessage] = useState(null);
+  const [charStatus, setCharStatus] = useState({}); // char -> "loading" | "error"
+
+  const chars = Array.from(wordInput).filter((ch) => /[\u4e00-\u9fff]/.test(ch));
+  const uniqueChars = Array.from(new Set(chars));
+
+  function charInfo(ch) {
+    const found = characterList.find((c) => c.char === ch);
+    const ready = !!(found && Array.isArray(found.components) && found.components.length >= 2);
+    return { found, ready };
+  }
+
+  const allReady = chars.length >= 2 && uniqueChars.every((ch) => charInfo(ch).ready);
+
+  const existingLists = useMemo(() => {
+    const set = new Set();
+    wordList.forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [wordList]);
+
+  async function handleAutoFillChar(ch) {
+    setCharStatus((prev) => ({ ...prev, [ch]: "loading" }));
+    try {
+      const response = await fetch("/.netlify/functions/lookup-character", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ char: ch }),
+      });
+      if (!response.ok) throw new Error(`lookup failed (${response.status})`);
+      const data = await response.json();
+      const text = (data.content || []).map((b) => b.text || "").join("");
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      if (!parsed.pinyin && !parsed.meaning && !parsed.sino_vietnamese) throw new Error("no data returned");
+
+      const compChars = [];
+      (parsed.components || []).forEach((comp) => {
+        if (!comp || !comp.char) return;
+        compChars.push(comp.char);
+        const alreadyKnown = bushouList.some((b) => b.char === comp.char);
+        if (!alreadyKnown && comp.pinyin && comp.meaning && comp.sino_vietnamese) {
+          onAddBushou({ char: comp.char, pinyin: comp.pinyin, meaning: comp.meaning, sv: comp.sino_vietnamese });
+        }
+      });
+
+      await onAddCharacter({
+        char: ch,
+        pinyin: parsed.pinyin || "",
+        meaning: parsed.meaning || "",
+        sv: parsed.sino_vietnamese || "",
+        components: compChars,
+        lists: ["Chưa phân loại"],
+      });
+      setCharStatus((prev) => {
+        const next = { ...prev };
+        delete next[ch];
+        return next;
+      });
+    } catch (err) {
+      console.error(`Auto-fill failed for "${ch}":`, err);
+      setCharStatus((prev) => ({ ...prev, [ch]: "error" }));
+    }
+  }
+
+  function addList(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSelectedLists((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    setListTypeahead("");
+  }
+
+  function removeList(name) {
+    setSelectedLists((prev) => prev.filter((l) => l !== name));
+  }
+
+  function handleSaveWord() {
+    setMessage(null);
+    const word = chars.join("");
+    if (chars.length < 2) {
+      setMessage({ type: "error", text: "Từ cần có ít nhất 2 chữ Hán." });
+      return;
+    }
+    if (!allReady) {
+      setMessage({ type: "error", text: "Mỗi chữ trong từ cần có bộ thủ trước — dùng nút \"Tự động điền\" bên dưới cho những chữ còn thiếu." });
+      return;
+    }
+    if (!pinyin.trim() || !meaning.trim()) {
+      setMessage({ type: "error", text: "Vui lòng điền pinyin và nghĩa của từ." });
+      return;
+    }
+    if (wordList.some((w) => w.word === word)) {
+      setMessage({ type: "error", text: `Từ "${word}" đã có trong kho dữ liệu.` });
+      return;
+    }
+    const listsToSave = selectedLists.length > 0 ? selectedLists : ["Chưa phân loại"];
+    onAddWord({ word, chars, pinyin: pinyin.trim(), meaning: meaning.trim(), sv: sv.trim(), lists: listsToSave });
+    setMessage({ type: "success", text: `Đã thêm từ "${word}"!` });
+    setWordInput("");
+    setPinyin("");
+    setMeaning("");
+    setSv("");
+  }
+
+  return (
+    <div
+      style={{
+        background: "rgba(89,89,0,0.05)",
+        border: `1px dashed ${COLORS.gold}`,
+        borderRadius: 8,
+        padding: "12px 14px",
+        marginBottom: 18,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        style={{
+          width: "100%",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: 12.5,
+          fontWeight: 700,
+          color: COLORS.gold,
+          textTransform: "uppercase",
+          letterSpacing: 0.6,
+          textAlign: "center",
+        }}
+      >
+        {expanded ? "▲" : "▼"} Thêm từ nhiều chữ (vd: 你好)
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>
+            Gõ một từ có từ 2 chữ Hán trở lên. Mỗi chữ trong từ cần có bộ thủ cấu thành — nếu chữ chưa có sẵn,
+            bấm nút tự động điền ngay bên dưới ô để tra cứu và lưu chữ đó trước.
+          </div>
+
+          <input
+            value={wordInput}
+            onChange={(e) => setWordInput(e.target.value)}
+            placeholder="例：你好"
+            style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20, width: "100%", boxSizing: "border-box", marginBottom: 10 }}
+          />
+
+          {uniqueChars.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+              {uniqueChars.map((ch) => {
+                const { ready } = charInfo(ch);
+                const status = charStatus[ch];
+                return (
+                  <div
+                    key={ch}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 10px",
+                      borderRadius: 6,
+                      border: `1.5px solid ${ready ? COLORS.bamboo : COLORS.error}`,
+                      background: COLORS.chipBg,
+                    }}
+                  >
+                    <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20 }}>{ch}</span>
+                    {ready ? (
+                      <span style={{ fontSize: 11, color: COLORS.bamboo, fontWeight: 600 }}>✓ sẵn sàng</span>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 11, color: COLORS.error }}>chưa có bộ thủ</span>
+                        <button
+                          type="button"
+                          onClick={() => handleAutoFillChar(ch)}
+                          disabled={status === "loading"}
+                          className="ghost-btn"
+                          style={{ ...ghostBtnStyle, padding: "3px 8px", fontSize: 10.5, borderColor: COLORS.gold, color: COLORS.gold }}
+                        >
+                          {status === "loading" ? "Đang tra…" : "🔍 Tự động điền"}
+                        </button>
+                      </>
+                    )}
+                    {status === "error" && <span style={{ fontSize: 10.5, color: COLORS.error }}>thất bại</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <FieldRow label="Pinyin cả từ">
+            <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder="nǐ hǎo" style={inputStyle} />
+          </FieldRow>
+          <FieldRow label="Nghĩa cả từ">
+            <input value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder="hello" style={inputStyle} />
+          </FieldRow>
+          <FieldRow label="Hán Việt (tùy chọn)">
+            <input value={sv} onChange={(e) => setSv(e.target.value)} placeholder="nễ hảo" style={inputStyle} />
+          </FieldRow>
+
+          <FieldRow label="Danh sách (Lists)">
+            <div style={{ flex: 1 }}>
+              {selectedLists.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                  {selectedLists.map((l) => (
+                    <span
+                      key={l}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: 12,
+                        padding: "3px 6px 3px 10px",
+                        borderRadius: 999,
+                        border: `1px solid ${COLORS.seal}`,
+                        background: "rgba(85,107,47,0.08)",
+                        color: COLORS.seal,
+                      }}
+                    >
+                      {l}
+                      <button
+                        type="button"
+                        onClick={() => removeList(l)}
+                        style={{ background: "none", border: "none", color: COLORS.seal, cursor: "pointer", fontSize: 12, lineHeight: 1, padding: 0 }}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={listTypeahead}
+                  onChange={(e) => setListTypeahead(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addList(listTypeahead);
+                    }
+                  }}
+                  placeholder="vd: Thành ngữ… rồi Enter"
+                  list="existing-word-lists"
+                  style={inputStyle}
+                />
+                <button type="button" onClick={() => addList(listTypeahead)} className="ghost-btn" style={ghostBtnStyle}>
+                  + Thêm
+                </button>
+              </div>
+              <datalist id="existing-word-lists">
+                {existingLists.map((l) => (
+                  <option key={l} value={l} />
+                ))}
+              </datalist>
+            </div>
+          </FieldRow>
+
+          {message && (
+            <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: message.type === "error" ? COLORS.error : COLORS.bamboo }}>
+              {message.text}
+            </div>
+          )}
+
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <button type="button" onClick={handleSaveWord} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 20px", fontSize: 13 }}>
+              Lưu từ
+            </button>
+          </div>
+
+          {customWords && customWords.length > 0 && (
+            <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px dashed ${COLORS.grid}` }}>
+              <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
+                Từ của bạn ({customWords.length})
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {customWords.map((w) => (
+                  <div
+                    key={w.word}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "5px 9px",
+                      borderRadius: 6,
+                      border: `1px solid ${COLORS.grid}`,
+                      background: COLORS.card,
+                      fontSize: 12,
+                    }}
+                  >
+                    <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 16 }}>{w.word}</span>
+                    <span style={{ color: COLORS.inkSoft }}>{w.meaning}</span>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteWord && onDeleteWord(w.word)}
+                      style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", fontSize: 12, padding: 0 }}
+                      title="Xóa từ này"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
