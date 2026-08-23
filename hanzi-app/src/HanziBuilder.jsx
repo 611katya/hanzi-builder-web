@@ -1725,6 +1725,8 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   const [listTypeahead, setListTypeahead] = useState("");
   const [message, setMessage] = useState(null);
   const [charStatus, setCharStatus] = useState({}); // char -> "loading" | "error"
+  const [wordLookupStatus, setWordLookupStatus] = useState("idle"); // idle | loading | error
+  const lastAutoFilledRef = useRef("");
 
   const chars = Array.from(wordInput).filter((ch) => /[\u4e00-\u9fff]/.test(ch));
   const uniqueChars = Array.from(new Set(chars));
@@ -1784,6 +1786,49 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
     } catch (err) {
       console.error(`Auto-fill failed for "${ch}":`, err);
       setCharStatus((prev) => ({ ...prev, [ch]: "error" }));
+    }
+  }
+
+  async function handleAutoFillWordMeta() {
+    const word = chars.join("");
+    if (!word) return;
+    setWordLookupStatus("loading");
+    try {
+      const response = await fetch("/.netlify/functions/lookup-word", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word }),
+      });
+      if (!response.ok) throw new Error(`lookup failed (${response.status})`);
+      const data = await response.json();
+      const text = (data.content || []).map((b) => b.text || "").join("");
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      if (parsed.pinyin) setPinyin(parsed.pinyin);
+      if (parsed.meaning) setMeaning(parsed.meaning);
+      if (parsed.sino_vietnamese) setSv(parsed.sino_vietnamese);
+      if (!parsed.pinyin && !parsed.meaning) {
+        setMessage({ type: "error", text: `Không tra được thông tin cho từ "${word}". Vui lòng nhập tay.` });
+      }
+      setWordLookupStatus("idle");
+    } catch (err) {
+      console.error("Word lookup failed:", err);
+      setWordLookupStatus("error");
+      setMessage({ type: "error", text: "Tra cứu từ thất bại. Vui lòng nhập tay pinyin / nghĩa / Hán Việt." });
+    }
+  }
+
+  // One button (or one blur of the word field) does everything: looks up
+  // pinyin/meaning/Hán Việt for the whole word, AND auto-fills any
+  // character in it that doesn't have components yet.
+  async function autoFillEverything() {
+    if (chars.length < 2) return;
+    setMessage(null);
+    lastAutoFilledRef.current = chars.join("");
+    await handleAutoFillWordMeta();
+    const missing = uniqueChars.filter((ch) => !charInfo(ch).ready);
+    for (const ch of missing) {
+      await handleAutoFillChar(ch);
     }
   }
 
@@ -1858,16 +1903,33 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       {expanded && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>
-            Gõ một từ có từ 2 chữ Hán trở lên. Mỗi chữ trong từ cần có bộ thủ cấu thành — nếu chữ chưa có sẵn,
-            bấm nút tự động điền ngay bên dưới ô để tra cứu và lưu chữ đó trước.
+            Gõ một từ có từ 2 chữ Hán trở lên, rồi rời khỏi ô (hoặc bấm nút) để tự động điền pinyin, nghĩa, Hán
+            Việt, và bộ thủ cho từng chữ còn thiếu — tất cả trong một bước.
           </div>
 
-          <input
-            value={wordInput}
-            onChange={(e) => setWordInput(e.target.value)}
-            placeholder="例：你好"
-            style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20, width: "100%", boxSizing: "border-box", marginBottom: 10 }}
-          />
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input
+              value={wordInput}
+              onChange={(e) => setWordInput(e.target.value)}
+              onBlur={() => {
+                const word = chars.join("");
+                if (word.length >= 2 && word !== lastAutoFilledRef.current && wordLookupStatus !== "loading") {
+                  autoFillEverything();
+                }
+              }}
+              placeholder="例：你好"
+              style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20 }}
+            />
+            <button
+              type="button"
+              onClick={autoFillEverything}
+              disabled={chars.length < 2 || wordLookupStatus === "loading"}
+              className="ghost-btn"
+              style={{ ...ghostBtnStyle, padding: "8px 12px", fontSize: 12.5, opacity: chars.length < 2 ? 0.4 : 1, whiteSpace: "nowrap" }}
+            >
+              {wordLookupStatus === "loading" ? "Đang tra…" : "🔍 Tự động điền"}
+            </button>
+          </div>
 
           {uniqueChars.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
@@ -1912,13 +1974,13 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
           )}
 
           <FieldRow label="Pinyin cả từ">
-            <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder="nǐ hǎo" style={inputStyle} />
+            <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
           </FieldRow>
           <FieldRow label="Nghĩa cả từ">
-            <input value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder="hello" style={inputStyle} />
+            <input value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
           </FieldRow>
           <FieldRow label="Hán Việt (tùy chọn)">
-            <input value={sv} onChange={(e) => setSv(e.target.value)} placeholder="nễ hảo" style={inputStyle} />
+            <input value={sv} onChange={(e) => setSv(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
           </FieldRow>
 
           <FieldRow label="Danh sách (Lists)">
