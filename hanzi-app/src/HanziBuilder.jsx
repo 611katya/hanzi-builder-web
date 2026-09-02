@@ -3046,6 +3046,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
 /* ---------- A single character card: view mode, edit mode, delete confirm ---------- */
 function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateCharacter, onAddBushou, allLists }) {
   const [mode, setMode] = useState("view"); // view | edit | confirmDelete
+  const [zoomed, setZoomed] = useState(false);
   const [meaning, setMeaning] = useState(c.meaning);
   const [pinyin, setPinyin] = useState(c.pinyin);
   const [sv, setSv] = useState(c.sv);
@@ -3139,6 +3140,31 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
         position: "relative",
       }}
     >
+      {mode !== "edit" && (
+        <button
+          type="button"
+          onClick={() => setZoomed(true)}
+          title="Phóng to để xem chi tiết"
+          style={{
+            position: "absolute",
+            top: 6,
+            left: 6,
+            width: 20,
+            height: 20,
+            lineHeight: "18px",
+            padding: 0,
+            fontSize: 11,
+            border: `1px solid ${COLORS.grid}`,
+            borderRadius: "50%",
+            background: COLORS.chipBg,
+            color: COLORS.sealDark,
+            cursor: "pointer",
+          }}
+        >
+          🔍
+        </button>
+      )}
+
       {mode !== "edit" && (
         <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
           <button
@@ -3356,7 +3382,13 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
           >
             {getLists(c).join(" · ")}
           </div>
-          <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 32, color: COLORS.ink }}>{c.char}</div>
+          <div
+            onClick={() => setZoomed(true)}
+            title="Bấm để phóng to"
+            style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 32, color: COLORS.ink, cursor: "pointer" }}
+          >
+            {c.char}
+          </div>
           <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{c.pinyin}</div>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{c.meaning}</div>
           <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {c.sv}</div>
@@ -3435,6 +3467,110 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
           )}
         </>
       )}
+
+      {zoomed && <CharacterZoomModal c={c} findBushou={findBushou} onClose={() => setZoomed(false)} />}
+    </div>
+  );
+}
+
+/* ---------- Full-screen study view for one character: big glyph in the
+   same mizige grid used during Play, plus pinyin/meaning/Hán Việt and each
+   component's own details, all at a much larger size than the card. ---------- */
+function CharacterZoomModal({ c, findBushou, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,28,10,0.55)",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: COLORS.card,
+          borderRadius: 14,
+          padding: "28px 24px",
+          width: "90%",
+          maxWidth: 420,
+          maxHeight: "85vh",
+          overflowY: "auto",
+          textAlign: "center",
+          position: "relative",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          title="Đóng"
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            width: 28,
+            height: 28,
+            lineHeight: "26px",
+            fontSize: 15,
+            border: `1px solid ${COLORS.grid}`,
+            borderRadius: "50%",
+            background: COLORS.chipBg,
+            color: COLORS.inkSoft,
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
+
+        <div style={{ fontSize: 11, color: COLORS.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 16 }}>
+          {getLists(c).join(" · ")}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
+          <CharacterGrid state="revealed" size={220}>
+            <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 130, color: COLORS.ink }}>{c.char}</div>
+          </CharacterGrid>
+        </div>
+
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, color: COLORS.ink, marginBottom: 10 }}>
+          {c.meaning}
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 18, fontSize: 16, flexWrap: "wrap" }}>
+          <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{c.pinyin}</strong></span>
+          <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{c.sv}</strong></span>
+        </div>
+
+        {c.components && c.components.length > 0 && (
+          <div style={{ borderTop: `1px dashed ${COLORS.grid}`, paddingTop: 16 }}>
+            <div style={{ fontSize: 11, color: COLORS.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 10 }}>
+              Bộ thủ cấu thành
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+              {c.components.map((comp, i) => (
+                <Chip key={i} info={findBushou(comp)} big disabled />
+              ))}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, textAlign: "left" }}>
+              {c.components.map((comp, i) => {
+                const info = findBushou(comp);
+                return (
+                  <div key={i} style={{ fontSize: 12.5, color: COLORS.inkSoft }}>
+                    <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 16, color: COLORS.ink }}>{comp}</span>
+                    {" — "}
+                    {info.pinyin} · {info.meaning} · HV: {info.sv}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
