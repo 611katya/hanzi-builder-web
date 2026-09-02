@@ -906,11 +906,21 @@ function HanziBuilderApp({ userId }) {
   const addCharacterRow = useCallback(
     async (entry) => {
       setCustomChars((prev) => [...prev, entry]);
+      // If this char was previously hidden (deleted from this user's own
+      // view), adding it back is a clear signal to un-hide it too —
+      // otherwise the old tombstone would keep masking it forever.
+      setDeletedChars((prev) => prev.filter((ch) => ch !== entry.char));
       if (!userId) return; // guest mode: keep in memory only, nothing to save
       const { error } = await supabase
         .from("custom_characters")
         .upsert(charToRow(entry, userId), { onConflict: "user_id,char" });
       if (error) console.error("Could not save character:", error);
+      const { error: delError } = await supabase
+        .from("deleted_characters")
+        .delete()
+        .eq("user_id", userId)
+        .eq("char", entry.char);
+      if (delError) console.error("Could not clear hidden flag:", delError);
     },
     [userId]
   );
