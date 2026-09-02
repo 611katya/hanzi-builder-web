@@ -3561,26 +3561,9 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
       ) : (
         <>
           <div
-            style={{
-              fontSize: 10,
-              color: COLORS.gold,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: 0.4,
-              marginBottom: 4,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              paddingRight: 40,
-            }}
-            title={getLists(c).join(", ")}
-          >
-            {getLists(c).join(" · ")}
-          </div>
-          <div
             onClick={() => setZoomed(true)}
             title="Bấm để phóng to"
-            style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 32, color: COLORS.ink, cursor: "pointer" }}
+            style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 32, color: COLORS.ink, cursor: "pointer", marginTop: 10 }}
           >
             {c.char}
           </div>
