@@ -2494,40 +2494,122 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
           {customWords && customWords.length > 0 && (
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px dashed ${COLORS.grid}` }}>
               <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
-                Từ của bạn ({customWords.length})
+                Từ của bạn ({customWords.length}) · bấm ✎ để sửa
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {customWords.map((w, idx) => (
-                  <div
-                    key={`${w.word}-${idx}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "5px 9px",
-                      borderRadius: 6,
-                      border: `1px solid ${COLORS.grid}`,
-                      background: COLORS.card,
-                      fontSize: 12,
-                    }}
-                  >
-                    <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 16 }}>{w.word}</span>
-                    <span style={{ color: COLORS.inkSoft }}>{w.meaning}</span>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteWord && onDeleteWord(w.word)}
-                      style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", fontSize: 12, padding: 0 }}
-                      title="Xóa từ này"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  <WordChip key={`${w.word}-${idx}`} w={w} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
                 ))}
               </div>
             </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- A single saved word: view mode (compact chip) + edit mode
+   (expands into a small inline form). Saving re-upserts the same word via
+   onAddWord, which already overwrites on conflict — same pattern as
+   character and radical editing. ---------- */
+function WordChip({ w, onAddWord, onDeleteWord }) {
+  const [mode, setMode] = useState("view"); // view | edit
+  const [pinyin, setPinyin] = useState(w.pinyin);
+  const [meaning, setMeaning] = useState(w.meaning);
+  const [sv, setSv] = useState(w.sv || "");
+  const [listsText, setListsText] = useState((w.lists || []).join(", "));
+
+  function startEdit() {
+    setPinyin(w.pinyin);
+    setMeaning(w.meaning);
+    setSv(w.sv || "");
+    setListsText((w.lists || []).join(", "));
+    setMode("edit");
+  }
+
+  function saveEdit() {
+    if (!pinyin.trim() || !meaning.trim()) return;
+    const lists = listsText
+      .split(",")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    onAddWord &&
+      onAddWord({
+        ...w,
+        pinyin: pinyin.trim(),
+        meaning: meaning.trim(),
+        sv: sv.trim(),
+        lists: lists.length > 0 ? lists : ["Chưa phân loại"],
+      });
+    setMode("view");
+  }
+
+  if (mode === "edit") {
+    return (
+      <div
+        style={{
+          padding: "10px 12px",
+          borderRadius: 6,
+          border: `1.5px solid ${COLORS.gold}`,
+          background: COLORS.card,
+          fontSize: 12,
+          width: 240,
+          textAlign: "left",
+        }}
+      >
+        <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18, marginBottom: 6 }}>{w.word}</div>
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
+        <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa</label>
+        <input value={meaning} onChange={(e) => setMeaning(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Hán Việt</label>
+        <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Danh sách (cách nhau bởi dấu phẩy)</label>
+        <input value={listsText} onChange={(e) => setListsText(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 8, fontSize: 12, boxSizing: "border-box" }} />
+        <div style={{ display: "flex", gap: 6 }}>
+          <button type="button" onClick={saveEdit} className="seal-btn" style={{ ...sealBtnStyle, padding: "5px 12px", fontSize: 11.5 }}>
+            Lưu
+          </button>
+          <button type="button" onClick={() => setMode("view")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 12px", fontSize: 11.5 }}>
+            Hủy
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "5px 9px",
+        borderRadius: 6,
+        border: `1px solid ${COLORS.grid}`,
+        background: COLORS.card,
+        fontSize: 12,
+      }}
+    >
+      <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 16 }}>{w.word}</span>
+      <span style={{ color: COLORS.inkSoft }}>{w.meaning}</span>
+      <button
+        type="button"
+        onClick={startEdit}
+        style={{ background: "none", border: "none", color: COLORS.gold, cursor: "pointer", fontSize: 12, padding: 0 }}
+        title="Sửa từ này"
+      >
+        ✎
+      </button>
+      <button
+        type="button"
+        onClick={() => onDeleteWord && onDeleteWord(w.word)}
+        style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", fontSize: 12, padding: 0 }}
+        title="Xóa từ này"
+      >
+        ✕
+      </button>
     </div>
   );
 }
