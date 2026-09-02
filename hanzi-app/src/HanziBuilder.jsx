@@ -1463,6 +1463,16 @@ function AddTab({
 
   return (
     <div>
+      <BulkImportPanel
+        characterList={characterList}
+        wordList={wordList}
+        bushouList={bushouList}
+        onAddCharacter={onAddCharacter}
+        onAddBushou={onAddBushou}
+        onUpdateCharacter={onUpdateCharacter}
+        onAddWord={onAddWord}
+      />
+
       <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 18, textAlign: "center" }}>
         Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, âm Hán Việt, và xếp vào một danh sách (list) tuỳ chọn.
       </div>
@@ -1707,6 +1717,310 @@ function AddTab({
         onUpdateCharacter={onUpdateCharacter}
         onAddBushou={onAddBushou}
       />
+    </div>
+  );
+}
+
+const BULK_IMPORT_MAX = 20;
+
+/* ---------- Bulk import: paste up to 20 items, one per line, each either a
+   single character or a multi-character word. Each is looked up for real
+   (same lookups as the single-item auto-fill flows) and tagged with one
+   list name. Existing items just get the list name appended. ---------- */
+function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord }) {
+  const [expanded, setExpanded] = useState(false);
+  const [rawInput, setRawInput] = useState("");
+  const [listName, setListName] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | running | done
+  const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
+  const [results, setResults] = useState([]); // [{item, kind: 'char'|'word', outcome, detail}]
+  const cancelRef = useRef(false);
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function parseItems() {
+    const lines = rawInput.split(/\r?\n/);
+    const items = [];
+    const seen = new Set();
+    for (const rawLine of lines) {
+      const cleaned = Array.from(rawLine)
+        .filter((ch) => /[\u4e00-\u9fff]/.test(ch))
+        .join("");
+      if (cleaned && !seen.has(cleaned)) {
+        seen.add(cleaned);
+        items.push(cleaned);
+      }
+    }
+    return items;
+  }
+
+  async function lookupAndAddCharacter(ch, tag, addedThisRun) {
+    const response = await fetch("/.netlify/functions/lookup-character", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ char: ch }),
+    });
+    if (!response.ok) throw new Error(`lookup failed (${response.status})`);
+    const data = await response.json();
+    const text = (data.content || []).map((b) => b.text || "").join("");
+    const clean = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
+    if (!parsed.pinyin && !parsed.meaning && !parsed.sino_vietnamese) throw new Error("no data returned");
+
+    const compChars = [];
+    (parsed.components || []).forEach((comp) => {
+      if (!comp || !comp.char) return;
+      compChars.push(comp.char);
+      const alreadyKnown = bushouList.some((b) => b.char === comp.char) || addedThisRun.bushou.has(comp.char);
+      if (!alreadyKnown && comp.pinyin && comp.meaning && comp.sino_vietnamese) {
+        onAddBushou({ char: comp.char, pinyin: comp.pinyin, meaning: comp.meaning, sv: comp.sino_vietnamese });
+        addedThisRun.bushou.add(comp.char);
+      }
+    });
+
+    await onAddCharacter({
+      char: ch,
+      pinyin: parsed.pinyin || "",
+      meaning: parsed.meaning || "",
+      sv: parsed.sino_vietnamese || "",
+      components: compChars,
+      lists: [tag],
+    });
+    addedThisRun.chars.set(ch, compChars);
+  }
+
+  async function startImport() {
+    const items = parseItems();
+    const trimmedListName = listName.trim();
+
+    if (items.length === 0) {
+      setResults([{ item: "", outcome: "error", detail: "Không tìm thấy chữ Hán nào trong ô dán." }]);
+      return;
+    }
+    if (items.length > BULK_IMPORT_MAX) {
+      setResults([{ item: "", outcome: "error", detail: `Tối đa ${BULK_IMPORT_MAX} mục mỗi lần — bạn đã dán ${items.length}. Vui lòng bớt lại.` }]);
+      return;
+    }
+    if (!trimmedListName) {
+      setResults([{ item: "", outcome: "error", detail: "Vui lòng đặt tên cho danh sách." }]);
+      return;
+    }
+
+    cancelRef.current = false;
+    setStatus("running");
+    setResults([]);
+    setProgress({ done: 0, total: items.length, current: "" });
+
+    // Tracks what THIS run has already added, so a character shared by two
+    // words in the same batch (e.g. 你好 and 你们 both needing 你) isn't
+    // looked up twice — characterList/bushouList props won't reflect
+    // additions mid-run since this loop doesn't wait for a re-render.
+    const addedThisRun = { chars: new Map(), bushou: new Set() };
+
+    for (let i = 0; i < items.length; i++) {
+      if (cancelRef.current) break;
+      const item = items[i];
+      const isWord = item.length >= 2;
+      setProgress({ done: i, total: items.length, current: item });
+
+      try {
+        if (isWord) {
+          const existingWord = wordList.find((w) => w.word === item);
+          if (existingWord) {
+            const existingLists = existingWord.lists || [];
+            if (!existingLists.includes(trimmedListName)) {
+              await onAddWord({ ...existingWord, lists: [...existingLists, trimmedListName] });
+            }
+            setResults((prev) => [...prev, { item, kind: "word", outcome: "tagged" }]);
+          } else {
+            const uniqueChars = Array.from(new Set(Array.from(item)));
+            for (const ch of uniqueChars) {
+              const existingChar = characterList.find((c) => c.char === ch);
+              const ready =
+                (existingChar && Array.isArray(existingChar.components) && existingChar.components.length >= 2) ||
+                addedThisRun.chars.has(ch);
+              if (!ready) {
+                await lookupAndAddCharacter(ch, trimmedListName, addedThisRun);
+                await sleep(200);
+              }
+            }
+            const wordResponse = await fetch("/.netlify/functions/lookup-word", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ word: item }),
+            });
+            if (!wordResponse.ok) throw new Error(`word lookup failed (${wordResponse.status})`);
+            const wordData = await wordResponse.json();
+            const wordText = (wordData.content || []).map((b) => b.text || "").join("");
+            const wordClean = wordText.replace(/```json|```/g, "").trim();
+            const wordParsed = JSON.parse(wordClean);
+            await onAddWord({
+              word: item,
+              chars: Array.from(item),
+              pinyin: wordParsed.pinyin || "",
+              meaning: wordParsed.meaning || "",
+              sv: wordParsed.sino_vietnamese || "",
+              lists: [trimmedListName],
+            });
+            setResults((prev) => [...prev, { item, kind: "word", outcome: "added" }]);
+          }
+        } else {
+          const existingChar = characterList.find((c) => c.char === item);
+          if (existingChar) {
+            const existingLists = getLists(existingChar);
+            if (!existingLists.includes(trimmedListName)) {
+              await onUpdateCharacter(item, { lists: [...existingLists, trimmedListName] });
+            }
+            setResults((prev) => [...prev, { item, kind: "char", outcome: "tagged" }]);
+          } else if (addedThisRun.chars.has(item)) {
+            setResults((prev) => [...prev, { item, kind: "char", outcome: "tagged" }]);
+          } else {
+            await lookupAndAddCharacter(item, trimmedListName, addedThisRun);
+            setResults((prev) => [...prev, { item, kind: "char", outcome: "added" }]);
+          }
+        }
+      } catch (err) {
+        console.error(`Bulk import failed for "${item}":`, err);
+        setResults((prev) => [...prev, { item, outcome: "error", detail: err.message }]);
+      }
+
+      setProgress({ done: i + 1, total: items.length, current: item });
+      await sleep(200);
+    }
+
+    setStatus("done");
+  }
+
+  function handleCancel() {
+    cancelRef.current = true;
+  }
+
+  function handleReset() {
+    setStatus("idle");
+    setResults([]);
+    setProgress({ done: 0, total: 0, current: "" });
+  }
+
+  const addedCount = results.filter((r) => r.outcome === "added").length;
+  const taggedCount = results.filter((r) => r.outcome === "tagged").length;
+  const errorResults = results.filter((r) => r.outcome === "error" && r.item);
+  const parsedCount = parseItems().length;
+
+  return (
+    <div
+      style={{
+        background: "rgba(89,89,0,0.05)",
+        border: `1px dashed ${COLORS.gold}`,
+        borderRadius: 8,
+        padding: "12px 14px",
+        marginBottom: 18,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        style={{
+          width: "100%",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: 12.5,
+          fontWeight: 700,
+          color: COLORS.gold,
+          textTransform: "uppercase",
+          letterSpacing: 0.6,
+          textAlign: "center",
+        }}
+      >
+        {expanded ? "▲" : "▼"} Nhập hàng loạt (tối đa {BULK_IMPORT_MAX} mục, chữ đơn hoặc từ nhiều chữ)
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>
+            Dán tối đa {BULK_IMPORT_MAX} mục, <strong>mỗi mục một dòng</strong>. Một chữ đơn (vd: 好) sẽ được thêm
+            như một chữ; hai chữ trở lên trên cùng một dòng (vd: 你好) sẽ được thêm như một từ. Mỗi mục chưa có
+            sẽ được tra cứu tự động; mục đã có sẽ chỉ được gắn thêm tên danh sách này.
+          </div>
+
+          <textarea
+            value={rawInput}
+            onChange={(e) => setRawInput(e.target.value)}
+            disabled={status === "running"}
+            placeholder={"例：\n好\n你好\n汉语"}
+            rows={6}
+            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 15, resize: "vertical", marginBottom: 6, whiteSpace: "pre" }}
+          />
+          <div style={{ fontSize: 11, color: parsedCount > BULK_IMPORT_MAX ? COLORS.error : COLORS.inkSoft, marginBottom: 8 }}>
+            {parsedCount} / {BULK_IMPORT_MAX} mục
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <input
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+              disabled={status === "running"}
+              placeholder="Tên danh sách, vd: HSK1"
+              style={{ ...inputStyle, maxWidth: 220 }}
+            />
+            {status !== "running" ? (
+              <button type="button" onClick={startImport} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13 }}>
+                Bắt đầu nhập
+              </button>
+            ) : (
+              <button type="button" onClick={handleCancel} className="ghost-btn" style={ghostBtnStyle}>
+                Dừng lại
+              </button>
+            )}
+            {status === "done" && (
+              <button type="button" onClick={handleReset} className="ghost-btn" style={ghostBtnStyle}>
+                Làm mới
+              </button>
+            )}
+          </div>
+
+          {(status === "running" || status === "done") && progress.total > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: COLORS.inkSoft, marginBottom: 4 }}>
+                {progress.done} / {progress.total}
+                {status === "running" ? ` — đang xử lý: ${progress.current}` : " — hoàn tất"}
+              </div>
+              <div style={{ height: 6, background: COLORS.grid, borderRadius: 3, overflow: "hidden" }}>
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${(progress.done / progress.total) * 100}%`,
+                    background: COLORS.seal,
+                    transition: "width 0.2s ease",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {results.length > 0 && results[0].item === "" && results[0].outcome === "error" && (
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.error }}>{results[0].detail}</div>
+          )}
+
+          {status === "done" && !(results.length === 1 && results[0].item === "") && (
+            <div style={{ fontSize: 12.5, fontWeight: 600 }}>
+              <div style={{ color: COLORS.bamboo, marginBottom: 4 }}>
+                ✓ Đã thêm mới {addedCount} mục, gắn thêm danh sách cho {taggedCount} mục đã có sẵn.
+              </div>
+              {errorResults.length > 0 && (
+                <div style={{ color: COLORS.error }}>
+                  ✗ {errorResults.length} mục thất bại: {errorResults.map((r) => r.item).join(", ")}
+                  <div style={{ fontWeight: 400, fontSize: 11.5, marginTop: 2 }}>
+                    Có thể thử lại bằng cách dán riêng các mục này và bấm "Bắt đầu nhập" lần nữa.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
