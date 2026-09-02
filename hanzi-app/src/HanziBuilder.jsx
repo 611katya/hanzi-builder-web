@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import * as XLSX from "xlsx";
+import HanziWriter from "hanzi-writer";
 import { supabase } from "./supabaseClient.js";
 
 /* ============================================================
@@ -553,7 +554,146 @@ function Chip({ info, onClick, disabled, big, tone }) {
   );
 }
 
-/* ---------- Error boundary: surface crashes instead of silently blanking the UI ---------- */
+/* ---------- Stroke order animation, shared by both radicals and characters.
+   Uses HanziWriter + its default Make Me a Hanzi data source (a real,
+   dictionary-derived stroke database fetched on demand) — NOT anything
+   generated here, since stroke order needs to be actually correct. Some
+   rare/side-form radicals (e.g. 忄, 扌) may not exist in that dataset;
+   that's handled as a clean "no data available" message rather than a
+   guess. ---------- */
+function StrokeOrderModal({ char, onClose }) {
+  const targetRef = useRef(null);
+  const writerRef = useRef(null);
+  const [status, setStatus] = useState("loading"); // loading | ready | error
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!targetRef.current) return;
+    setStatus("loading");
+
+    try {
+      const writer = HanziWriter.create(targetRef.current, char, {
+        width: 260,
+        height: 260,
+        padding: 12,
+        showOutline: true,
+        strokeAnimationSpeed: 1,
+        delayBetweenStrokes: 300,
+        strokeColor: COLORS.ink,
+        outlineColor: COLORS.grid,
+        radicalColor: COLORS.seal,
+        onLoadCharDataSuccess: () => {
+          if (cancelled) return;
+          setStatus("ready");
+          writer.animateCharacter();
+        },
+        onLoadCharDataError: () => {
+          if (!cancelled) setStatus("error");
+        },
+      });
+      writerRef.current = writer;
+    } catch (e) {
+      console.error("Stroke order failed to load:", e);
+      setStatus("error");
+    }
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [char]);
+
+  function replay() {
+    if (writerRef.current) writerRef.current.animateCharacter();
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,28,10,0.55)",
+        zIndex: 1100,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: COLORS.card,
+          borderRadius: 14,
+          padding: "24px 22px",
+          width: "90%",
+          maxWidth: 340,
+          textAlign: "center",
+          position: "relative",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          title="Đóng"
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            width: 26,
+            height: 26,
+            lineHeight: "24px",
+            fontSize: 14,
+            border: `1px solid ${COLORS.grid}`,
+            borderRadius: "50%",
+            background: COLORS.chipBg,
+            color: COLORS.inkSoft,
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
+
+        <div style={{ fontSize: 11, color: COLORS.inkSoft, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>
+          Thứ tự nét bút
+        </div>
+
+        <div
+          ref={targetRef}
+          style={{
+            width: 260,
+            height: 260,
+            margin: "0 auto",
+            border: `2px solid ${COLORS.grid}`,
+            borderRadius: 6,
+            background: COLORS.card,
+            display: status === "error" ? "none" : "block",
+          }}
+        />
+
+        {status === "error" && (
+          <div style={{ width: 260, height: 260, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.inkSoft, fontSize: 13, padding: 16 }}>
+            Chưa có dữ liệu nét bút cho chữ "{char}" trong nguồn dữ liệu.
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={replay}
+          disabled={status === "error"}
+          className="ghost-btn"
+          style={{ ...ghostBtnStyle, marginTop: 14, opacity: status === "error" ? 0.4 : 1 }}
+        >
+          ▶ Xem lại
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -3655,6 +3795,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
    same mizige grid used during Play, plus pinyin/meaning/Hán Việt and each
    component's own details, all at a much larger size than the card. ---------- */
 function CharacterZoomModal({ c, findBushou, onClose }) {
+  const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   return (
     <div
       onClick={onClose}
@@ -3719,10 +3860,23 @@ function CharacterZoomModal({ c, findBushou, onClose }) {
         <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, color: COLORS.ink, marginBottom: 10 }}>
           {c.meaning}
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 18, fontSize: 16, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 12, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{c.pinyin}</strong></span>
           <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{c.sv}</strong></span>
         </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <button
+            type="button"
+            onClick={() => setStrokeOrderOpen(true)}
+            className="ghost-btn"
+            style={{ ...ghostBtnStyle, borderColor: COLORS.sealDark, color: COLORS.sealDark, fontSize: 12.5 }}
+          >
+            ✍️ Xem thứ tự nét bút
+          </button>
+        </div>
+
+        {strokeOrderOpen && <StrokeOrderModal char={c.char} onClose={() => setStrokeOrderOpen(false)} />}
 
         {c.components && c.components.length > 0 && (
           <div style={{ borderTop: `1px dashed ${COLORS.grid}`, paddingTop: 16 }}>
@@ -3896,6 +4050,7 @@ function RadicalsTab({ bushouList, onAddBushou }) {
    operation under the hood, exactly like character editing works. ---------- */
 function RadicalCard({ b, onAddBushou }) {
   const [mode, setMode] = useState("view"); // view | edit
+  const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   const [pinyin, setPinyin] = useState(b.pinyin);
   const [meaning, setMeaning] = useState(b.meaning);
   const [sv, setSv] = useState(b.sv);
@@ -3934,6 +4089,31 @@ function RadicalCard({ b, onAddBushou }) {
         position: "relative",
       }}
     >
+      {mode === "view" && (
+        <button
+          type="button"
+          onClick={() => setStrokeOrderOpen(true)}
+          title="Xem thứ tự nét bút"
+          style={{
+            position: "absolute",
+            top: 6,
+            left: 6,
+            width: 20,
+            height: 20,
+            lineHeight: "18px",
+            padding: 0,
+            fontSize: 11,
+            border: `1px solid ${COLORS.grid}`,
+            borderRadius: "50%",
+            background: COLORS.chipBg,
+            color: COLORS.sealDark,
+            cursor: "pointer",
+          }}
+        >
+          ✍️
+        </button>
+      )}
+
       {mode === "view" && (
         <button
           type="button"
@@ -3993,6 +4173,8 @@ function RadicalCard({ b, onAddBushou }) {
           <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {b.sv}</div>
         </>
       )}
+
+      {strokeOrderOpen && <StrokeOrderModal char={b.char} onClose={() => setStrokeOrderOpen(false)} />}
     </div>
   );
 }
