@@ -1234,7 +1234,7 @@ function HanziBuilderApp({ userId }) {
           />
         ) : (
           <WordListPanel
-            customWords={customWords}
+            wordList={wordList}
             characterList={characterList}
             findBushou={findBushou}
             onAddWord={addWordRow}
@@ -3023,18 +3023,18 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 /* ---------- Searchable, filterable list of the user's own saved words —
    same search/filter pattern as CharacterListPanel, so this scales as more
    words get added instead of staying a single unsorted row. ---------- */
-function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, officialWordKeys, onPromoteWord, onWithdrawWord }) {
+function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, officialWordKeys, onPromoteWord, onWithdrawWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
 
   const allLists = useMemo(() => {
     const set = new Set();
-    (customWords || []).forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
+    (wordList || []).forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
-  }, [customWords]);
+  }, [wordList]);
 
-  const filtered = (customWords || []).filter((w) => {
+  const filtered = (wordList || []).filter((w) => {
     if (listFilter !== "Tất cả" && !(w.lists || []).some((l) => l.trim() === listFilter)) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
@@ -3088,7 +3088,7 @@ function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDe
         Danh sách từ vựng trong kho dữ liệu
       </div>
 
-      {(!customWords || customWords.length === 0) ? (
+      {(!wordList || wordList.length === 0) ? (
         <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, padding: 30 }}>
           Bạn chưa có từ nào. Hãy thêm từ ở tab "Thêm chữ".
         </div>
@@ -3132,7 +3132,7 @@ function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDe
             </div>
           )}
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16 }}>
-            {filtered.length} / {customWords.length} từ
+            {filtered.length} / {wordList.length} từ
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
