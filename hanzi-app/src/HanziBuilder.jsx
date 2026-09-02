@@ -1140,6 +1140,13 @@ function HanziBuilderApp({ userId }) {
   const officialCharKeys = useMemo(() => new Set((officialChars || []).map((c) => c.char)), [officialChars]);
   const officialWordKeys = useMemo(() => new Set((officialWords || []).map((w) => w.word)), [officialWords]);
 
+  // Whether THIS admin has a personal edit sitting on top of (or instead
+  // of) the official value — i.e. there's something new to publish, as
+  // opposed to just viewing the already-published default with no changes.
+  const overrideBushouKeys = useMemo(() => new Set(customBushou.map((b) => b.char)), [customBushou]);
+  const overrideCharKeys = useMemo(() => new Set(customChars.map((c) => c.char)), [customChars]);
+  const overrideWordKeys = useMemo(() => new Set(customWords.map((w) => w.word)), [customWords]);
+
   const findBushou = useCallback(
     (ch) => bushouList.find((b) => b.char === ch) || { char: ch, pinyin: "—", meaning: "unknown", sv: "—" },
     [bushouList]
@@ -1217,6 +1224,7 @@ function HanziBuilderApp({ userId }) {
             onAddBushou={addBushouRow}
             isAdmin={isAdmin}
             officialBushouKeys={officialBushouKeys}
+            overrideBushouKeys={overrideBushouKeys}
             onPromoteBushou={promoteBushouToDefault}
             onWithdrawBushou={withdrawBushouFromDefault}
           />
@@ -1229,6 +1237,7 @@ function HanziBuilderApp({ userId }) {
             onAddBushou={addBushouRow}
             isAdmin={isAdmin}
             officialCharKeys={officialCharKeys}
+            overrideCharKeys={overrideCharKeys}
             onPromoteCharacter={promoteCharacterToDefault}
             onWithdrawCharacter={withdrawCharacterFromDefault}
           />
@@ -1241,6 +1250,7 @@ function HanziBuilderApp({ userId }) {
             onDeleteWord={deleteWordRow}
             isAdmin={isAdmin}
             officialWordKeys={officialWordKeys}
+            overrideWordKeys={overrideWordKeys}
             onPromoteWord={promoteWordToDefault}
             onWithdrawWord={withdrawWordFromDefault}
           />
@@ -3023,7 +3033,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 /* ---------- Searchable, filterable list of the user's own saved words —
    same search/filter pattern as CharacterListPanel, so this scales as more
    words get added instead of staying a single unsorted row. ---------- */
-function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, officialWordKeys, onPromoteWord, onWithdrawWord }) {
+function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -3146,6 +3156,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 onDeleteWord={onDeleteWord}
                 isAdmin={isAdmin}
                 isOfficial={officialWordKeys ? officialWordKeys.has(w.word) : false}
+                hasOverride={overrideWordKeys ? overrideWordKeys.has(w.word) : false}
                 onPromoteWord={onPromoteWord}
                 onWithdrawWord={onWithdrawWord}
               />
@@ -3165,7 +3176,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
    (expands into a small inline form). Saving re-upserts the same word via
    onAddWord, which already overwrites on conflict — same pattern as
    character and radical editing. ---------- */
-function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, isOfficial, onPromoteWord, onWithdrawWord }) {
+function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [zoomed, setZoomed] = useState(false);
   const [pinyin, setPinyin] = useState(w.pinyin);
@@ -3177,8 +3188,8 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdm
   async function handleToggleDefault() {
     setDefaultStatus("working");
     try {
-      if (isOfficial) await onWithdrawWord(w);
-      else await onPromoteWord(w);
+      if (hasOverride || !isOfficial) await onPromoteWord(w);
+      else await onWithdrawWord(w);
       setDefaultStatus("idle");
     } catch (e) {
       setDefaultStatus("error");
@@ -3315,15 +3326,19 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdm
           type="button"
           onClick={handleToggleDefault}
           disabled={defaultStatus === "working"}
-          title={isOfficial ? "Bấm để gỡ khỏi dữ liệu mặc định" : "Đặt làm dữ liệu mặc định cho mọi người dùng mới"}
+          title={
+            hasOverride || !isOfficial
+              ? "Đặt/cập nhật làm dữ liệu mặc định cho mọi người dùng mới"
+              : "Bấm để gỡ khỏi dữ liệu mặc định"
+          }
           style={{
             marginTop: 6,
             fontSize: 10,
             padding: "3px 8px",
             borderRadius: 999,
-            border: `1px solid ${isOfficial ? COLORS.bamboo : COLORS.gold}`,
-            background: isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
-            color: defaultStatus === "error" ? COLORS.error : isOfficial ? COLORS.bamboo : COLORS.gold,
+            border: `1px solid ${!hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold}`,
+            background: !hasOverride && isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+            color: defaultStatus === "error" ? COLORS.error : !hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold,
             cursor: defaultStatus === "working" ? "default" : "pointer",
             opacity: defaultStatus === "working" ? 0.6 : 1,
           }}
@@ -3332,7 +3347,9 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdm
             ? "Đang xử lý…"
             : defaultStatus === "error"
             ? "✕ Lỗi, thử lại"
-            : isOfficial
+            : hasOverride && isOfficial
+            ? "🔄 Cập nhật mặc định"
+            : !hasOverride && isOfficial
             ? "★ Đang là mặc định"
             : "⭐ Đặt làm mặc định"}
         </button>
@@ -3514,7 +3531,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
 }
 
 /* ---------- List function: browse every character already in the database ---------- */
-function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, onPromoteCharacter, onWithdrawCharacter }) {
+function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -3647,6 +3664,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
               allLists={allLists}
               isAdmin={isAdmin}
               isOfficial={officialCharKeys ? officialCharKeys.has(c.char) : false}
+              hasOverride={overrideCharKeys ? overrideCharKeys.has(c.char) : false}
               onPromoteCharacter={onPromoteCharacter}
               onWithdrawCharacter={onWithdrawCharacter}
             />
@@ -3663,7 +3681,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
 }
 
 /* ---------- A single character card: view mode, edit mode, delete confirm ---------- */
-function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, onPromoteCharacter, onWithdrawCharacter }) {
+function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, hasOverride, onPromoteCharacter, onWithdrawCharacter }) {
   const [mode, setMode] = useState("view"); // view | edit | confirmDelete
   const [zoomed, setZoomed] = useState(false);
   const [meaning, setMeaning] = useState(c.meaning);
@@ -3682,8 +3700,8 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
   async function handleToggleDefault() {
     setDefaultStatus("working");
     try {
-      if (isOfficial) await onWithdrawCharacter(c);
-      else await onPromoteCharacter(c);
+      if (hasOverride || !isOfficial) await onPromoteCharacter(c);
+      else await onWithdrawCharacter(c);
       setDefaultStatus("idle");
     } catch (e) {
       setDefaultStatus("error");
@@ -4012,15 +4030,19 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
               type="button"
               onClick={handleToggleDefault}
               disabled={defaultStatus === "working"}
-              title={isOfficial ? "Bấm để gỡ khỏi dữ liệu mặc định" : "Đặt làm dữ liệu mặc định cho mọi người dùng mới"}
+              title={
+                hasOverride || !isOfficial
+                  ? "Đặt/cập nhật làm dữ liệu mặc định cho mọi người dùng mới"
+                  : "Bấm để gỡ khỏi dữ liệu mặc định"
+              }
               style={{
                 marginTop: 6,
                 fontSize: 10,
                 padding: "3px 8px",
                 borderRadius: 999,
-                border: `1px solid ${isOfficial ? COLORS.bamboo : COLORS.gold}`,
-                background: isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
-                color: defaultStatus === "error" ? COLORS.error : isOfficial ? COLORS.bamboo : COLORS.gold,
+                border: `1px solid ${!hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold}`,
+                background: !hasOverride && isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+                color: defaultStatus === "error" ? COLORS.error : !hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold,
                 cursor: defaultStatus === "working" ? "default" : "pointer",
                 opacity: defaultStatus === "working" ? 0.6 : 1,
               }}
@@ -4029,7 +4051,9 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
                 ? "Đang xử lý…"
                 : defaultStatus === "error"
                 ? "✕ Lỗi, thử lại"
-                : isOfficial
+                : hasOverride && isOfficial
+                ? "🔄 Cập nhật mặc định"
+                : !hasOverride && isOfficial
                 ? "★ Đang là mặc định"
                 : "⭐ Đặt làm mặc định"}
             </button>
@@ -4276,7 +4300,7 @@ const smallXStyle = {
 };
 
 /* ================= RADICALS TAB ================= */
-function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, onPromoteBushou, onWithdrawBushou }) {
+function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou }) {
   const [query, setQuery] = useState("");
   const filtered = bushouList.filter((b) => {
     const q = query.trim().toLowerCase();
@@ -4365,6 +4389,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, onP
                 onAddBushou={onAddBushou}
                 isAdmin={isAdmin}
                 isOfficial={officialBushouKeys ? officialBushouKeys.has(b.char) : false}
+                hasOverride={overrideBushouKeys ? overrideBushouKeys.has(b.char) : false}
                 onPromoteBushou={onPromoteBushou}
                 onWithdrawBushou={onWithdrawBushou}
               />
@@ -4380,7 +4405,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, onP
    Saving just re-upserts the same char via onAddBushou (addBushouRow),
    which already overwrites on conflict — so "add" and "edit" are the same
    operation under the hood, exactly like character editing works. ---------- */
-function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, onPromoteBushou, onWithdrawBushou }) {
+function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromoteBushou, onWithdrawBushou }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   const [pinyin, setPinyin] = useState(b.pinyin);
@@ -4389,11 +4414,15 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, onPromoteBushou, onW
   const [strokes, setStrokes] = useState(typeof b.strokes === "number" ? String(b.strokes) : "");
   const [defaultStatus, setDefaultStatus] = useState("idle"); // idle | working | error
 
+  // A personal edit sitting on top of the official value always means
+  // "publish this" (promote) — checking hasOverride FIRST is what makes
+  // editing an already-official item push the fix instead of accidentally
+  // withdrawing it.
   async function handleToggleDefault() {
     setDefaultStatus("working");
     try {
-      if (isOfficial) await onWithdrawBushou(b);
-      else await onPromoteBushou(b);
+      if (hasOverride || !isOfficial) await onPromoteBushou(b);
+      else await onWithdrawBushou(b);
       setDefaultStatus("idle");
     } catch (e) {
       setDefaultStatus("error");
@@ -4521,15 +4550,19 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, onPromoteBushou, onW
               type="button"
               onClick={handleToggleDefault}
               disabled={defaultStatus === "working"}
-              title={isOfficial ? "Bấm để gỡ khỏi dữ liệu mặc định" : "Đặt làm dữ liệu mặc định cho mọi người dùng mới"}
+              title={
+                hasOverride || !isOfficial
+                  ? "Đặt/cập nhật làm dữ liệu mặc định cho mọi người dùng mới"
+                  : "Bấm để gỡ khỏi dữ liệu mặc định"
+              }
               style={{
                 marginTop: 6,
                 fontSize: 10,
                 padding: "3px 8px",
                 borderRadius: 999,
-                border: `1px solid ${isOfficial ? COLORS.bamboo : COLORS.gold}`,
-                background: isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
-                color: defaultStatus === "error" ? COLORS.error : isOfficial ? COLORS.bamboo : COLORS.gold,
+                border: `1px solid ${!hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold}`,
+                background: !hasOverride && isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+                color: defaultStatus === "error" ? COLORS.error : !hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold,
                 cursor: defaultStatus === "working" ? "default" : "pointer",
                 opacity: defaultStatus === "working" ? 0.6 : 1,
               }}
@@ -4538,7 +4571,9 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, onPromoteBushou, onW
                 ? "Đang xử lý…"
                 : defaultStatus === "error"
                 ? "✕ Lỗi, thử lại"
-                : isOfficial
+                : hasOverride && isOfficial
+                ? "🔄 Cập nhật mặc định"
+                : !hasOverride && isOfficial
                 ? "★ Đang là mặc định"
                 : "⭐ Đặt làm mặc định"}
             </button>
