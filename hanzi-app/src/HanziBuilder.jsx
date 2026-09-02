@@ -1730,11 +1730,34 @@ const BULK_IMPORT_MAX = 20;
 function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord }) {
   const [expanded, setExpanded] = useState(false);
   const [rawInput, setRawInput] = useState("");
-  const [listName, setListName] = useState("");
+  const [selectedLists, setSelectedLists] = useState([]);
+  const [listTypeahead, setListTypeahead] = useState("");
   const [status, setStatus] = useState("idle"); // idle | running | done
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
   const [results, setResults] = useState([]); // [{item, kind: 'char'|'word', outcome, detail}]
   const cancelRef = useRef(false);
+
+  const existingLists = useMemo(() => {
+    const set = new Set();
+    characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
+    wordList.forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [characterList, wordList]);
+
+  function addList(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSelectedLists((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    setListTypeahead("");
+  }
+
+  function toggleList(name) {
+    setSelectedLists((prev) => (prev.includes(name) ? prev.filter((l) => l !== name) : [...prev, name]));
+  }
+
+  function removeList(name) {
+    setSelectedLists((prev) => prev.filter((l) => l !== name));
+  }
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -1756,7 +1779,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
     return items;
   }
 
-  async function lookupAndAddCharacter(ch, tag, addedThisRun) {
+  async function lookupAndAddCharacter(ch, tags, addedThisRun) {
     const response = await fetch("/.netlify/functions/lookup-character", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1786,14 +1809,13 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
       meaning: parsed.meaning || "",
       sv: parsed.sino_vietnamese || "",
       components: compChars,
-      lists: [tag],
+      lists: tags,
     });
     addedThisRun.chars.set(ch, compChars);
   }
 
   async function startImport() {
     const items = parseItems();
-    const trimmedListName = listName.trim();
 
     if (items.length === 0) {
       setResults([{ item: "", outcome: "error", detail: "Không tìm thấy chữ Hán nào trong ô dán." }]);
@@ -1803,8 +1825,8 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
       setResults([{ item: "", outcome: "error", detail: `Tối đa ${BULK_IMPORT_MAX} mục mỗi lần — bạn đã dán ${items.length}. Vui lòng bớt lại.` }]);
       return;
     }
-    if (!trimmedListName) {
-      setResults([{ item: "", outcome: "error", detail: "Vui lòng đặt tên cho danh sách." }]);
+    if (selectedLists.length === 0) {
+      setResults([{ item: "", outcome: "error", detail: "Vui lòng chọn hoặc thêm ít nhất một danh sách." }]);
       return;
     }
 
@@ -1830,8 +1852,9 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
           const existingWord = wordList.find((w) => w.word === item);
           if (existingWord) {
             const existingLists = existingWord.lists || [];
-            if (!existingLists.includes(trimmedListName)) {
-              await onAddWord({ ...existingWord, lists: [...existingLists, trimmedListName] });
+            const merged = Array.from(new Set([...existingLists, ...selectedLists]));
+            if (merged.length !== existingLists.length) {
+              await onAddWord({ ...existingWord, lists: merged });
             }
             setResults((prev) => [...prev, { item, kind: "word", outcome: "tagged" }]);
           } else {
@@ -1842,7 +1865,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
                 (existingChar && Array.isArray(existingChar.components) && existingChar.components.length >= 2) ||
                 addedThisRun.chars.has(ch);
               if (!ready) {
-                await lookupAndAddCharacter(ch, trimmedListName, addedThisRun);
+                await lookupAndAddCharacter(ch, selectedLists, addedThisRun);
                 await sleep(200);
               }
             }
@@ -1862,7 +1885,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
               pinyin: wordParsed.pinyin || "",
               meaning: wordParsed.meaning || "",
               sv: wordParsed.sino_vietnamese || "",
-              lists: [trimmedListName],
+              lists: selectedLists,
             });
             setResults((prev) => [...prev, { item, kind: "word", outcome: "added" }]);
           }
@@ -1870,14 +1893,15 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
           const existingChar = characterList.find((c) => c.char === item);
           if (existingChar) {
             const existingLists = getLists(existingChar);
-            if (!existingLists.includes(trimmedListName)) {
-              await onUpdateCharacter(item, { lists: [...existingLists, trimmedListName] });
+            const merged = Array.from(new Set([...existingLists, ...selectedLists]));
+            if (merged.length !== existingLists.length) {
+              await onUpdateCharacter(item, { lists: merged });
             }
             setResults((prev) => [...prev, { item, kind: "char", outcome: "tagged" }]);
           } else if (addedThisRun.chars.has(item)) {
             setResults((prev) => [...prev, { item, kind: "char", outcome: "tagged" }]);
           } else {
-            await lookupAndAddCharacter(item, trimmedListName, addedThisRun);
+            await lookupAndAddCharacter(item, selectedLists, addedThisRun);
             setResults((prev) => [...prev, { item, kind: "char", outcome: "added" }]);
           }
         }
@@ -1953,18 +1977,92 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
             rows={6}
             style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 15, resize: "vertical", marginBottom: 6, whiteSpace: "pre" }}
           />
-          <div style={{ fontSize: 11, color: parsedCount > BULK_IMPORT_MAX ? COLORS.error : COLORS.inkSoft, marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: parsedCount > BULK_IMPORT_MAX ? COLORS.error : COLORS.inkSoft, marginBottom: 12 }}>
             {parsedCount} / {BULK_IMPORT_MAX} mục
           </div>
 
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: 11.5, color: COLORS.inkSoft, display: "block", marginBottom: 6 }}>Danh sách (có thể chọn nhiều)</label>
+            {selectedLists.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                {selectedLists.map((l) => (
+                  <span
+                    key={l}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 12,
+                      padding: "3px 6px 3px 10px",
+                      borderRadius: 999,
+                      border: `1px solid ${COLORS.seal}`,
+                      background: "rgba(85,107,47,0.08)",
+                      color: COLORS.seal,
+                    }}
+                  >
+                    {l}
+                    <button
+                      type="button"
+                      onClick={() => removeList(l)}
+                      style={{ background: "none", border: "none", color: COLORS.seal, cursor: "pointer", fontSize: 12, lineHeight: 1, padding: 0 }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+              <input
+                value={listTypeahead}
+                onChange={(e) => setListTypeahead(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addList(listTypeahead);
+                  }
+                }}
+                disabled={status === "running"}
+                placeholder="vd: HSK1… rồi Enter"
+                list="existing-bulk-lists"
+                style={inputStyle}
+              />
+              <button type="button" onClick={() => addList(listTypeahead)} disabled={status === "running"} className="ghost-btn" style={ghostBtnStyle}>
+                + Thêm
+              </button>
+            </div>
+            <datalist id="existing-bulk-lists">
+              {existingLists.map((l) => (
+                <option key={l} value={l} />
+              ))}
+            </datalist>
+            {existingLists.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {existingLists.map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => toggleList(l)}
+                    disabled={status === "running"}
+                    style={{
+                      fontSize: 11.5,
+                      padding: "3px 9px",
+                      borderRadius: 999,
+                      border: `1px solid ${selectedLists.includes(l) ? COLORS.seal : COLORS.grid}`,
+                      background: selectedLists.includes(l) ? "rgba(85,107,47,0.08)" : "transparent",
+                      color: selectedLists.includes(l) ? COLORS.seal : COLORS.inkSoft,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {selectedLists.includes(l) ? "✓ " : ""}
+                    {l}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-            <input
-              value={listName}
-              onChange={(e) => setListName(e.target.value)}
-              disabled={status === "running"}
-              placeholder="Tên danh sách, vd: HSK1"
-              style={{ ...inputStyle, maxWidth: 220 }}
-            />
             {status !== "running" ? (
               <button type="button" onClick={startImport} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13 }}>
                 Bắt đầu nhập
