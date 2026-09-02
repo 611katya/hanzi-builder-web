@@ -3118,6 +3118,7 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord }) {
 function WordZoomModal({ w, characterList, findBushou, onClose }) {
   const chars = Array.from(w.word);
   const boxSize = chars.length <= 2 ? 130 : chars.length === 3 ? 100 : 80;
+  const [strokeChar, setStrokeChar] = useState(null);
 
   return (
     <div
@@ -3202,9 +3203,29 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
               if (!found || !found.components || found.components.length === 0) return null;
               return (
                 <div key={i} style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 13, color: COLORS.ink, marginBottom: 8, fontWeight: 600 }}>
+                  <div style={{ fontSize: 13, color: COLORS.ink, marginBottom: 8, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                     <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18 }}>{ch}</span>
-                    {" "}({found.pinyin} · {found.meaning})
+                    <span>({found.pinyin} · {found.meaning})</span>
+                    <button
+                      type="button"
+                      onClick={() => setStrokeChar(ch)}
+                      title={`Xem thứ tự nét bút của ${ch}`}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        lineHeight: "18px",
+                        padding: 0,
+                        fontSize: 11,
+                        border: `1px solid ${COLORS.grid}`,
+                        borderRadius: "50%",
+                        background: COLORS.chipBg,
+                        color: COLORS.sealDark,
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      ✍️
+                    </button>
                   </div>
                   <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
                     {found.components.map((comp, ci) => (
@@ -3228,6 +3249,8 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
             })}
           </div>
         )}
+
+        {strokeChar && <StrokeOrderModal char={strokeChar} onClose={() => setStrokeChar(null)} />}
       </div>
     </div>
   );
