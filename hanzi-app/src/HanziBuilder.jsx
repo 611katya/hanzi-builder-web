@@ -884,7 +884,13 @@ function HanziBuilderApp({ userId }) {
             onAddBushou={addBushouRow}
           />
         ) : (
-          <WordListPanel customWords={customWords} onAddWord={addWordRow} onDeleteWord={deleteWordRow} />
+          <WordListPanel
+            customWords={customWords}
+            characterList={characterList}
+            findBushou={findBushou}
+            onAddWord={addWordRow}
+            onDeleteWord={deleteWordRow}
+          />
         )}
       </div>
     </div>
@@ -2664,7 +2670,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 /* ---------- Searchable, filterable list of the user's own saved words —
    same search/filter pattern as CharacterListPanel, so this scales as more
    words get added instead of staying a single unsorted row. ---------- */
-function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
+function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDeleteWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -2778,7 +2784,14 @@ function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
             {filtered.map((w, idx) => (
-              <WordChip key={`${w.word}-${idx}`} w={w} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
+              <WordChip
+                key={`${w.word}-${idx}`}
+                w={w}
+                characterList={characterList}
+                findBushou={findBushou}
+                onAddWord={onAddWord}
+                onDeleteWord={onDeleteWord}
+              />
             ))}
           </div>
 
@@ -2795,7 +2808,7 @@ function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
    (expands into a small inline form). Saving re-upserts the same word via
    onAddWord, which already overwrites on conflict — same pattern as
    character and radical editing. ---------- */
-function WordChip({ w, onAddWord, onDeleteWord }) {
+function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [pinyin, setPinyin] = useState(w.pinyin);
   const [meaning, setMeaning] = useState(w.meaning);
@@ -2865,35 +2878,65 @@ function WordChip({ w, onAddWord, onDeleteWord }) {
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "5px 9px",
+        padding: "10px 9px",
         borderRadius: 6,
         border: `1px solid ${COLORS.grid}`,
         background: COLORS.card,
         fontSize: 12,
-        flexWrap: "wrap",
+        textAlign: "center",
+        position: "relative",
       }}
     >
-      <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 16 }}>{w.word}</span>
-      <span style={{ color: COLORS.inkSoft }}>{w.meaning}</span>
-      <button
-        type="button"
-        onClick={startEdit}
-        style={{ background: "none", border: "none", color: COLORS.gold, cursor: "pointer", fontSize: 12, padding: 0 }}
-        title="Sửa từ này"
-      >
-        ✎
-      </button>
-      <button
-        type="button"
-        onClick={() => onDeleteWord && onDeleteWord(w.word)}
-        style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", fontSize: 12, padding: 0 }}
-        title="Xóa từ này"
-      >
-        ✕
-      </button>
+      <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
+        <button
+          type="button"
+          onClick={startEdit}
+          style={{ background: "none", border: "none", color: COLORS.gold, cursor: "pointer", fontSize: 12, padding: 0 }}
+          title="Sửa từ này"
+        >
+          ✎
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeleteWord && onDeleteWord(w.word)}
+          style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", fontSize: 12, padding: 0 }}
+          title="Xóa từ này"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20, color: COLORS.ink, marginBottom: 2 }}>
+        {w.word}
+      </div>
+      <div style={{ color: COLORS.sealDark, fontSize: 11.5 }}>{w.pinyin}</div>
+      <div style={{ color: COLORS.inkSoft, fontSize: 11.5, marginTop: 2 }}>{w.meaning}</div>
+
+      {characterList && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${COLORS.grid}`, textAlign: "left" }}>
+          {Array.from(new Set(Array.from(w.word))).map((ch, i) => {
+            const found = characterList.find((c) => c.char === ch);
+            if (!found || !found.components || found.components.length === 0) return null;
+            return (
+              <div key={i} style={{ fontSize: 10.5, color: COLORS.inkSoft, marginBottom: 3 }}>
+                <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", color: COLORS.ink, fontSize: 13 }}>{ch}</span>
+                {" = "}
+                {found.components.map((comp, ci) => (
+                  <span key={ci}>
+                    <span
+                      title={findBushou ? `${findBushou(comp).pinyin} · ${findBushou(comp).meaning} · HV: ${findBushou(comp).sv}` : undefined}
+                      style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", color: COLORS.gold, fontSize: 13 }}
+                    >
+                      {comp}
+                    </span>
+                    {ci < found.components.length - 1 ? " + " : ""}
+                  </span>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
