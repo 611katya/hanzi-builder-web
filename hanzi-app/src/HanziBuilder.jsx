@@ -991,7 +991,7 @@ function HanziBuilderApp({ userId }) {
         );
       if (error) {
         console.error("Could not promote radical to default:", error);
-        return;
+        throw error;
       }
       setOfficialBushou((prev) => {
         const without = (prev || []).filter((x) => x.char !== b.char);
@@ -1003,12 +1003,35 @@ function HanziBuilderApp({ userId }) {
     [userId]
   );
 
+  // Reverse of promote: pulls an entry OUT of the shared default table and
+  // hands it back to the admin personally, so it doesn't just vanish.
+  const withdrawBushouFromDefault = useCallback(
+    async (b) => {
+      const { error } = await supabase.from("official_bushou").delete().eq("char", b.char);
+      if (error) {
+        console.error("Could not withdraw radical from default:", error);
+        throw error;
+      }
+      setOfficialBushou((prev) => (prev || []).filter((x) => x.char !== b.char));
+      setCustomBushou((prev) => {
+        const without = prev.filter((x) => x.char !== b.char);
+        return [...without, b];
+      });
+      if (userId) {
+        await supabase
+          .from("custom_bushou")
+          .upsert({ user_id: userId, char: b.char, pinyin: b.pinyin, meaning: b.meaning, sv: b.sv, strokes: typeof b.strokes === "number" ? b.strokes : null }, { onConflict: "user_id,char" });
+      }
+    },
+    [userId]
+  );
+
   const promoteCharacterToDefault = useCallback(
     async (c) => {
       const { error } = await supabase.from("official_characters").upsert(charToOfficialRow(c), { onConflict: "char" });
       if (error) {
         console.error("Could not promote character to default:", error);
-        return;
+        throw error;
       }
       setOfficialChars((prev) => {
         const without = (prev || []).filter((x) => x.char !== c.char);
@@ -1020,12 +1043,29 @@ function HanziBuilderApp({ userId }) {
     [userId]
   );
 
+  const withdrawCharacterFromDefault = useCallback(
+    async (c) => {
+      const { error } = await supabase.from("official_characters").delete().eq("char", c.char);
+      if (error) {
+        console.error("Could not withdraw character from default:", error);
+        throw error;
+      }
+      setOfficialChars((prev) => (prev || []).filter((x) => x.char !== c.char));
+      setCustomChars((prev) => {
+        const without = prev.filter((x) => x.char !== c.char);
+        return [...without, c];
+      });
+      if (userId) await supabase.from("custom_characters").upsert(charToRow(c, userId), { onConflict: "user_id,char" });
+    },
+    [userId]
+  );
+
   const promoteWordToDefault = useCallback(
     async (w) => {
       const { error } = await supabase.from("official_words").upsert(wordToOfficialRow(w), { onConflict: "word" });
       if (error) {
         console.error("Could not promote word to default:", error);
-        return;
+        throw error;
       }
       setOfficialWords((prev) => {
         const without = (prev || []).filter((x) => x.word !== w.word);
@@ -1033,6 +1073,23 @@ function HanziBuilderApp({ userId }) {
       });
       setCustomWords((prev) => prev.filter((x) => x.word !== w.word));
       if (userId) await supabase.from("custom_words").delete().eq("user_id", userId).eq("word", w.word);
+    },
+    [userId]
+  );
+
+  const withdrawWordFromDefault = useCallback(
+    async (w) => {
+      const { error } = await supabase.from("official_words").delete().eq("word", w.word);
+      if (error) {
+        console.error("Could not withdraw word from default:", error);
+        throw error;
+      }
+      setOfficialWords((prev) => (prev || []).filter((x) => x.word !== w.word));
+      setCustomWords((prev) => {
+        const without = prev.filter((x) => x.word !== w.word);
+        return [...without, w];
+      });
+      if (userId) await supabase.from("custom_words").upsert(wordToRow(w, userId), { onConflict: "user_id,word" });
     },
     [userId]
   );
@@ -1076,6 +1133,12 @@ function HanziBuilderApp({ userId }) {
     [...(officialWords || SEED_WORDS), ...customWords].forEach((w) => map.set(w.word, w));
     return Array.from(map.values());
   }, [officialWords, customWords]);
+
+  // Which chars/words are currently live for everyone (vs. only in this
+  // admin's personal data) — drives the promote/withdraw toggle state.
+  const officialBushouKeys = useMemo(() => new Set((officialBushou || []).map((b) => b.char)), [officialBushou]);
+  const officialCharKeys = useMemo(() => new Set((officialChars || []).map((c) => c.char)), [officialChars]);
+  const officialWordKeys = useMemo(() => new Set((officialWords || []).map((w) => w.word)), [officialWords]);
 
   const findBushou = useCallback(
     (ch) => bushouList.find((b) => b.char === ch) || { char: ch, pinyin: "—", meaning: "unknown", sv: "—" },
@@ -1149,7 +1212,14 @@ function HanziBuilderApp({ userId }) {
             onDeleteWord={deleteWordRow}
           />
         ) : tab === "radicals" ? (
-          <RadicalsTab bushouList={bushouList} onAddBushou={addBushouRow} isAdmin={isAdmin} onPromoteBushou={promoteBushouToDefault} />
+          <RadicalsTab
+            bushouList={bushouList}
+            onAddBushou={addBushouRow}
+            isAdmin={isAdmin}
+            officialBushouKeys={officialBushouKeys}
+            onPromoteBushou={promoteBushouToDefault}
+            onWithdrawBushou={withdrawBushouFromDefault}
+          />
         ) : tab === "hanzi" ? (
           <CharacterListPanel
             characterList={characterList}
@@ -1158,7 +1228,9 @@ function HanziBuilderApp({ userId }) {
             onUpdateCharacter={updateCharacterRow}
             onAddBushou={addBushouRow}
             isAdmin={isAdmin}
+            officialCharKeys={officialCharKeys}
             onPromoteCharacter={promoteCharacterToDefault}
+            onWithdrawCharacter={withdrawCharacterFromDefault}
           />
         ) : (
           <WordListPanel
@@ -1168,7 +1240,9 @@ function HanziBuilderApp({ userId }) {
             onAddWord={addWordRow}
             onDeleteWord={deleteWordRow}
             isAdmin={isAdmin}
+            officialWordKeys={officialWordKeys}
             onPromoteWord={promoteWordToDefault}
+            onWithdrawWord={withdrawWordFromDefault}
           />
         )}
       </div>
@@ -2949,7 +3023,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 /* ---------- Searchable, filterable list of the user's own saved words —
    same search/filter pattern as CharacterListPanel, so this scales as more
    words get added instead of staying a single unsorted row. ---------- */
-function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, onPromoteWord }) {
+function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, officialWordKeys, onPromoteWord, onWithdrawWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -3071,7 +3145,9 @@ function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDe
                 onAddWord={onAddWord}
                 onDeleteWord={onDeleteWord}
                 isAdmin={isAdmin}
+                isOfficial={officialWordKeys ? officialWordKeys.has(w.word) : false}
                 onPromoteWord={onPromoteWord}
+                onWithdrawWord={onWithdrawWord}
               />
             ))}
           </div>
@@ -3089,13 +3165,26 @@ function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDe
    (expands into a small inline form). Saving re-upserts the same word via
    onAddWord, which already overwrites on conflict — same pattern as
    character and radical editing. ---------- */
-function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, onPromoteWord }) {
+function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, isOfficial, onPromoteWord, onWithdrawWord }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [zoomed, setZoomed] = useState(false);
   const [pinyin, setPinyin] = useState(w.pinyin);
   const [meaning, setMeaning] = useState(w.meaning);
   const [sv, setSv] = useState(w.sv || "");
   const [listsText, setListsText] = useState((w.lists || []).join(", "));
+  const [defaultStatus, setDefaultStatus] = useState("idle"); // idle | working | error
+
+  async function handleToggleDefault() {
+    setDefaultStatus("working");
+    try {
+      if (isOfficial) await onWithdrawWord(w);
+      else await onPromoteWord(w);
+      setDefaultStatus("idle");
+    } catch (e) {
+      setDefaultStatus("error");
+      setTimeout(() => setDefaultStatus("idle"), 2500);
+    }
+  }
 
   function startEdit() {
     setPinyin(w.pinyin);
@@ -3224,20 +3313,28 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdm
       {isAdmin && (
         <button
           type="button"
-          onClick={() => onPromoteWord && onPromoteWord(w)}
-          title="Đặt làm dữ liệu mặc định cho mọi người dùng mới"
+          onClick={handleToggleDefault}
+          disabled={defaultStatus === "working"}
+          title={isOfficial ? "Bấm để gỡ khỏi dữ liệu mặc định" : "Đặt làm dữ liệu mặc định cho mọi người dùng mới"}
           style={{
             marginTop: 6,
             fontSize: 10,
             padding: "3px 8px",
             borderRadius: 999,
-            border: `1px solid ${COLORS.gold}`,
-            background: "rgba(89,89,0,0.06)",
-            color: COLORS.gold,
-            cursor: "pointer",
+            border: `1px solid ${isOfficial ? COLORS.bamboo : COLORS.gold}`,
+            background: isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+            color: defaultStatus === "error" ? COLORS.error : isOfficial ? COLORS.bamboo : COLORS.gold,
+            cursor: defaultStatus === "working" ? "default" : "pointer",
+            opacity: defaultStatus === "working" ? 0.6 : 1,
           }}
         >
-          ⭐ Đặt làm mặc định
+          {defaultStatus === "working"
+            ? "Đang xử lý…"
+            : defaultStatus === "error"
+            ? "✕ Lỗi, thử lại"
+            : isOfficial
+            ? "★ Đang là mặc định"
+            : "⭐ Đặt làm mặc định"}
         </button>
       )}
 
@@ -3417,7 +3514,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
 }
 
 /* ---------- List function: browse every character already in the database ---------- */
-function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUpdateCharacter, onAddBushou, isAdmin, onPromoteCharacter }) {
+function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, onPromoteCharacter, onWithdrawCharacter }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -3549,7 +3646,9 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
               onAddBushou={onAddBushou}
               allLists={allLists}
               isAdmin={isAdmin}
+              isOfficial={officialCharKeys ? officialCharKeys.has(c.char) : false}
               onPromoteCharacter={onPromoteCharacter}
+              onWithdrawCharacter={onWithdrawCharacter}
             />
           ))}
         </div>
@@ -3564,7 +3663,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
 }
 
 /* ---------- A single character card: view mode, edit mode, delete confirm ---------- */
-function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateCharacter, onAddBushou, allLists, isAdmin, onPromoteCharacter }) {
+function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, onPromoteCharacter, onWithdrawCharacter }) {
   const [mode, setMode] = useState("view"); // view | edit | confirmDelete
   const [zoomed, setZoomed] = useState(false);
   const [meaning, setMeaning] = useState(c.meaning);
@@ -3578,6 +3677,19 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
   const [ncPinyin, setNcPinyin] = useState("");
   const [ncMeaning, setNcMeaning] = useState("");
   const [ncSv, setNcSv] = useState("");
+  const [defaultStatus, setDefaultStatus] = useState("idle"); // idle | working | error
+
+  async function handleToggleDefault() {
+    setDefaultStatus("working");
+    try {
+      if (isOfficial) await onWithdrawCharacter(c);
+      else await onPromoteCharacter(c);
+      setDefaultStatus("idle");
+    } catch (e) {
+      setDefaultStatus("error");
+      setTimeout(() => setDefaultStatus("idle"), 2500);
+    }
+  }
 
   function startEdit() {
     setMeaning(c.meaning);
@@ -3898,20 +4010,28 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
           {isAdmin && (
             <button
               type="button"
-              onClick={() => onPromoteCharacter && onPromoteCharacter(c)}
-              title="Đặt làm dữ liệu mặc định cho mọi người dùng mới"
+              onClick={handleToggleDefault}
+              disabled={defaultStatus === "working"}
+              title={isOfficial ? "Bấm để gỡ khỏi dữ liệu mặc định" : "Đặt làm dữ liệu mặc định cho mọi người dùng mới"}
               style={{
                 marginTop: 6,
                 fontSize: 10,
                 padding: "3px 8px",
                 borderRadius: 999,
-                border: `1px solid ${COLORS.gold}`,
-                background: "rgba(89,89,0,0.06)",
-                color: COLORS.gold,
-                cursor: "pointer",
+                border: `1px solid ${isOfficial ? COLORS.bamboo : COLORS.gold}`,
+                background: isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+                color: defaultStatus === "error" ? COLORS.error : isOfficial ? COLORS.bamboo : COLORS.gold,
+                cursor: defaultStatus === "working" ? "default" : "pointer",
+                opacity: defaultStatus === "working" ? 0.6 : 1,
               }}
             >
-              ⭐ Đặt làm mặc định
+              {defaultStatus === "working"
+                ? "Đang xử lý…"
+                : defaultStatus === "error"
+                ? "✕ Lỗi, thử lại"
+                : isOfficial
+                ? "★ Đang là mặc định"
+                : "⭐ Đặt làm mặc định"}
             </button>
           )}
           {c.components && c.components.length > 0 && (
@@ -4156,7 +4276,7 @@ const smallXStyle = {
 };
 
 /* ================= RADICALS TAB ================= */
-function RadicalsTab({ bushouList, onAddBushou, isAdmin, onPromoteBushou }) {
+function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, onPromoteBushou, onWithdrawBushou }) {
   const [query, setQuery] = useState("");
   const filtered = bushouList.filter((b) => {
     const q = query.trim().toLowerCase();
@@ -4239,7 +4359,15 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, onPromoteBushou }) {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
             {items.map((b) => (
-              <RadicalCard key={b.char} b={b} onAddBushou={onAddBushou} isAdmin={isAdmin} onPromoteBushou={onPromoteBushou} />
+              <RadicalCard
+                key={b.char}
+                b={b}
+                onAddBushou={onAddBushou}
+                isAdmin={isAdmin}
+                isOfficial={officialBushouKeys ? officialBushouKeys.has(b.char) : false}
+                onPromoteBushou={onPromoteBushou}
+                onWithdrawBushou={onWithdrawBushou}
+              />
             ))}
           </div>
         </div>
@@ -4252,13 +4380,26 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, onPromoteBushou }) {
    Saving just re-upserts the same char via onAddBushou (addBushouRow),
    which already overwrites on conflict — so "add" and "edit" are the same
    operation under the hood, exactly like character editing works. ---------- */
-function RadicalCard({ b, onAddBushou, isAdmin, onPromoteBushou }) {
+function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, onPromoteBushou, onWithdrawBushou }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   const [pinyin, setPinyin] = useState(b.pinyin);
   const [meaning, setMeaning] = useState(b.meaning);
   const [sv, setSv] = useState(b.sv);
   const [strokes, setStrokes] = useState(typeof b.strokes === "number" ? String(b.strokes) : "");
+  const [defaultStatus, setDefaultStatus] = useState("idle"); // idle | working | error
+
+  async function handleToggleDefault() {
+    setDefaultStatus("working");
+    try {
+      if (isOfficial) await onWithdrawBushou(b);
+      else await onPromoteBushou(b);
+      setDefaultStatus("idle");
+    } catch (e) {
+      setDefaultStatus("error");
+      setTimeout(() => setDefaultStatus("idle"), 2500);
+    }
+  }
 
   function startEdit() {
     setPinyin(b.pinyin);
@@ -4378,20 +4519,28 @@ function RadicalCard({ b, onAddBushou, isAdmin, onPromoteBushou }) {
           {isAdmin && (
             <button
               type="button"
-              onClick={() => onPromoteBushou && onPromoteBushou(b)}
-              title="Đặt làm dữ liệu mặc định cho mọi người dùng mới"
+              onClick={handleToggleDefault}
+              disabled={defaultStatus === "working"}
+              title={isOfficial ? "Bấm để gỡ khỏi dữ liệu mặc định" : "Đặt làm dữ liệu mặc định cho mọi người dùng mới"}
               style={{
                 marginTop: 6,
                 fontSize: 10,
                 padding: "3px 8px",
                 borderRadius: 999,
-                border: `1px solid ${COLORS.gold}`,
-                background: "rgba(89,89,0,0.06)",
-                color: COLORS.gold,
-                cursor: "pointer",
+                border: `1px solid ${isOfficial ? COLORS.bamboo : COLORS.gold}`,
+                background: isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+                color: defaultStatus === "error" ? COLORS.error : isOfficial ? COLORS.bamboo : COLORS.gold,
+                cursor: defaultStatus === "working" ? "default" : "pointer",
+                opacity: defaultStatus === "working" ? 0.6 : 1,
               }}
             >
-              ⭐ Đặt làm mặc định
+              {defaultStatus === "working"
+                ? "Đang xử lý…"
+                : defaultStatus === "error"
+                ? "✕ Lỗi, thử lại"
+                : isOfficial
+                ? "★ Đang là mặc định"
+                : "⭐ Đặt làm mặc định"}
             </button>
           )}
         </>
