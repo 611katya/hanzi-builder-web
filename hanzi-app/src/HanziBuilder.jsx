@@ -3059,6 +3059,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
+  const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
   const [exportMessage, setExportMessage] = useState(null);
 
   const allLists = useMemo(() => {
@@ -3069,6 +3070,13 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
 
   const filtered = (wordList || []).filter((w) => {
     if (listFilter !== "Tất cả" && !(w.lists || []).some((l) => l.trim() === listFilter)) return false;
+    if (isAdmin && defaultFilter !== "all") {
+      const isOfficial = officialWordKeys ? officialWordKeys.has(w.word) : false;
+      const hasOverride = overrideWordKeys ? overrideWordKeys.has(w.word) : false;
+      const isCleanlyPublished = isOfficial && !hasOverride;
+      if (defaultFilter === "official" && !isCleanlyPublished) return false;
+      if (defaultFilter === "pending" && isCleanlyPublished) return false;
+    }
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return (
@@ -3142,6 +3150,13 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 </option>
               ))}
             </select>
+            {isAdmin && (
+              <select value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)} style={{ ...selectStyle, width: 190, flex: "none" }}>
+                <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả trạng thái</option>
+                <option value="official" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>★ Đang là mặc định</option>
+                <option value="pending" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>⭐ Đặt làm mặc định</option>
+              </select>
+            )}
             <button
               type="button"
               onClick={handleExportExcel}
@@ -3573,6 +3588,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
 function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
+  const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
   const [exportMessage, setExportMessage] = useState(null);
 
   const findBushou = (ch) =>
@@ -3592,6 +3608,13 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
 
   const filtered = sorted.filter((c) => {
     if (listFilter !== "Tất cả" && !getLists(c).some((l) => l.trim() === listFilter)) return false;
+    if (isAdmin && defaultFilter !== "all") {
+      const isOfficial = officialCharKeys ? officialCharKeys.has(c.char) : false;
+      const hasOverride = overrideCharKeys ? overrideCharKeys.has(c.char) : false;
+      const isCleanlyPublished = isOfficial && !hasOverride;
+      if (defaultFilter === "official" && !isCleanlyPublished) return false;
+      if (defaultFilter === "pending" && isCleanlyPublished) return false;
+    }
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return (
@@ -3664,6 +3687,13 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
               </option>
             ))}
           </select>
+          {isAdmin && (
+            <select value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)} style={{ ...selectStyle, width: 190, flex: "none" }}>
+              <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả trạng thái</option>
+              <option value="official" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>★ Đang là mặc định</option>
+              <option value="pending" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>⭐ Đặt làm mặc định</option>
+            </select>
+          )}
           <button
             type="button"
             onClick={handleExportExcel}
