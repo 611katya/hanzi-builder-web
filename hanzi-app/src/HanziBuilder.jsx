@@ -454,6 +454,26 @@ function wordToRow(w, userId) {
     lists: w.lists || [],
   };
 }
+function charToOfficialRow(c) {
+  return {
+    char: c.char,
+    pinyin: c.pinyin,
+    meaning: c.meaning,
+    sv: c.sv,
+    components: c.components || [],
+    lists: c.lists || [],
+  };
+}
+function wordToOfficialRow(w) {
+  return {
+    word: w.word,
+    chars: w.chars || [],
+    pinyin: w.pinyin,
+    meaning: w.meaning,
+    sv: w.sv,
+    lists: w.lists || [],
+  };
+}
 
 function shuffle(arr) {
   const a = [...arr];
@@ -762,6 +782,61 @@ function HanziBuilderApp({ userId }) {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("play");
 
+  // The shared default data, loaded from Supabase for EVERYONE (including
+  // guests, via public SELECT policies) so admin corrections go live for
+  // every visitor without a code deploy. Falls back to the hardcoded
+  // SEED_ arrays if the tables are empty/unreachable, so the app never
+  // breaks even if this fetch has a problem.
+  const [officialBushou, setOfficialBushou] = useState(null); // null = not loaded yet
+  const [officialChars, setOfficialChars] = useState(null);
+  const [officialWords, setOfficialWords] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [bRes, cRes, wRes] = await Promise.all([
+          supabase.from("official_bushou").select("*"),
+          supabase.from("official_characters").select("*"),
+          supabase.from("official_words").select("*"),
+        ]);
+        if (cancelled) return;
+        setOfficialBushou(!bRes.error && bRes.data.length > 0 ? bRes.data.map(rowToBushou) : SEED_BUSHOU);
+        setOfficialChars(!cRes.error && cRes.data.length > 0 ? cRes.data.map(rowToChar) : SEED_CHARACTERS);
+        setOfficialWords(!wRes.error && wRes.data.length > 0 ? wRes.data.map(rowToWord) : SEED_WORDS);
+      } catch (e) {
+        console.error("Could not load official data, using built-in defaults:", e);
+        if (!cancelled) {
+          setOfficialBushou(SEED_BUSHOU);
+          setOfficialChars(SEED_CHARACTERS);
+          setOfficialWords(SEED_WORDS);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      setIsAdmin(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      // Ensure a profiles row exists (harmless no-op if it already does),
+      // then check the flag. is_admin itself is never set through the app.
+      await supabase.from("profiles").upsert({ user_id: userId }, { onConflict: "user_id", ignoreDuplicates: true });
+      const { data, error } = await supabase.from("profiles").select("is_admin").eq("user_id", userId).single();
+      if (!cancelled) setIsAdmin(!error && data ? !!data.is_admin : false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   /* ---------- load this user's data from Supabase (skipped for guests) ---------- */
   useEffect(() => {
     if (!userId) {
@@ -902,6 +977,66 @@ function HanziBuilderApp({ userId }) {
     [userId]
   );
 
+  // "Promote to default": push the current (possibly personally-corrected)
+  // version of an item into the shared official_* table, so every visitor
+  // sees it — then clean up the now-redundant personal copy, since the
+  // official entry already reflects it.
+  const promoteBushouToDefault = useCallback(
+    async (b) => {
+      const { error } = await supabase
+        .from("official_bushou")
+        .upsert(
+          { char: b.char, pinyin: b.pinyin, meaning: b.meaning, sv: b.sv, strokes: typeof b.strokes === "number" ? b.strokes : null },
+          { onConflict: "char" }
+        );
+      if (error) {
+        console.error("Could not promote radical to default:", error);
+        return;
+      }
+      setOfficialBushou((prev) => {
+        const without = (prev || []).filter((x) => x.char !== b.char);
+        return [...without, b];
+      });
+      setCustomBushou((prev) => prev.filter((x) => x.char !== b.char));
+      if (userId) await supabase.from("custom_bushou").delete().eq("user_id", userId).eq("char", b.char);
+    },
+    [userId]
+  );
+
+  const promoteCharacterToDefault = useCallback(
+    async (c) => {
+      const { error } = await supabase.from("official_characters").upsert(charToOfficialRow(c), { onConflict: "char" });
+      if (error) {
+        console.error("Could not promote character to default:", error);
+        return;
+      }
+      setOfficialChars((prev) => {
+        const without = (prev || []).filter((x) => x.char !== c.char);
+        return [...without, c];
+      });
+      setCustomChars((prev) => prev.filter((x) => x.char !== c.char));
+      if (userId) await supabase.from("custom_characters").delete().eq("user_id", userId).eq("char", c.char);
+    },
+    [userId]
+  );
+
+  const promoteWordToDefault = useCallback(
+    async (w) => {
+      const { error } = await supabase.from("official_words").upsert(wordToOfficialRow(w), { onConflict: "word" });
+      if (error) {
+        console.error("Could not promote word to default:", error);
+        return;
+      }
+      setOfficialWords((prev) => {
+        const without = (prev || []).filter((x) => x.word !== w.word);
+        return [...without, w];
+      });
+      setCustomWords((prev) => prev.filter((x) => x.word !== w.word));
+      if (userId) await supabase.from("custom_words").delete().eq("user_id", userId).eq("word", w.word);
+    },
+    [userId]
+  );
+
   const persistNeedsReview = useCallback(
     async (next, char, adding) => {
       setNeedsReview(next);
@@ -925,22 +1060,22 @@ function HanziBuilderApp({ userId }) {
 
   const bushouList = useMemo(() => {
     const map = new Map();
-    [...SEED_BUSHOU, ...customBushou].forEach((b) => map.set(b.char, b));
+    [...(officialBushou || SEED_BUSHOU), ...customBushou].forEach((b) => map.set(b.char, b));
     return Array.from(map.values());
-  }, [customBushou]);
+  }, [officialBushou, customBushou]);
 
   const characterList = useMemo(() => {
     const map = new Map();
-    [...SEED_CHARACTERS, ...customChars].forEach((c) => map.set(c.char, c));
+    [...(officialChars || SEED_CHARACTERS), ...customChars].forEach((c) => map.set(c.char, c));
     deletedChars.forEach((ch) => map.delete(ch));
     return Array.from(map.values());
-  }, [customChars, deletedChars]);
+  }, [officialChars, customChars, deletedChars]);
 
   const wordList = useMemo(() => {
     const map = new Map();
-    [...SEED_WORDS, ...customWords].forEach((w) => map.set(w.word, w));
+    [...(officialWords || SEED_WORDS), ...customWords].forEach((w) => map.set(w.word, w));
     return Array.from(map.values());
-  }, [customWords]);
+  }, [officialWords, customWords]);
 
   const findBushou = useCallback(
     (ch) => bushouList.find((b) => b.char === ch) || { char: ch, pinyin: "—", meaning: "unknown", sv: "—" },
@@ -1014,7 +1149,7 @@ function HanziBuilderApp({ userId }) {
             onDeleteWord={deleteWordRow}
           />
         ) : tab === "radicals" ? (
-          <RadicalsTab bushouList={bushouList} onAddBushou={addBushouRow} />
+          <RadicalsTab bushouList={bushouList} onAddBushou={addBushouRow} isAdmin={isAdmin} onPromoteBushou={promoteBushouToDefault} />
         ) : tab === "hanzi" ? (
           <CharacterListPanel
             characterList={characterList}
@@ -1022,6 +1157,8 @@ function HanziBuilderApp({ userId }) {
             onDeleteCharacter={deleteCharacterRow}
             onUpdateCharacter={updateCharacterRow}
             onAddBushou={addBushouRow}
+            isAdmin={isAdmin}
+            onPromoteCharacter={promoteCharacterToDefault}
           />
         ) : (
           <WordListPanel
@@ -1030,6 +1167,8 @@ function HanziBuilderApp({ userId }) {
             findBushou={findBushou}
             onAddWord={addWordRow}
             onDeleteWord={deleteWordRow}
+            isAdmin={isAdmin}
+            onPromoteWord={promoteWordToDefault}
           />
         )}
       </div>
@@ -2810,7 +2949,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 /* ---------- Searchable, filterable list of the user's own saved words —
    same search/filter pattern as CharacterListPanel, so this scales as more
    words get added instead of staying a single unsorted row. ---------- */
-function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDeleteWord }) {
+function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, onPromoteWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -2931,6 +3070,8 @@ function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDe
                 findBushou={findBushou}
                 onAddWord={onAddWord}
                 onDeleteWord={onDeleteWord}
+                isAdmin={isAdmin}
+                onPromoteWord={onPromoteWord}
               />
             ))}
           </div>
@@ -2948,7 +3089,7 @@ function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDe
    (expands into a small inline form). Saving re-upserts the same word via
    onAddWord, which already overwrites on conflict — same pattern as
    character and radical editing. ---------- */
-function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord }) {
+function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, onPromoteWord }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [zoomed, setZoomed] = useState(false);
   const [pinyin, setPinyin] = useState(w.pinyin);
@@ -3080,6 +3221,25 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord }) {
       <div style={{ color: COLORS.sealDark, fontSize: 11.5 }}>{w.pinyin}</div>
       <div style={{ color: COLORS.inkSoft, fontSize: 11.5, marginTop: 2 }}>{w.meaning}</div>
       {w.sv && <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 2, fontWeight: 600 }}>HV: {w.sv}</div>}
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => onPromoteWord && onPromoteWord(w)}
+          title="Đặt làm dữ liệu mặc định cho mọi người dùng mới"
+          style={{
+            marginTop: 6,
+            fontSize: 10,
+            padding: "3px 8px",
+            borderRadius: 999,
+            border: `1px solid ${COLORS.gold}`,
+            background: "rgba(89,89,0,0.06)",
+            color: COLORS.gold,
+            cursor: "pointer",
+          }}
+        >
+          ⭐ Đặt làm mặc định
+        </button>
+      )}
 
       {characterList && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${COLORS.grid}`, textAlign: "left" }}>
@@ -3257,7 +3417,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
 }
 
 /* ---------- List function: browse every character already in the database ---------- */
-function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUpdateCharacter, onAddBushou }) {
+function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUpdateCharacter, onAddBushou, isAdmin, onPromoteCharacter }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -3388,6 +3548,8 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
               onUpdateCharacter={onUpdateCharacter}
               onAddBushou={onAddBushou}
               allLists={allLists}
+              isAdmin={isAdmin}
+              onPromoteCharacter={onPromoteCharacter}
             />
           ))}
         </div>
@@ -3402,7 +3564,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
 }
 
 /* ---------- A single character card: view mode, edit mode, delete confirm ---------- */
-function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateCharacter, onAddBushou, allLists }) {
+function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateCharacter, onAddBushou, allLists, isAdmin, onPromoteCharacter }) {
   const [mode, setMode] = useState("view"); // view | edit | confirmDelete
   const [zoomed, setZoomed] = useState(false);
   const [meaning, setMeaning] = useState(c.meaning);
@@ -3733,6 +3895,25 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
           <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{c.pinyin}</div>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{c.meaning}</div>
           <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {c.sv}</div>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => onPromoteCharacter && onPromoteCharacter(c)}
+              title="Đặt làm dữ liệu mặc định cho mọi người dùng mới"
+              style={{
+                marginTop: 6,
+                fontSize: 10,
+                padding: "3px 8px",
+                borderRadius: 999,
+                border: `1px solid ${COLORS.gold}`,
+                background: "rgba(89,89,0,0.06)",
+                color: COLORS.gold,
+                cursor: "pointer",
+              }}
+            >
+              ⭐ Đặt làm mặc định
+            </button>
+          )}
           {c.components && c.components.length > 0 && (
             <div
               style={{
@@ -3975,7 +4156,7 @@ const smallXStyle = {
 };
 
 /* ================= RADICALS TAB ================= */
-function RadicalsTab({ bushouList, onAddBushou }) {
+function RadicalsTab({ bushouList, onAddBushou, isAdmin, onPromoteBushou }) {
   const [query, setQuery] = useState("");
   const filtered = bushouList.filter((b) => {
     const q = query.trim().toLowerCase();
@@ -4058,7 +4239,7 @@ function RadicalsTab({ bushouList, onAddBushou }) {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
             {items.map((b) => (
-              <RadicalCard key={b.char} b={b} onAddBushou={onAddBushou} />
+              <RadicalCard key={b.char} b={b} onAddBushou={onAddBushou} isAdmin={isAdmin} onPromoteBushou={onPromoteBushou} />
             ))}
           </div>
         </div>
@@ -4071,7 +4252,7 @@ function RadicalsTab({ bushouList, onAddBushou }) {
    Saving just re-upserts the same char via onAddBushou (addBushouRow),
    which already overwrites on conflict — so "add" and "edit" are the same
    operation under the hood, exactly like character editing works. ---------- */
-function RadicalCard({ b, onAddBushou }) {
+function RadicalCard({ b, onAddBushou, isAdmin, onPromoteBushou }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   const [pinyin, setPinyin] = useState(b.pinyin);
@@ -4194,6 +4375,25 @@ function RadicalCard({ b, onAddBushou }) {
           <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{b.pinyin}</div>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{b.meaning}</div>
           <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {b.sv}</div>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => onPromoteBushou && onPromoteBushou(b)}
+              title="Đặt làm dữ liệu mặc định cho mọi người dùng mới"
+              style={{
+                marginTop: 6,
+                fontSize: 10,
+                padding: "3px 8px",
+                borderRadius: 999,
+                border: `1px solid ${COLORS.gold}`,
+                background: "rgba(89,89,0,0.06)",
+                color: COLORS.gold,
+                cursor: "pointer",
+              }}
+            >
+              ⭐ Đặt làm mặc định
+            </button>
+          )}
         </>
       )}
 
