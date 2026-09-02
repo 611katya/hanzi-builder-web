@@ -1473,6 +1473,13 @@ function AddTab({
         onAddWord={onAddWord}
       />
 
+      <RenameListPanel
+        characterList={characterList}
+        wordList={wordList}
+        onUpdateCharacter={onUpdateCharacter}
+        onAddWord={onAddWord}
+      />
+
       <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 18, textAlign: "center" }}>
         Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, âm Hán Việt, và xếp vào một danh sách (list) tuỳ chọn.
       </div>
@@ -2123,6 +2130,159 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
   );
 }
 
+/* ---------- Rename a list across everything tagged with it — both
+   characters and words. Editing a seed-sourced item creates a personal
+   override the same way any other edit does, so this touches every
+   character/word carrying the old name, not just custom ones. ---------- */
+function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord }) {
+  const [expanded, setExpanded] = useState(false);
+  const [oldName, setOldName] = useState("");
+  const [newName, setNewName] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | running | done
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [message, setMessage] = useState(null);
+
+  const allLists = useMemo(() => {
+    const set = new Set();
+    characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
+    wordList.forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [characterList, wordList]);
+
+  async function handleRename() {
+    setMessage(null);
+    const trimmedOld = oldName.trim();
+    const trimmedNew = newName.trim();
+    if (!trimmedOld) {
+      setMessage({ type: "error", text: "Vui lòng chọn danh sách cần đổi tên." });
+      return;
+    }
+    if (!trimmedNew) {
+      setMessage({ type: "error", text: "Vui lòng nhập tên mới." });
+      return;
+    }
+    if (trimmedOld === trimmedNew) {
+      setMessage({ type: "error", text: "Tên mới trùng với tên cũ." });
+      return;
+    }
+
+    const affectedChars = characterList.filter((c) => getLists(c).includes(trimmedOld));
+    const affectedWords = wordList.filter((w) => (w.lists || []).includes(trimmedOld));
+    const total = affectedChars.length + affectedWords.length;
+
+    if (total === 0) {
+      setMessage({ type: "error", text: `Không có chữ hoặc từ nào thuộc danh sách "${trimmedOld}".` });
+      return;
+    }
+
+    setStatus("running");
+    setProgress({ done: 0, total });
+
+    let done = 0;
+    for (const c of affectedChars) {
+      const lists = getLists(c).map((l) => (l === trimmedOld ? trimmedNew : l));
+      await onUpdateCharacter(c.char, { lists });
+      done += 1;
+      setProgress({ done, total });
+    }
+    for (const w of affectedWords) {
+      const lists = (w.lists || []).map((l) => (l === trimmedOld ? trimmedNew : l));
+      await onAddWord({ ...w, lists });
+      done += 1;
+      setProgress({ done, total });
+    }
+
+    setStatus("done");
+    setMessage({ type: "success", text: `Đã đổi tên "${trimmedOld}" thành "${trimmedNew}" cho ${total} mục.` });
+    setOldName("");
+    setNewName("");
+  }
+
+  return (
+    <div
+      style={{
+        background: "rgba(89,89,0,0.05)",
+        border: `1px dashed ${COLORS.gold}`,
+        borderRadius: 8,
+        padding: "12px 14px",
+        marginBottom: 18,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        style={{
+          width: "100%",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontSize: 12.5,
+          fontWeight: 700,
+          color: COLORS.gold,
+          textTransform: "uppercase",
+          letterSpacing: 0.6,
+          textAlign: "center",
+        }}
+      >
+        {expanded ? "▲" : "▼"} Đổi tên danh sách
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>
+            Đổi tên áp dụng cho mọi chữ và từ đang mang tên danh sách này — cả chữ/từ có sẵn lẫn chữ/từ của bạn.
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <select
+              value={oldName}
+              onChange={(e) => setOldName(e.target.value)}
+              disabled={status === "running"}
+              style={{ ...selectStyle, width: 180 }}
+            >
+              <option value="" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>— Chọn danh sách —</option>
+              {allLists.map((l) => (
+                <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                  {l}
+                </option>
+              ))}
+            </select>
+            <span style={{ alignSelf: "center", color: COLORS.inkSoft }}>→</span>
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              disabled={status === "running"}
+              placeholder="Tên mới"
+              style={{ ...inputStyle, maxWidth: 180 }}
+            />
+            <button
+              type="button"
+              onClick={handleRename}
+              disabled={status === "running"}
+              className="seal-btn"
+              style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13 }}
+            >
+              {status === "running" ? "Đang đổi…" : "Đổi tên"}
+            </button>
+          </div>
+
+          {status === "running" && progress.total > 0 && (
+            <div style={{ fontSize: 12, color: COLORS.inkSoft, marginBottom: 8 }}>
+              {progress.done} / {progress.total}
+            </div>
+          )}
+
+          {message && (
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: message.type === "error" ? COLORS.error : COLORS.bamboo }}>
+              {message.text}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Add word: build a multi-character word from characters that
    already exist (or can be auto-filled on the spot), tag it with lists,
    and save it. Only shows/manages the current user's own custom words —
@@ -2491,19 +2651,74 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
             </button>
           </div>
 
-          {customWords && customWords.length > 0 && (
-            <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px dashed ${COLORS.grid}` }}>
-              <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
-                Từ của bạn ({customWords.length}) · bấm ✎ để sửa
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {customWords.map((w, idx) => (
-                  <WordChip key={`${w.word}-${idx}`} w={w} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
-                ))}
-              </div>
-            </div>
-          )}
+          <WordListPanel customWords={customWords} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Searchable, filterable list of the user's own saved words —
+   same search/filter pattern as CharacterListPanel, so this scales as more
+   words get added instead of staying a single unsorted row. ---------- */
+function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
+  const [query, setQuery] = useState("");
+  const [listFilter, setListFilter] = useState("Tất cả");
+
+  const allLists = useMemo(() => {
+    const set = new Set();
+    (customWords || []).forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [customWords]);
+
+  const filtered = (customWords || []).filter((w) => {
+    if (listFilter !== "Tất cả" && !(w.lists || []).some((l) => l.trim() === listFilter)) return false;
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      w.word.includes(q) ||
+      (w.pinyin || "").toLowerCase().includes(q) ||
+      (w.meaning || "").toLowerCase().includes(q) ||
+      (w.sv || "").toLowerCase().includes(q)
+    );
+  });
+
+  if (!customWords || customWords.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px dashed ${COLORS.grid}` }}>
+      <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
+        Từ của bạn ({customWords.length}) · bấm ✎ để sửa
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Tìm từ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…"
+          style={{ ...inputStyle, width: 260, textAlign: "center" }}
+        />
+        <select value={listFilter} onChange={(e) => setListFilter(e.target.value)} style={{ ...selectStyle, width: 150, flex: "none" }}>
+          <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+          {allLists.map((l) => (
+            <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 12 }}>
+        {filtered.length} / {customWords.length} từ
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
+        {filtered.map((w, idx) => (
+          <WordChip key={`${w.word}-${idx}`} w={w} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, padding: 20 }}>Không tìm thấy từ nào phù hợp.</div>
       )}
     </div>
   );
@@ -2554,7 +2769,8 @@ function WordChip({ w, onAddWord, onDeleteWord }) {
           border: `1.5px solid ${COLORS.gold}`,
           background: COLORS.card,
           fontSize: 12,
-          width: 240,
+          width: "100%",
+          boxSizing: "border-box",
           textAlign: "left",
         }}
       >
@@ -2590,6 +2806,7 @@ function WordChip({ w, onAddWord, onDeleteWord }) {
         border: `1px solid ${COLORS.grid}`,
         background: COLORS.card,
         fontSize: 12,
+        flexWrap: "wrap",
       }}
     >
       <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 16 }}>{w.word}</span>
