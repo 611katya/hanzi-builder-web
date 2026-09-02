@@ -3200,6 +3200,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 w={w}
                 characterList={characterList}
                 findBushou={findBushou}
+                allLists={allLists}
                 onAddWord={onAddWord}
                 onDeleteWord={onDeleteWord}
                 onDeleteWordFromOfficial={onDeleteWordFromOfficial}
@@ -3225,13 +3226,14 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
    (expands into a small inline form). Saving re-upserts the same word via
    onAddWord, which already overwrites on conflict — same pattern as
    character and radical editing. ---------- */
-function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord }) {
+function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [zoomed, setZoomed] = useState(false);
   const [pinyin, setPinyin] = useState(w.pinyin);
   const [meaning, setMeaning] = useState(w.meaning);
   const [sv, setSv] = useState(w.sv || "");
-  const [listsText, setListsText] = useState((w.lists || []).join(", "));
+  const [selectedLists, setSelectedLists] = useState(w.lists || []);
+  const [listTypeahead, setListTypeahead] = useState("");
   const [defaultStatus, setDefaultStatus] = useState("idle"); // idle | working | error
 
   async function handleToggleDefault() {
@@ -3250,14 +3252,29 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, onDel
     setPinyin(w.pinyin);
     setMeaning(w.meaning);
     setSv(w.sv || "");
-    setListsText((w.lists || []).join(", "));
+    setSelectedLists(w.lists || []);
+    setListTypeahead("");
     setMode("edit");
+  }
+
+  function addList(name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSelectedLists((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    setListTypeahead("");
+  }
+
+  function toggleList(name) {
+    setSelectedLists((prev) => (prev.includes(name) ? prev.filter((l) => l !== name) : [...prev, name]));
+  }
+
+  function removeList(name) {
+    setSelectedLists((prev) => prev.filter((l) => l !== name));
   }
 
   function saveEdit() {
     if (!pinyin.trim() || !meaning.trim()) return;
-    const lists = listsText
-      .split(",")
+    const lists = selectedLists
       .map((l) => l.trim())
       .filter(Boolean);
     onAddWord &&
@@ -3292,8 +3309,81 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, onDel
         <input value={meaning} onChange={(e) => setMeaning(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
         <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Hán Việt</label>
         <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
-        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Danh sách (cách nhau bởi dấu phẩy)</label>
-        <input value={listsText} onChange={(e) => setListsText(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 8, fontSize: 12, boxSizing: "border-box" }} />
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Danh sách</label>
+        {selectedLists.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+            {selectedLists.map((l) => (
+              <span
+                key={l}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                  fontSize: 11,
+                  padding: "2px 5px 2px 8px",
+                  borderRadius: 999,
+                  border: `1px solid ${COLORS.seal}`,
+                  background: "rgba(85,107,47,0.08)",
+                  color: COLORS.seal,
+                }}
+              >
+                {l}
+                <button
+                  type="button"
+                  onClick={() => removeList(l)}
+                  style={{ background: "none", border: "none", color: COLORS.seal, cursor: "pointer", fontSize: 11, lineHeight: 1, padding: 0 }}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+          <input
+            value={listTypeahead}
+            onChange={(e) => setListTypeahead(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addList(listTypeahead);
+              }
+            }}
+            placeholder="+ danh sách"
+            style={{ ...inputStyle, fontSize: 12, padding: "5px 8px" }}
+          />
+          <button
+            type="button"
+            onClick={() => addList(listTypeahead)}
+            className="ghost-btn"
+            style={{ ...ghostBtnStyle, padding: "5px 8px", fontSize: 11.5, flex: "none" }}
+          >
+            Thêm
+          </button>
+        </div>
+        {allLists && allLists.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+            {allLists.map((l) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => toggleList(l)}
+                style={{
+                  fontSize: 10.5,
+                  padding: "2px 7px",
+                  borderRadius: 999,
+                  border: `1px solid ${selectedLists.includes(l) ? COLORS.seal : COLORS.grid}`,
+                  background: selectedLists.includes(l) ? "rgba(85,107,47,0.08)" : "transparent",
+                  color: selectedLists.includes(l) ? COLORS.seal : COLORS.inkSoft,
+                  cursor: "pointer",
+                }}
+              >
+                {selectedLists.includes(l) ? "✓ " : ""}
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 6 }}>
           <button type="button" onClick={saveEdit} className="seal-btn" style={{ ...sealBtnStyle, padding: "5px 12px", fontSize: 11.5 }}>
             Lưu
