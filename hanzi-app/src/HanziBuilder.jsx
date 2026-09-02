@@ -1724,6 +1724,8 @@ function AddTab({
         onUpdateCharacter={onUpdateCharacter}
         onAddBushou={onAddBushou}
       />
+
+      <WordListPanel customWords={customWords} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
     </div>
   );
 }
@@ -2650,8 +2652,6 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
               Lưu từ
             </button>
           </div>
-
-          <WordListPanel customWords={customWords} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
         </div>
       )}
     </div>
@@ -2686,40 +2686,43 @@ function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
   if (!customWords || customWords.length === 0) return null;
 
   return (
-    <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px dashed ${COLORS.grid}` }}>
-      <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
-        Từ của bạn ({customWords.length}) · bấm ✎ để sửa
-      </div>
+    <div style={{ marginTop: 30 }}>
+      <div style={{ borderTop: `1px dashed ${COLORS.grid}`, paddingTop: 22 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+          Danh sách từ vựng trong kho dữ liệu
+        </div>
+        <div style={{ fontSize: 11, color: COLORS.inkSoft, textAlign: "center", marginBottom: 12 }}>bấm ✎ để sửa</div>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Tìm từ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…"
-          style={{ ...inputStyle, width: 260, textAlign: "center" }}
-        />
-        <select value={listFilter} onChange={(e) => setListFilter(e.target.value)} style={{ ...selectStyle, width: 150, flex: "none" }}>
-          <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
-          {allLists.map((l) => (
-            <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-              {l}
-            </option>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Tìm từ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…"
+            style={{ ...inputStyle, width: 260, textAlign: "center" }}
+          />
+          <select value={listFilter} onChange={(e) => setListFilter(e.target.value)} style={{ ...selectStyle, width: 150, flex: "none" }}>
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+            {allLists.map((l) => (
+              <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16 }}>
+          {filtered.length} / {customWords.length} từ
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
+          {filtered.map((w, idx) => (
+            <WordChip key={`${w.word}-${idx}`} w={w} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
           ))}
-        </select>
-      </div>
-      <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 12 }}>
-        {filtered.length} / {customWords.length} từ
-      </div>
+        </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
-        {filtered.map((w, idx) => (
-          <WordChip key={`${w.word}-${idx}`} w={w} onAddWord={onAddWord} onDeleteWord={onDeleteWord} />
-        ))}
+        {filtered.length === 0 && (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, padding: 20 }}>Không tìm thấy từ nào phù hợp.</div>
+        )}
       </div>
-
-      {filtered.length === 0 && (
-        <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, padding: 20 }}>Không tìm thấy từ nào phù hợp.</div>
-      )}
     </div>
   );
 }
@@ -2905,7 +2908,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
     <div style={{ marginTop: 30 }}>
       <div style={{ borderTop: `1px dashed ${COLORS.grid}`, paddingTop: 22 }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
-          Danh sách chữ trong kho dữ liệu
+          Danh sách Hán tự trong kho dữ liệu
         </div>
 
         <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
