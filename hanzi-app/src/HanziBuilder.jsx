@@ -874,7 +874,7 @@ function HanziBuilderApp({ userId }) {
             onDeleteWord={deleteWordRow}
           />
         ) : (
-          <RadicalsTab bushouList={bushouList} />
+          <RadicalsTab bushouList={bushouList} onAddBushou={addBushouRow} />
         )}
       </div>
     </div>
@@ -2708,7 +2708,7 @@ const smallXStyle = {
 };
 
 /* ================= RADICALS TAB ================= */
-function RadicalsTab({ bushouList }) {
+function RadicalsTab({ bushouList, onAddBushou }) {
   const [query, setQuery] = useState("");
   const filtered = bushouList.filter((b) => {
     const q = query.trim().toLowerCase();
@@ -2753,7 +2753,7 @@ function RadicalsTab({ bushouList }) {
         />
       </div>
       <div style={{ fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 20 }}>
-        {filtered.length} / {bushouList.length} bộ thủ · sắp xếp theo số nét
+        {filtered.length} / {bushouList.length} bộ thủ · sắp xếp theo số nét · bấm ✎ để sửa
       </div>
 
       {groups.map(([strokeCount, items]) => (
@@ -2791,25 +2791,118 @@ function RadicalsTab({ bushouList }) {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
             {items.map((b) => (
-              <div
-                key={b.char}
-                style={{
-                  background: COLORS.card,
-                  border: `1px solid ${COLORS.grid}`,
-                  borderRadius: 8,
-                  padding: "12px 10px",
-                  textAlign: "center",
-                }}
-              >
-                <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 30, color: COLORS.ink }}>{b.char}</div>
-                <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{b.pinyin}</div>
-                <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{b.meaning}</div>
-                <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {b.sv}</div>
-              </div>
+              <RadicalCard key={b.char} b={b} onAddBushou={onAddBushou} />
             ))}
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ---------- A single radical card: view mode + edit mode.
+   Saving just re-upserts the same char via onAddBushou (addBushouRow),
+   which already overwrites on conflict — so "add" and "edit" are the same
+   operation under the hood, exactly like character editing works. ---------- */
+function RadicalCard({ b, onAddBushou }) {
+  const [mode, setMode] = useState("view"); // view | edit
+  const [pinyin, setPinyin] = useState(b.pinyin);
+  const [meaning, setMeaning] = useState(b.meaning);
+  const [sv, setSv] = useState(b.sv);
+  const [strokes, setStrokes] = useState(typeof b.strokes === "number" ? String(b.strokes) : "");
+
+  function startEdit() {
+    setPinyin(b.pinyin);
+    setMeaning(b.meaning);
+    setSv(b.sv);
+    setStrokes(typeof b.strokes === "number" ? String(b.strokes) : "");
+    setMode("edit");
+  }
+
+  function saveEdit() {
+    if (!pinyin.trim() || !meaning.trim() || !sv.trim()) return;
+    const strokesNum = parseInt(strokes, 10);
+    onAddBushou &&
+      onAddBushou({
+        char: b.char,
+        pinyin: pinyin.trim(),
+        meaning: meaning.trim(),
+        sv: sv.trim(),
+        strokes: Number.isFinite(strokesNum) && strokesNum > 0 ? strokesNum : undefined,
+      });
+    setMode("view");
+  }
+
+  return (
+    <div
+      style={{
+        background: COLORS.card,
+        border: `1px solid ${COLORS.grid}`,
+        borderRadius: 8,
+        padding: "12px 10px",
+        textAlign: "center",
+        position: "relative",
+      }}
+    >
+      {mode === "view" && (
+        <button
+          type="button"
+          onClick={startEdit}
+          title="Sửa bộ thủ này"
+          style={{
+            position: "absolute",
+            top: 6,
+            right: 6,
+            width: 20,
+            height: 20,
+            lineHeight: "18px",
+            padding: 0,
+            fontSize: 11,
+            border: `1px solid ${COLORS.grid}`,
+            borderRadius: "50%",
+            background: COLORS.chipBg,
+            color: COLORS.gold,
+            cursor: "pointer",
+          }}
+        >
+          ✎
+        </button>
+      )}
+
+      {mode === "edit" ? (
+        <div style={{ textAlign: "left" }}>
+          <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
+            {b.char}
+          </div>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
+          <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa</label>
+          <input value={meaning} onChange={(e) => setMeaning(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Hán Việt</label>
+          <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Số nét</label>
+          <input
+            value={strokes}
+            onChange={(e) => setStrokes(e.target.value.replace(/[^0-9]/g, ""))}
+            style={{ ...inputStyle, width: "100%", marginBottom: 8, fontSize: 12.5 }}
+          />
+          <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
+            <button type="button" onClick={saveEdit} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
+              Lưu
+            </button>
+            <button type="button" onClick={() => setMode("view")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 14px", fontSize: 12 }}>
+              Hủy
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 30, color: COLORS.ink }}>{b.char}</div>
+          <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{b.pinyin}</div>
+          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{b.meaning}</div>
+          <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {b.sv}</div>
+        </>
+      )}
     </div>
   );
 }
