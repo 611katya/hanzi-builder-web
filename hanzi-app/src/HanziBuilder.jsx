@@ -1486,6 +1486,17 @@ function AddTab({
         onAddWord={onAddWord}
       />
 
+      <AddWordPanel
+        characterList={characterList}
+        wordList={wordList}
+        customWords={customWords}
+        bushouList={bushouList}
+        onAddCharacter={onAddCharacter}
+        onAddBushou={onAddBushou}
+        onAddWord={onAddWord}
+        onDeleteWord={onDeleteWord}
+      />
+
       <RenameListPanel
         characterList={characterList}
         wordList={wordList}
@@ -1718,17 +1729,6 @@ function AddTab({
           </button>
         </div>
       </div>
-
-      <AddWordPanel
-        characterList={characterList}
-        wordList={wordList}
-        customWords={customWords}
-        bushouList={bushouList}
-        onAddCharacter={onAddCharacter}
-        onAddBushou={onAddBushou}
-        onAddWord={onAddWord}
-        onDeleteWord={onDeleteWord}
-      />
     </div>
   );
 }
@@ -2667,6 +2667,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
+  const [exportMessage, setExportMessage] = useState(null);
 
   const allLists = useMemo(() => {
     const set = new Set();
@@ -2686,12 +2687,47 @@ function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
     );
   });
 
+  function handleExportExcel() {
+    setExportMessage(null);
+    try {
+      if (filtered.length === 0) {
+        setExportMessage({ type: "error", text: "Không có từ nào để xuất." });
+        return;
+      }
+      const rows = filtered.map((w) => ({
+        "Từ vựng": w.word,
+        Pinyin: w.pinyin,
+        "Nghĩa (Meaning)": w.meaning,
+        "Âm Hán Việt": w.sv,
+        "Danh sách": (w.lists || []).join(", "),
+        "Chữ cấu thành": (w.chars || []).join(" + "),
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      worksheet["!cols"] = [
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 32 },
+        { wch: 16 },
+        { wch: 20 },
+        { wch: 20 },
+      ];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Tu vung");
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const suffix = listFilter !== "Tất cả" ? `-${listFilter}` : "";
+      XLSX.writeFile(workbook, `tu-vung${suffix}-${dateStr}.xlsx`);
+      setExportMessage({ type: "success", text: `Đã xuất ${filtered.length} từ ra file Excel.` });
+    } catch (err) {
+      console.error("Export to Excel failed:", err);
+      setExportMessage({ type: "error", text: "Xuất Excel thất bại. Vui lòng thử lại." });
+    }
+  }
+
   return (
     <div>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
         Danh sách từ vựng trong kho dữ liệu
       </div>
-      <div style={{ fontSize: 11, color: COLORS.inkSoft, textAlign: "center", marginBottom: 12 }}>bấm ✎ để sửa</div>
 
       {(!customWords || customWords.length === 0) ? (
         <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, padding: 30 }}>
@@ -2706,7 +2742,7 @@ function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
               placeholder="Tìm từ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…"
               style={{ ...inputStyle, width: 260, textAlign: "center" }}
             />
-            <select value={listFilter} onChange={(e) => setListFilter(e.target.value)} style={{ ...selectStyle, width: 150, flex: "none" }}>
+            <select value={listFilter} onChange={(e) => setListFilter(e.target.value)} style={{ ...selectStyle, width: 190, flex: "none" }}>
               <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
@@ -2714,7 +2750,28 @@ function WordListPanel({ customWords, onAddWord, onDeleteWord }) {
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="seal-btn"
+              style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13, flex: "none" }}
+            >
+              ⬇ Xuất Excel
+            </button>
           </div>
+          {exportMessage && (
+            <div
+              style={{
+                textAlign: "center",
+                fontSize: 12.5,
+                fontWeight: 600,
+                marginBottom: 10,
+                color: exportMessage.type === "error" ? COLORS.error : COLORS.bamboo,
+              }}
+            >
+              {exportMessage.text}
+            </div>
+          )}
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16 }}>
             {filtered.length} / {customWords.length} từ
           </div>
