@@ -1060,6 +1060,18 @@ function HanziBuilderApp({ userId }) {
     [userId]
   );
 
+  // Permanent removal from the shared default — unlike withdraw, this does
+  // NOT hand a personal copy back. Used when an admin's "delete" should
+  // actually mean "gone for everyone," not just "gone from my own view."
+  const deleteCharacterFromOfficial = useCallback(async (char) => {
+    const { error } = await supabase.from("official_characters").delete().eq("char", char);
+    if (error) {
+      console.error("Could not delete character from default:", error);
+      throw error;
+    }
+    setOfficialChars((prev) => (prev || []).filter((x) => x.char !== char));
+  }, []);
+
   const promoteWordToDefault = useCallback(
     async (w) => {
       const { error } = await supabase.from("official_words").upsert(wordToOfficialRow(w), { onConflict: "word" });
@@ -1093,6 +1105,15 @@ function HanziBuilderApp({ userId }) {
     },
     [userId]
   );
+
+  const deleteWordFromOfficial = useCallback(async (word) => {
+    const { error } = await supabase.from("official_words").delete().eq("word", word);
+    if (error) {
+      console.error("Could not delete word from default:", error);
+      throw error;
+    }
+    setOfficialWords((prev) => (prev || []).filter((x) => x.word !== word));
+  }, []);
 
   const persistNeedsReview = useCallback(
     async (next, char, adding) => {
@@ -1233,6 +1254,7 @@ function HanziBuilderApp({ userId }) {
             characterList={characterList}
             bushouList={bushouList}
             onDeleteCharacter={deleteCharacterRow}
+            onDeleteCharacterFromOfficial={deleteCharacterFromOfficial}
             onUpdateCharacter={updateCharacterRow}
             onAddBushou={addBushouRow}
             isAdmin={isAdmin}
@@ -1248,6 +1270,7 @@ function HanziBuilderApp({ userId }) {
             findBushou={findBushou}
             onAddWord={addWordRow}
             onDeleteWord={deleteWordRow}
+            onDeleteWordFromOfficial={deleteWordFromOfficial}
             isAdmin={isAdmin}
             officialWordKeys={officialWordKeys}
             overrideWordKeys={overrideWordKeys}
@@ -3033,7 +3056,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 /* ---------- Searchable, filterable list of the user's own saved words —
    same search/filter pattern as CharacterListPanel, so this scales as more
    words get added instead of staying a single unsorted row. ---------- */
-function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord }) {
+function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -3154,6 +3177,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 findBushou={findBushou}
                 onAddWord={onAddWord}
                 onDeleteWord={onDeleteWord}
+                onDeleteWordFromOfficial={onDeleteWordFromOfficial}
                 isAdmin={isAdmin}
                 isOfficial={officialWordKeys ? officialWordKeys.has(w.word) : false}
                 hasOverride={overrideWordKeys ? overrideWordKeys.has(w.word) : false}
@@ -3176,7 +3200,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
    (expands into a small inline form). Saving re-upserts the same word via
    onAddWord, which already overwrites on conflict — same pattern as
    character and radical editing. ---------- */
-function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord }) {
+function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [zoomed, setZoomed] = useState(false);
   const [pinyin, setPinyin] = useState(w.pinyin);
@@ -3303,7 +3327,19 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, isAdm
         </button>
         <button
           type="button"
-          onClick={() => onDeleteWord && onDeleteWord(w.word)}
+          onClick={async () => {
+            if (isAdmin && isOfficial) {
+              if (!window.confirm(`Xóa "${w.word}" khỏi dữ liệu mặc định cho MỌI người dùng?`)) return;
+              if (onDeleteWordFromOfficial) {
+                try {
+                  await onDeleteWordFromOfficial(w.word);
+                } catch (e) {
+                  console.error("Could not delete from default:", e);
+                }
+              }
+            }
+            onDeleteWord && onDeleteWord(w.word);
+          }}
           style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", fontSize: 12, padding: 0 }}
           title="Xóa từ này"
         >
@@ -3531,7 +3567,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
 }
 
 /* ---------- List function: browse every character already in the database ---------- */
-function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter }) {
+function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [exportMessage, setExportMessage] = useState(null);
@@ -3659,6 +3695,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
               bushouList={bushouList}
               findBushou={findBushou}
               onDeleteCharacter={onDeleteCharacter}
+              onDeleteCharacterFromOfficial={onDeleteCharacterFromOfficial}
               onUpdateCharacter={onUpdateCharacter}
               onAddBushou={onAddBushou}
               allLists={allLists}
@@ -3681,7 +3718,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onUp
 }
 
 /* ---------- A single character card: view mode, edit mode, delete confirm ---------- */
-function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, hasOverride, onPromoteCharacter, onWithdrawCharacter }) {
+function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, hasOverride, onPromoteCharacter, onWithdrawCharacter }) {
   const [mode, setMode] = useState("view"); // view | edit | confirmDelete
   const [zoomed, setZoomed] = useState(false);
   const [meaning, setMeaning] = useState(c.meaning);
@@ -4100,11 +4137,22 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onUpdateC
                 gap: 6,
               }}
             >
-              <div style={{ fontSize: 11, color: COLORS.error, fontWeight: 600 }}>Xóa chữ "{c.char}"?</div>
+              <div style={{ fontSize: 11, color: COLORS.error, fontWeight: 600 }}>
+                {isAdmin && isOfficial
+                  ? `Xóa "${c.char}" khỏi dữ liệu mặc định cho MỌI người dùng?`
+                  : `Xóa chữ "${c.char}"?`}
+              </div>
               <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
+                    if (isAdmin && isOfficial && onDeleteCharacterFromOfficial) {
+                      try {
+                        await onDeleteCharacterFromOfficial(c.char);
+                      } catch (e) {
+                        console.error("Could not delete from default:", e);
+                      }
+                    }
                     onDeleteCharacter && onDeleteCharacter(c.char);
                     setMode("view");
                   }}
