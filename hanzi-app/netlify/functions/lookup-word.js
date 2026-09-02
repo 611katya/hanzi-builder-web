@@ -1,5 +1,11 @@
 // Same pattern as lookup-character.js, but for the word as a whole (pinyin,
 // meaning, Sino-Vietnamese) rather than a single character's radicals.
+//
+// SECURITY: requires a valid Supabase login token, same reasoning as
+// lookup-character.js -- without this, the URL itself is a free-for-all
+// that anyone can hit directly, not just visitors using the site's UI.
+
+import { createClient } from "@supabase/supabase-js";
 
 export default async (req) => {
   if (req.method !== "POST") {
@@ -13,6 +19,29 @@ export default async (req) => {
       { status: 500 }
     );
   }
+
+  // --- Require a real logged-in Supabase user ---
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+  if (!token) {
+    return new Response(
+      JSON.stringify({ error: "AUTH_REQUIRED", message: "Please log in to use lookup." }),
+      { status: 401 }
+    );
+  }
+
+  const authClient = createClient(supabaseUrl, supabaseAnonKey);
+  const { data: userData, error: authError } = await authClient.auth.getUser(token);
+  if (authError || !userData || !userData.user) {
+    return new Response(
+      JSON.stringify({ error: "AUTH_REQUIRED", message: "Your session is invalid or expired. Please log in again." }),
+      { status: 401 }
+    );
+  }
+  // --- end auth check ---
 
   let word;
   try {

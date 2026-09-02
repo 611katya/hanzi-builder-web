@@ -28,7 +28,7 @@ export default function App() {
             Log out
           </button>
         </TopBar>
-        <HanziBuilder userId={session.user.id} />
+        <HanziBuilder userId={session.user.id} onRequireAuth={() => {}} />
       </div>
     );
   }
@@ -39,6 +39,8 @@ export default function App() {
   }
 
   // Default landing experience: play immediately, no account required.
+  // Lookups (auto-fill) require login — HanziBuilder calls onRequireAuth
+  // to bring the guest here when they try to use one.
   return (
     <div>
       <TopBar>
@@ -47,7 +49,7 @@ export default function App() {
           Log in / Sign up
         </button>
       </TopBar>
-      <HanziBuilder userId={null} />
+      <HanziBuilder userId={null} onRequireAuth={() => setShowAuth(true)} />
     </div>
   );
 }

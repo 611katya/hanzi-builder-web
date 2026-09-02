@@ -1,6 +1,14 @@
 // Runs on Netlify's servers, never in the visitor's browser -- this is what
 // lets ANTHROPIC_API_KEY stay secret. The frontend calls this function at
 // /.netlify/functions/lookup-character instead of hitting Anthropic directly.
+//
+// SECURITY: every request must include a valid Supabase login token in the
+// Authorization header. Without this check, anyone (not just visitors using
+// the site's UI) could call this URL directly and rack up API charges on
+// your account, since the button being hidden in the app doesn't stop a
+// request sent straight to the function.
+
+import { createClient } from "@supabase/supabase-js";
 
 export default async (req) => {
   if (req.method !== "POST") {
@@ -14,6 +22,29 @@ export default async (req) => {
       { status: 500 }
     );
   }
+
+  // --- Require a real logged-in Supabase user ---
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+  if (!token) {
+    return new Response(
+      JSON.stringify({ error: "AUTH_REQUIRED", message: "Please log in to use lookup." }),
+      { status: 401 }
+    );
+  }
+
+  const authClient = createClient(supabaseUrl, supabaseAnonKey);
+  const { data: userData, error: authError } = await authClient.auth.getUser(token);
+  if (authError || !userData || !userData.user) {
+    return new Response(
+      JSON.stringify({ error: "AUTH_REQUIRED", message: "Your session is invalid or expired. Please log in again." }),
+      { status: 401 }
+    );
+  }
+  // --- end auth check ---
 
   let char;
   try {

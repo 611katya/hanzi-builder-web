@@ -574,6 +574,71 @@ function Chip({ info, onClick, disabled, big, tone }) {
   );
 }
 
+// Every lookup call (auto-fill) needs a real login — this fetches the
+// current Supabase access token to send as Authorization, or returns null
+// if there's no session (guest), so callers know to prompt for login
+// instead of even attempting the request.
+async function getAuthHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const token = data && data.session ? data.session.access_token : null;
+  if (!token) return null;
+  return { Authorization: `Bearer ${token}` };
+}
+
+/* ---------- Shown when a guest tries to use a lookup (auto-fill) —
+   lookups cost real money per call, so they require a real account. ---------- */
+function AuthRequiredModal({ onClose, onSignIn }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,28,10,0.55)",
+        zIndex: 1300,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: COLORS.card,
+          borderRadius: 14,
+          padding: "26px 24px",
+          width: "90%",
+          maxWidth: 340,
+          textAlign: "center",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        }}
+      >
+        <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.ink, marginBottom: 8 }}>Cần đăng nhập</div>
+        <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 18, lineHeight: 1.5 }}>
+          Tính năng tra cứu tự động (🔍) cần tài khoản đã đăng nhập. Vui lòng đăng nhập hoặc đăng ký để sử dụng.
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onSignIn && onSignIn();
+            }}
+            className="seal-btn"
+            style={{ ...sealBtnStyle, padding: "8px 18px", fontSize: 13 }}
+          >
+            Đăng nhập / Đăng ký
+          </button>
+          <button type="button" onClick={onClose} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 18px", fontSize: 13 }}>
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Stroke order animation, shared by both radicals and characters.
    Uses HanziWriter + its default Make Me a Hanzi data source (a real,
    dictionary-derived stroke database fetched on demand) — NOT anything
@@ -765,15 +830,15 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-export default function HanziBuilder({ userId }) {
+export default function HanziBuilder({ userId, onRequireAuth }) {
   return (
     <ErrorBoundary>
-      <HanziBuilderApp userId={userId} />
+      <HanziBuilderApp userId={userId} onRequireAuth={onRequireAuth} />
     </ErrorBoundary>
   );
 }
 
-function HanziBuilderApp({ userId }) {
+function HanziBuilderApp({ userId, onRequireAuth }) {
   const [customBushou, setCustomBushou] = useState([]);
   const [customChars, setCustomChars] = useState([]);
   const [customWords, setCustomWords] = useState([]);
@@ -1248,6 +1313,8 @@ function HanziBuilderApp({ userId }) {
             onDeleteCharacter={deleteCharacterRow}
             onAddWord={addWordRow}
             onDeleteWord={deleteWordRow}
+            userId={userId}
+            onRequireAuth={onRequireAuth}
           />
         ) : tab === "radicals" ? (
           <RadicalsTab
@@ -1700,11 +1767,14 @@ function AddTab({
   onDeleteCharacter,
   onAddWord,
   onDeleteWord,
+  userId,
+  onRequireAuth,
 }) {
   const [charInput, setCharInput] = useState("");
   const [meaning, setMeaning] = useState("");
   const [pinyin, setPinyin] = useState("");
   const [sv, setSv] = useState("");
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedLists, setSelectedLists] = useState([]); // a word can belong to more than one list
   const [listTypeahead, setListTypeahead] = useState("");
   const [message, setMessage] = useState(null);
@@ -1797,15 +1867,30 @@ function AddTab({
   async function autoFill(char, { overwrite } = { overwrite: false }) {
     const target = char.trim();
     if (!target) return;
+    if (!userId) {
+      setShowAuthModal(true);
+      return;
+    }
     setLookupStatus("loading");
     try {
+      const authHeaders = await getAuthHeaders();
+      if (!authHeaders) {
+        setLookupStatus("idle");
+        setShowAuthModal(true);
+        return;
+      }
       const response = await fetch("/.netlify/functions/lookup-character", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ char: target }),
       });
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          setLookupStatus("idle");
+          setShowAuthModal(true);
+          return;
+        }
         throw new Error(errBody.error || `Lookup failed (${response.status})`);
       }
       const data = await response.json();
@@ -1878,6 +1963,8 @@ function AddTab({
 
   return (
     <div>
+      {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} onSignIn={onRequireAuth} />}
+
       <BulkImportPanel
         characterList={characterList}
         wordList={wordList}
@@ -1886,6 +1973,8 @@ function AddTab({
         onAddBushou={onAddBushou}
         onUpdateCharacter={onUpdateCharacter}
         onAddWord={onAddWord}
+        userId={userId}
+        onRequireAuth={onRequireAuth}
       />
 
       <AddWordPanel
@@ -1897,6 +1986,8 @@ function AddTab({
         onAddBushou={onAddBushou}
         onAddWord={onAddWord}
         onDeleteWord={onDeleteWord}
+        userId={userId}
+        onRequireAuth={onRequireAuth}
       />
 
       <RenameListPanel
@@ -2141,7 +2232,7 @@ const BULK_IMPORT_MAX = 20;
    single character or a multi-character word. Each is looked up for real
    (same lookups as the single-item auto-fill flows) and tagged with one
    list name. Existing items just get the list name appended. ---------- */
-function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord }) {
+function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord, userId, onRequireAuth }) {
   const [expanded, setExpanded] = useState(false);
   const [rawInput, setRawInput] = useState("");
   const [selectedLists, setSelectedLists] = useState([]);
@@ -2149,6 +2240,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
   const [status, setStatus] = useState("idle"); // idle | running | done
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
   const [results, setResults] = useState([]); // [{item, kind: 'char'|'word', outcome, detail}]
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const cancelRef = useRef(false);
 
   const existingLists = useMemo(() => {
@@ -2194,11 +2286,14 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
   }
 
   async function lookupAndAddCharacter(ch, tags, addedThisRun) {
+    const authHeaders = await getAuthHeaders();
+    if (!authHeaders) throw new Error("AUTH_REQUIRED");
     const response = await fetch("/.netlify/functions/lookup-character", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify({ char: ch }),
     });
+    if (response.status === 401) throw new Error("AUTH_REQUIRED");
     if (!response.ok) throw new Error(`lookup failed (${response.status})`);
     const data = await response.json();
     const text = (data.content || []).map((b) => b.text || "").join("");
@@ -2229,6 +2324,10 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
   }
 
   async function startImport() {
+    if (!userId) {
+      setShowAuthModal(true);
+      return;
+    }
     const items = parseItems();
 
     if (items.length === 0) {
@@ -2283,11 +2382,14 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
                 await sleep(200);
               }
             }
+            const wordAuthHeaders = await getAuthHeaders();
+            if (!wordAuthHeaders) throw new Error("AUTH_REQUIRED");
             const wordResponse = await fetch("/.netlify/functions/lookup-word", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json", ...wordAuthHeaders },
               body: JSON.stringify({ word: item }),
             });
+            if (wordResponse.status === 401) throw new Error("AUTH_REQUIRED");
             if (!wordResponse.ok) throw new Error(`word lookup failed (${wordResponse.status})`);
             const wordData = await wordResponse.json();
             const wordText = (wordData.content || []).map((b) => b.text || "").join("");
@@ -2320,6 +2422,11 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
           }
         }
       } catch (err) {
+        if (err.message === "AUTH_REQUIRED") {
+          console.error(`Bulk import stopped for "${item}": session expired`);
+          setShowAuthModal(true);
+          break;
+        }
         console.error(`Bulk import failed for "${item}":`, err);
         setResults((prev) => [...prev, { item, outcome: "error", detail: err.message }]);
       }
@@ -2356,6 +2463,8 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
         marginBottom: 18,
       }}
     >
+      {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} onSignIn={onRequireAuth} />}
+
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
@@ -2694,7 +2803,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
    already exist (or can be auto-filled on the spot), tag it with lists,
    and save it. Only shows/manages the current user's own custom words —
    the built-in seed words aren't editable here. ---------- */
-function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord }) {
+function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord, userId, onRequireAuth }) {
   const [expanded, setExpanded] = useState(false);
   const [wordInput, setWordInput] = useState("");
   const [pinyin, setPinyin] = useState("");
@@ -2705,6 +2814,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   const [message, setMessage] = useState(null);
   const [charStatus, setCharStatus] = useState({}); // char -> "loading" | "error"
   const [wordLookupStatus, setWordLookupStatus] = useState("idle"); // idle | loading | error
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const lastAutoFilledRef = useRef("");
 
   const chars = Array.from(wordInput).filter((ch) => /[\u4e00-\u9fff]/.test(ch));
@@ -2725,13 +2835,36 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   }, [wordList]);
 
   async function handleAutoFillChar(ch) {
+    if (!userId) {
+      setShowAuthModal(true);
+      return;
+    }
     setCharStatus((prev) => ({ ...prev, [ch]: "loading" }));
     try {
+      const authHeaders = await getAuthHeaders();
+      if (!authHeaders) {
+        setCharStatus((prev) => {
+          const next = { ...prev };
+          delete next[ch];
+          return next;
+        });
+        setShowAuthModal(true);
+        return;
+      }
       const response = await fetch("/.netlify/functions/lookup-character", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ char: ch }),
       });
+      if (response.status === 401) {
+        setCharStatus((prev) => {
+          const next = { ...prev };
+          delete next[ch];
+          return next;
+        });
+        setShowAuthModal(true);
+        return;
+      }
       if (!response.ok) throw new Error(`lookup failed (${response.status})`);
       const data = await response.json();
       const text = (data.content || []).map((b) => b.text || "").join("");
@@ -2771,13 +2904,28 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   async function handleAutoFillWordMeta() {
     const word = chars.join("");
     if (!word) return;
+    if (!userId) {
+      setShowAuthModal(true);
+      return;
+    }
     setWordLookupStatus("loading");
     try {
+      const authHeaders = await getAuthHeaders();
+      if (!authHeaders) {
+        setWordLookupStatus("idle");
+        setShowAuthModal(true);
+        return;
+      }
       const response = await fetch("/.netlify/functions/lookup-word", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders },
         body: JSON.stringify({ word }),
       });
+      if (response.status === 401) {
+        setWordLookupStatus("idle");
+        setShowAuthModal(true);
+        return;
+      }
       if (!response.ok) throw new Error(`lookup failed (${response.status})`);
       const data = await response.json();
       const text = (data.content || []).map((b) => b.text || "").join("");
@@ -2802,6 +2950,10 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   // character in it that doesn't have components yet.
   async function autoFillEverything() {
     if (chars.length < 2) return;
+    if (!userId) {
+      setShowAuthModal(true);
+      return;
+    }
     setMessage(null);
     lastAutoFilledRef.current = chars.join("");
     await handleAutoFillWordMeta();
@@ -2864,6 +3016,8 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
         marginBottom: 18,
       }}
     >
+      {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} onSignIn={onRequireAuth} />}
+
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
