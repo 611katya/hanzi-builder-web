@@ -3335,6 +3335,9 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord, onDel
                   await onDeleteWordFromOfficial(w.word);
                 } catch (e) {
                   console.error("Could not delete from default:", e);
+                  alert(
+                    `Không thể xóa "${w.word}" khỏi dữ liệu mặc định (lỗi: ${e && e.message ? e.message : "không rõ"}). Từ sẽ chỉ được ẩn khỏi tài khoản của bạn — vẫn hiển thị cho người dùng khác. Vui lòng kiểm tra lại trong Supabase.`
+                  );
                 }
               }
             }
@@ -4151,6 +4154,9 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                         await onDeleteCharacterFromOfficial(c.char);
                       } catch (e) {
                         console.error("Could not delete from default:", e);
+                        alert(
+                          `Không thể xóa "${c.char}" khỏi dữ liệu mặc định (lỗi: ${e && e.message ? e.message : "không rõ"}). Chữ sẽ chỉ được ẩn khỏi tài khoản của bạn — vẫn hiển thị cho người dùng khác. Vui lòng kiểm tra lại trong Supabase.`
+                        );
                       }
                     }
                     onDeleteCharacter && onDeleteCharacter(c.char);
