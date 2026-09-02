@@ -2810,6 +2810,7 @@ function WordListPanel({ customWords, characterList, findBushou, onAddWord, onDe
    character and radical editing. ---------- */
 function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord }) {
   const [mode, setMode] = useState("view"); // view | edit
+  const [zoomed, setZoomed] = useState(false);
   const [pinyin, setPinyin] = useState(w.pinyin);
   const [meaning, setMeaning] = useState(w.meaning);
   const [sv, setSv] = useState(w.sv || "");
@@ -2887,6 +2888,29 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord }) {
         position: "relative",
       }}
     >
+      <button
+        type="button"
+        onClick={() => setZoomed(true)}
+        title="Phóng to để xem chi tiết"
+        style={{
+          position: "absolute",
+          top: 6,
+          left: 6,
+          width: 18,
+          height: 18,
+          lineHeight: "16px",
+          padding: 0,
+          fontSize: 10,
+          border: `1px solid ${COLORS.grid}`,
+          borderRadius: "50%",
+          background: COLORS.chipBg,
+          color: COLORS.sealDark,
+          cursor: "pointer",
+        }}
+      >
+        🔍
+      </button>
+
       <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
         <button
           type="button"
@@ -2906,11 +2930,16 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord }) {
         </button>
       </div>
 
-      <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20, color: COLORS.ink, marginBottom: 2 }}>
+      <div
+        onClick={() => setZoomed(true)}
+        title="Bấm để phóng to"
+        style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20, color: COLORS.ink, marginBottom: 2, marginTop: 6, cursor: "pointer" }}
+      >
         {w.word}
       </div>
       <div style={{ color: COLORS.sealDark, fontSize: 11.5 }}>{w.pinyin}</div>
       <div style={{ color: COLORS.inkSoft, fontSize: 11.5, marginTop: 2 }}>{w.meaning}</div>
+      {w.sv && <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 2, fontWeight: 600 }}>HV: {w.sv}</div>}
 
       {characterList && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${COLORS.grid}`, textAlign: "left" }}>
@@ -2937,6 +2966,129 @@ function WordChip({ w, characterList, findBushou, onAddWord, onDeleteWord }) {
           })}
         </div>
       )}
+
+      {zoomed && <WordZoomModal w={w} characterList={characterList} findBushou={findBushou} onClose={() => setZoomed(false)} />}
+    </div>
+  );
+}
+
+/* ---------- Full-screen study view for one word: one mizige box per
+   character (same idea as the Play tab's multi-box build area), plus
+   pinyin/meaning/Hán Việt and each character's own bushou breakdown. ---------- */
+function WordZoomModal({ w, characterList, findBushou, onClose }) {
+  const chars = Array.from(w.word);
+  const boxSize = chars.length <= 2 ? 130 : chars.length === 3 ? 100 : 80;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,28,10,0.55)",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: COLORS.card,
+          borderRadius: 14,
+          padding: "28px 24px",
+          width: "90%",
+          maxWidth: 480,
+          maxHeight: "85vh",
+          overflowY: "auto",
+          textAlign: "center",
+          position: "relative",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          title="Đóng"
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            width: 28,
+            height: 28,
+            lineHeight: "26px",
+            fontSize: 15,
+            border: `1px solid ${COLORS.grid}`,
+            borderRadius: "50%",
+            background: COLORS.chipBg,
+            color: COLORS.inkSoft,
+            cursor: "pointer",
+          }}
+        >
+          ✕
+        </button>
+
+        <div style={{ fontSize: 11, color: COLORS.gold, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 16 }}>
+          {(w.lists || []).join(" · ")}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
+          {chars.map((ch, i) => (
+            <CharacterGrid key={i} state="revealed" size={boxSize}>
+              <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: Math.round(boxSize * 0.6), color: COLORS.ink }}>
+                {ch}
+              </div>
+            </CharacterGrid>
+          ))}
+        </div>
+
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, color: COLORS.ink, marginBottom: 10 }}>
+          {w.meaning}
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 18, fontSize: 16, flexWrap: "wrap" }}>
+          <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{w.pinyin}</strong></span>
+          {w.sv && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{w.sv}</strong></span>}
+        </div>
+
+        {characterList && (
+          <div style={{ borderTop: `1px dashed ${COLORS.grid}`, paddingTop: 16 }}>
+            <div style={{ fontSize: 11, color: COLORS.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 12 }}>
+              Bộ thủ cấu thành
+            </div>
+            {Array.from(new Set(chars)).map((ch, i) => {
+              const found = characterList.find((c) => c.char === ch);
+              if (!found || !found.components || found.components.length === 0) return null;
+              return (
+                <div key={i} style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, color: COLORS.ink, marginBottom: 8, fontWeight: 600 }}>
+                    <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18 }}>{ch}</span>
+                    {" "}({found.pinyin} · {found.meaning})
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                    {found.components.map((comp, ci) => (
+                      <Chip key={ci} info={findBushou(comp)} big disabled />
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3, textAlign: "left" }}>
+                    {found.components.map((comp, ci) => {
+                      const info = findBushou(comp);
+                      return (
+                        <div key={ci} style={{ fontSize: 12, color: COLORS.inkSoft }}>
+                          <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 15, color: COLORS.ink }}>{comp}</span>
+                          {" — "}
+                          {info.pinyin} · {info.meaning} · HV: {info.sv}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
