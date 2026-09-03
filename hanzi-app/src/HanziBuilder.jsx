@@ -1517,6 +1517,16 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
           />
+        ) : tab === "flashcards" ? (
+          <FlashcardsTab
+            userId={userId}
+            characterList={characterList}
+            wordList={wordList}
+            isAdmin={isAdmin}
+            checkListAccess={checkListAccess}
+            onRequireAuth={onRequireAuth}
+            onViewPremium={() => setTab("premium")}
+          />
         ) : tab === "add" ? (
           <AddTab
             bushouList={bushouList}
@@ -1658,6 +1668,7 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
 function Tabs({ tab, setTab, isAdmin }) {
   const items = [
     { id: "play", label: "Học · 学习" },
+    { id: "flashcards", label: "🗂 Ôn tập" },
     { id: "add", label: "Thêm chữ · 添加" },
     { id: "radicals", label: "Bộ thủ · 部首" },
     { id: "hanzi", label: "Hán tự · 汉字" },
@@ -2028,6 +2039,310 @@ const sealBtnStyle = {
   fontWeight: 600,
   cursor: "pointer",
   letterSpacing: 0.3,
+};
+
+/* ---------- Simplified SM-2 (the algorithm behind Anki). Given a card's
+   current progress (or null for a never-reviewed card) and a rating, works
+   out the new ease/interval/repetitions and the date it's next due. ---------- */
+function updateSM2(progress, rating) {
+  let ease = progress ? progress.ease_factor : 2.5;
+  let interval = progress ? progress.interval_days : 0;
+  let reps = progress ? progress.repetitions : 0;
+
+  if (rating === "again") {
+    reps = 0;
+    interval = 1;
+    ease = Math.max(1.3, ease - 0.2);
+  } else if (rating === "hard") {
+    ease = Math.max(1.3, ease - 0.15);
+    interval = reps === 0 ? 1 : Math.max(1, Math.round(interval * 1.2));
+    reps += 1;
+  } else if (rating === "good") {
+    if (reps === 0) interval = 1;
+    else if (reps === 1) interval = 6;
+    else interval = Math.max(1, Math.round(interval * ease));
+    reps += 1;
+  } else if (rating === "easy") {
+    ease = ease + 0.15;
+    if (reps === 0) interval = 4;
+    else if (reps === 1) interval = 8;
+    else interval = Math.max(1, Math.round(interval * ease * 1.3));
+    reps += 1;
+  }
+
+  const due = new Date();
+  due.setDate(due.getDate() + interval);
+
+  return {
+    ease_factor: ease,
+    interval_days: interval,
+    repetitions: reps,
+    due_date: due.toISOString().slice(0, 10),
+  };
+}
+
+/* ================= FLASHCARDS TAB ================= */
+function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAccess, onRequireAuth, onViewPremium }) {
+  const [selectedList, setSelectedList] = useState("Tất cả");
+  const [lockedListName, setLockedListName] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [progressMap, setProgressMap] = useState(null); // null = loading
+  const [queue, setQueue] = useState([]);
+  const [current, setCurrent] = useState(null);
+  const [flipped, setFlipped] = useState(false);
+  const [sessionActive, setSessionActive] = useState(false);
+  const [sessionStats, setSessionStats] = useState({ reviewed: 0, again: 0 });
+
+  const allLists = useMemo(() => {
+    const set = new Set();
+    characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
+    wordList.forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [characterList, wordList]);
+
+  useEffect(() => {
+    if (!userId) {
+      setProgressMap(new Map());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from("flashcard_progress").select("*").eq("user_id", userId);
+      if (cancelled) return;
+      const map = new Map();
+      if (!error) (data || []).forEach((row) => map.set(`${row.card_type}:${row.card_key}`, row));
+      setProgressMap(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  // Today's due count for the currently selected list, shown before
+  // starting a session so the person knows what they're in for.
+  const dueCount = useMemo(() => {
+    if (!progressMap) return 0;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    let count = 0;
+    characterList.forEach((c) => {
+      if (selectedList !== "Tất cả" && !getLists(c).some((l) => l.trim() === selectedList)) return;
+      const p = progressMap.get(`char:${c.char}`);
+      if (!p || p.due_date <= todayStr) count += 1;
+    });
+    wordList.forEach((w) => {
+      if (selectedList !== "Tất cả" && !(w.lists || []).some((l) => l.trim() === selectedList)) return;
+      const p = progressMap.get(`word:${w.word}`);
+      if (!p || p.due_date <= todayStr) count += 1;
+    });
+    return count;
+  }, [progressMap, characterList, wordList, selectedList]);
+
+  function handleListChange(next) {
+    if (!isAdmin && next !== "Tất cả" && checkListAccess && !checkListAccess(next)) {
+      setLockedListName(next);
+      return;
+    }
+    setSelectedList(next);
+  }
+
+  function startSession() {
+    if (!userId) {
+      setShowAuthModal(true);
+      return;
+    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const cards = [];
+    characterList.forEach((c) => {
+      if (selectedList !== "Tất cả" && !getLists(c).some((l) => l.trim() === selectedList)) return;
+      const p = progressMap.get(`char:${c.char}`);
+      if (!p || p.due_date <= todayStr) cards.push({ type: "char", key: c.char, data: c, progress: p || null });
+    });
+    wordList.forEach((w) => {
+      if (selectedList !== "Tất cả" && !(w.lists || []).some((l) => l.trim() === selectedList)) return;
+      const p = progressMap.get(`word:${w.word}`);
+      if (!p || p.due_date <= todayStr) cards.push({ type: "word", key: w.word, data: w, progress: p || null });
+    });
+    const shuffled = shuffle(cards);
+    setQueue(shuffled.slice(1));
+    setCurrent(shuffled[0] || null);
+    setFlipped(false);
+    setSessionStats({ reviewed: 0, again: 0 });
+    setSessionActive(true);
+  }
+
+  async function rate(rating) {
+    if (!current) return;
+    const updated = updateSM2(current.progress, rating);
+    const row = {
+      user_id: userId,
+      card_key: current.key,
+      card_type: current.type,
+      ease_factor: updated.ease_factor,
+      interval_days: updated.interval_days,
+      repetitions: updated.repetitions,
+      due_date: updated.due_date,
+      last_reviewed: new Date().toISOString(),
+    };
+    setProgressMap((prev) => {
+      const next = new Map(prev);
+      next.set(`${current.type}:${current.key}`, row);
+      return next;
+    });
+    supabase
+      .from("flashcard_progress")
+      .upsert(row, { onConflict: "user_id,card_key,card_type" })
+      .then(({ error }) => {
+        if (error) console.error("Could not save flashcard progress:", error);
+      });
+
+    setSessionStats((prev) => ({ reviewed: prev.reviewed + 1, again: prev.again + (rating === "again" ? 1 : 0) }));
+    const rest = queue;
+    setQueue(rest.slice(1));
+    setCurrent(rest[0] || null);
+    setFlipped(false);
+  }
+
+  function endSession() {
+    setSessionActive(false);
+    setCurrent(null);
+    setQueue([]);
+  }
+
+  if (progressMap === null) {
+    return <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 40 }}>Đang tải…</div>;
+  }
+
+  return (
+    <div style={{ maxWidth: 420, margin: "0 auto" }}>
+      {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} onSignIn={onRequireAuth} />}
+      {lockedListName && (
+        <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
+      )}
+
+      {!sessionActive ? (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            Ôn tập bằng thẻ ghi nhớ
+          </div>
+
+          <select
+            value={selectedList}
+            onChange={(e) => handleListChange(e.target.value)}
+            style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
+          >
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+            {allLists.map((l) => (
+              <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+              </option>
+            ))}
+          </select>
+
+          <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20 }}>
+            {userId ? `${dueCount} thẻ cần ôn hôm nay` : "Đăng nhập để bắt đầu ôn tập"}
+          </div>
+
+          <button
+            type="button"
+            onClick={startSession}
+            disabled={userId && dueCount === 0}
+            className="seal-btn"
+            style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14, opacity: userId && dueCount === 0 ? 0.5 : 1 }}
+          >
+            Bắt đầu
+          </button>
+        </div>
+      ) : current ? (
+        <div>
+          <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center", marginBottom: 14 }}>
+            Còn {queue.length + 1} thẻ · đã ôn {sessionStats.reviewed}
+          </div>
+
+          <div
+            onClick={() => setFlipped((f) => !f)}
+            style={{
+              background: COLORS.card,
+              border: `2px solid ${COLORS.grid}`,
+              borderRadius: 14,
+              padding: "40px 24px",
+              minHeight: 220,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              marginBottom: 16,
+              textAlign: "center",
+            }}
+          >
+            {!flipped ? (
+              <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: current.type === "word" ? 44 : 64, color: COLORS.ink }}>
+                {current.key}
+              </div>
+            ) : (
+              <div style={{ width: "100%" }}>
+                <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 34, color: COLORS.ink, marginBottom: 10 }}>
+                  {current.key}
+                </div>
+                <div style={{ fontSize: 16, color: COLORS.sealDark, marginBottom: 4 }}>{current.data.pinyin}</div>
+                <div style={{ fontSize: 15, color: COLORS.inkSoft, marginBottom: 4 }}>{current.data.meaning}</div>
+                {current.data.sv && <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600 }}>HV: {current.data.sv}</div>}
+              </div>
+            )}
+          </div>
+
+          {!flipped ? (
+            <div style={{ textAlign: "center" }}>
+              <button type="button" onClick={() => setFlipped(true)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 22px", fontSize: 13 }}>
+                Lật thẻ
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+              <button type="button" onClick={() => rate("again")} style={{ ...ratingBtnStyle, borderColor: COLORS.error, color: COLORS.error }}>
+                Chưa nhớ
+              </button>
+              <button type="button" onClick={() => rate("hard")} style={{ ...ratingBtnStyle, borderColor: COLORS.gold, color: COLORS.gold }}>
+                Khó
+              </button>
+              <button type="button" onClick={() => rate("good")} style={{ ...ratingBtnStyle, borderColor: COLORS.seal, color: COLORS.seal }}>
+                Bình thường
+              </button>
+              <button type="button" onClick={() => rate("easy")} style={{ ...ratingBtnStyle, borderColor: COLORS.bamboo, color: COLORS.bamboo }}>
+                Dễ
+              </button>
+            </div>
+          )}
+
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 16px", fontSize: 12 }}>
+              Kết thúc phiên
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.bamboo, marginBottom: 8 }}>Hoàn thành! 🎉</div>
+          <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20 }}>
+            Đã ôn {sessionStats.reviewed} thẻ, {sessionStats.again} thẻ cần ôn lại sớm.
+          </div>
+          <button type="button" onClick={endSession} className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }}>
+            Xong
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ratingBtnStyle = {
+  padding: "10px 4px",
+  borderRadius: 8,
+  border: "1.5px solid",
+  background: "transparent",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
 };
 
 /* ================= ADD TAB ================= */
