@@ -640,7 +640,8 @@ function AuthRequiredModal({ onClose, onSignIn }) {
 }
 
 /* ---------- Shown when a logged-in user hits their lookup quota. ---------- */
-function LimitReachedModal({ onClose, count, limit, tier }) {
+function LimitReachedModal({ onClose, count, limit, tier, reason }) {
+  const isDisabled = reason === "DISABLED";
   return (
     <div
       onClick={onClose}
@@ -667,10 +668,18 @@ function LimitReachedModal({ onClose, count, limit, tier }) {
           boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
         }}
       >
-        <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.error, marginBottom: 8 }}>Đã hết lượt tra cứu</div>
-        <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 6, lineHeight: 1.5 }}>
-          Bạn đã dùng {count}/{limit} lượt tra cứu tự động ở gói {tier}.
+        <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.error, marginBottom: 8 }}>
+          {isDisabled ? "Tài khoản đã bị vô hiệu hóa" : "Đã hết lượt tra cứu"}
         </div>
+        {isDisabled ? (
+          <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 6, lineHeight: 1.5 }}>
+            Tài khoản của bạn hiện không thể sử dụng tính năng tra cứu tự động. Vui lòng liên hệ quản trị viên nếu bạn cho rằng đây là nhầm lẫn.
+          </div>
+        ) : (
+          <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 6, lineHeight: 1.5 }}>
+            Bạn đã dùng {count}/{limit} lượt tra cứu tự động ở gói {tier}.
+          </div>
+        )}
         <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 18, lineHeight: 1.5 }}>
           Bạn vẫn có thể thêm chữ/từ thủ công (không cần tra cứu tự động) mà không bị giới hạn. Liên hệ quản trị viên để tăng giới hạn.
         </div>
@@ -1462,22 +1471,29 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
   const remaining = Math.max(0, limit - count);
   const isLow = !isAdmin && remaining <= Math.max(5, limit * 0.1);
   const isOut = !isAdmin && remaining === 0;
+  const accentColor = isOut ? COLORS.error : isLow ? COLORS.gold : COLORS.seal;
+  const bg = isOut ? "rgba(166,67,46,0.08)" : isLow ? "rgba(89,89,0,0.08)" : "rgba(85,107,47,0.07)";
   return (
-    <div style={{ textAlign: "center", marginBottom: 16 }}>
-      <span
+    <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+      <div
         style={{
-          display: "inline-block",
-          fontSize: 11.5,
-          fontWeight: 600,
-          padding: "4px 12px",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 22px",
           borderRadius: 999,
-          border: `1px solid ${isOut ? COLORS.error : isLow ? COLORS.gold : COLORS.grid}`,
-          background: isOut ? "rgba(166,67,46,0.08)" : isLow ? "rgba(89,89,0,0.08)" : COLORS.chipBg,
-          color: isOut ? COLORS.error : isLow ? COLORS.gold : COLORS.inkSoft,
+          border: `2px solid ${accentColor}`,
+          background: bg,
         }}
       >
-        {isAdmin ? `Admin · ${count} lượt tra cứu đã dùng (không giới hạn)` : `${tier} · ${remaining}/${limit} lượt tra cứu còn lại`}
-      </span>
+        <span style={{ fontSize: 17, fontWeight: 800, color: accentColor, letterSpacing: 0.4, textTransform: "uppercase" }}>
+          {isAdmin ? "Admin" : tier}
+        </span>
+        <span style={{ width: 1, height: 20, background: accentColor, opacity: 0.35 }} />
+        <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.ink }}>
+          {isAdmin ? `${count} lượt đã dùng · không giới hạn` : `${remaining}/${limit} lượt tra cứu còn lại`}
+        </span>
+      </div>
     </div>
   );
 }
@@ -1984,9 +2000,9 @@ function AddTab({
           setShowAuthModal(true);
           return;
         }
-        if (response.status === 403 && errBody.error === "LIMIT_REACHED") {
+        if (response.status === 403 && (errBody.error === "LIMIT_REACHED" || errBody.error === "DISABLED")) {
           setLookupStatus("idle");
-          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit });
+          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit, reason: errBody.error });
           onQuotaUpdate && onQuotaUpdate(errBody.lookup_count, errBody.lookup_limit);
           return;
         }
@@ -2072,6 +2088,7 @@ function AddTab({
           count={limitInfo.count}
           limit={limitInfo.limit}
           tier={limitInfo.tier || "Free"}
+          reason={limitInfo.reason}
         />
       )}
 
@@ -2409,10 +2426,11 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
     if (response.status === 401) throw new Error("AUTH_REQUIRED");
     if (response.status === 403) {
       const errBody = await response.json().catch(() => ({}));
-      if (errBody.error === "LIMIT_REACHED") {
+      if (errBody.error === "LIMIT_REACHED" || errBody.error === "DISABLED") {
         const limitErr = new Error("LIMIT_REACHED");
         limitErr.lookup_count = errBody.lookup_count;
         limitErr.lookup_limit = errBody.lookup_limit;
+        limitErr.reason = errBody.error;
         throw limitErr;
       }
     }
@@ -2517,10 +2535,11 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
             if (wordResponse.status === 401) throw new Error("AUTH_REQUIRED");
             if (wordResponse.status === 403) {
               const errBody = await wordResponse.json().catch(() => ({}));
-              if (errBody.error === "LIMIT_REACHED") {
+              if (errBody.error === "LIMIT_REACHED" || errBody.error === "DISABLED") {
                 const limitErr = new Error("LIMIT_REACHED");
                 limitErr.lookup_count = errBody.lookup_count;
                 limitErr.lookup_limit = errBody.lookup_limit;
+                limitErr.reason = errBody.error;
                 throw limitErr;
               }
             }
@@ -2566,7 +2585,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
         }
         if (err.message === "LIMIT_REACHED") {
           console.error(`Bulk import stopped for "${item}": lookup limit reached`);
-          setLimitInfo({ count: err.lookup_count, limit: err.lookup_limit });
+          setLimitInfo({ count: err.lookup_count, limit: err.lookup_limit, reason: err.reason });
           onQuotaUpdate && onQuotaUpdate(err.lookup_count, err.lookup_limit);
           break;
         }
@@ -2613,6 +2632,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
           count={limitInfo.count}
           limit={limitInfo.limit}
           tier={limitInfo.tier || "Free"}
+          reason={limitInfo.reason}
         />
       )}
 
@@ -3024,8 +3044,8 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
           delete next[ch];
           return next;
         });
-        if (errBody.error === "LIMIT_REACHED") {
-          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit });
+        if (errBody.error === "LIMIT_REACHED" || errBody.error === "DISABLED") {
+          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit, reason: errBody.error });
           onQuotaUpdate && onQuotaUpdate(errBody.lookup_count, errBody.lookup_limit);
           return;
         }
@@ -3097,8 +3117,8 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       if (response.status === 403) {
         const errBody = await response.json().catch(() => ({}));
         setWordLookupStatus("idle");
-        if (errBody.error === "LIMIT_REACHED") {
-          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit });
+        if (errBody.error === "LIMIT_REACHED" || errBody.error === "DISABLED") {
+          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit, reason: errBody.error });
           onQuotaUpdate && onQuotaUpdate(errBody.lookup_count, errBody.lookup_limit);
           return;
         }
@@ -3203,6 +3223,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
           count={limitInfo.count}
           limit={limitInfo.limit}
           tier={limitInfo.tier || "Free"}
+          reason={limitInfo.reason}
         />
       )}
 
@@ -3416,6 +3437,8 @@ function AdminPanel({ isAdmin }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [tierFilter, setTierFilter] = useState("Tất cả");
+  const [statusFilter, setStatusFilter] = useState("all"); // all | disabled | enabled
   const [editingId, setEditingId] = useState(null);
   const [editTier, setEditTier] = useState("Free");
   const [editLimit, setEditLimit] = useState("100");
@@ -3431,7 +3454,7 @@ function AdminPanel({ isAdmin }) {
     setLoading(true);
     const { data, error } = await supabase
       .from("profiles")
-      .select("user_id, email, is_admin, tier, lookup_count, lookup_limit")
+      .select("user_id, email, is_admin, tier, lookup_count, lookup_limit, disabled")
       .order("email", { ascending: true });
     if (!error) setUsers(data || []);
     setLoading(false);
@@ -3477,9 +3500,25 @@ function AdminPanel({ isAdmin }) {
     setTimeout(() => setMessage(null), 2500);
   }
 
+  async function toggleDisabled(u) {
+    const next = !u.disabled;
+    if (next && !window.confirm(`Vô hiệu hóa tài khoản "${u.email || u.user_id}"? Người này sẽ không thể tra cứu tự động cho đến khi được kích hoạt lại.`)) return;
+    const { error } = await supabase.from("profiles").update({ disabled: next }).eq("user_id", u.user_id);
+    if (error) {
+      setMessage({ type: "error", text: "Không thể cập nhật: " + error.message });
+      return;
+    }
+    setUsers((prev) => prev.map((x) => (x.user_id === u.user_id ? { ...x, disabled: next } : x)));
+    setMessage({ type: "success", text: next ? "Đã vô hiệu hóa." : "Đã kích hoạt lại." });
+    setTimeout(() => setMessage(null), 2500);
+  }
+
   if (!isAdmin) return null;
 
   const filtered = users.filter((u) => {
+    if (tierFilter !== "Tất cả" && (u.tier || "Free") !== tierFilter) return false;
+    if (statusFilter === "disabled" && !u.disabled) return false;
+    if (statusFilter === "enabled" && u.disabled) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return (u.email || "").toLowerCase().includes(q) || u.user_id.toLowerCase().includes(q);
@@ -3491,13 +3530,26 @@ function AdminPanel({ isAdmin }) {
         Quản trị người dùng
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Tìm theo email…"
-          style={{ ...inputStyle, width: 280, textAlign: "center" }}
+          style={{ ...inputStyle, width: 220, textAlign: "center" }}
         />
+        <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} style={{ ...selectStyle, width: 150, flex: "none" }}>
+          <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả gói</option>
+          {Object.keys(TIER_PRESETS).map((t) => (
+            <option key={t} value={t} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+              {t}
+            </option>
+          ))}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...selectStyle, width: 170, flex: "none" }}>
+          <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả trạng thái</option>
+          <option value="enabled" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Đang hoạt động</option>
+          <option value="disabled" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Đã vô hiệu hóa</option>
+        </select>
         <button type="button" onClick={loadUsers} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5 }}>
           ⟳ Làm mới
         </button>
@@ -3571,6 +3623,22 @@ function AdminPanel({ isAdmin }) {
                   <div style={{ flex: "1 1 200px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>
                     {u.email || u.user_id}
                     {u.is_admin && <span style={{ marginLeft: 6, fontSize: 10.5, color: COLORS.gold }}>(admin)</span>}
+                    {u.disabled && (
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: 999,
+                          border: `1px solid ${COLORS.error}`,
+                          background: "rgba(166,67,46,0.08)",
+                          color: COLORS.error,
+                        }}
+                      >
+                        Đã vô hiệu hóa
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: COLORS.sealDark, minWidth: 60 }}>{u.tier || "Free"}</div>
                   <div style={{ fontSize: 12, color: COLORS.inkSoft, minWidth: 80 }}>
@@ -3592,6 +3660,22 @@ function AdminPanel({ isAdmin }) {
                   >
                     Đặt lại về 0
                   </button>
+                  {!u.is_admin && (
+                    <button
+                      type="button"
+                      onClick={() => toggleDisabled(u)}
+                      className="ghost-btn"
+                      style={{
+                        ...ghostBtnStyle,
+                        padding: "5px 10px",
+                        fontSize: 11.5,
+                        borderColor: u.disabled ? COLORS.bamboo : COLORS.error,
+                        color: u.disabled ? COLORS.bamboo : COLORS.error,
+                      }}
+                    >
+                      {u.disabled ? "✓ Kích hoạt lại" : "🚫 Vô hiệu hóa"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -60,10 +60,11 @@ export default async (req) => {
   }
   const quota = Array.isArray(quotaRows) ? quotaRows[0] : quotaRows;
   if (!quota || !quota.allowed) {
+    const reason = quota && quota.reason ? quota.reason : "LIMIT_REACHED";
     return new Response(
       JSON.stringify({
-        error: "LIMIT_REACHED",
-        message: "You've used all your free lookups.",
+        error: reason,
+        message: reason === "DISABLED" ? "This account has been disabled." : "You've used all your free lookups.",
         lookup_count: quota ? quota.new_count : 0,
         lookup_limit: quota ? quota.limit_value : 0,
       }),
