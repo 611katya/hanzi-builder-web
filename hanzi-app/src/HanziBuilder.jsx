@@ -640,7 +640,7 @@ function AuthRequiredModal({ onClose, onSignIn }) {
 }
 
 /* ---------- Shown when a logged-in user hits their lookup quota. ---------- */
-function LimitReachedModal({ onClose, count, limit, tier, reason }) {
+function LimitReachedModal({ onClose, count, limit, tier, reason, onViewPremium }) {
   const isDisabled = reason === "DISABLED";
   return (
     <div
@@ -681,11 +681,81 @@ function LimitReachedModal({ onClose, count, limit, tier, reason }) {
           </div>
         )}
         <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 18, lineHeight: 1.5 }}>
-          Bạn vẫn có thể thêm chữ/từ thủ công (không cần tra cứu tự động) mà không bị giới hạn. Liên hệ quản trị viên để tăng giới hạn.
+          Bạn vẫn có thể thêm chữ/từ thủ công (không cần tra cứu tự động) mà không bị giới hạn.
+          {!isDisabled && " Nâng cấp để có thêm lượt tra cứu."}
         </div>
-        <button type="button" onClick={onClose} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 20px", fontSize: 13 }}>
-          Đã hiểu
-        </button>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+          {!isDisabled && onViewPremium && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onViewPremium();
+              }}
+              className="seal-btn"
+              style={{ ...sealBtnStyle, padding: "8px 18px", fontSize: 13 }}
+            >
+              Xem gói nâng cấp
+            </button>
+          )}
+          <button type="button" onClick={onClose} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 18px", fontSize: 13 }}>
+            Đã hiểu
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Shown when a user tries to browse/play a list their tier or
+   course doesn't unlock. ---------- */
+function ListLockedModal({ onClose, listName, onViewPremium }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,28,10,0.55)",
+        zIndex: 1300,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: COLORS.card,
+          borderRadius: 14,
+          padding: "26px 24px",
+          width: "90%",
+          maxWidth: 340,
+          textAlign: "center",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        }}
+      >
+        <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.gold, marginBottom: 8 }}>Danh sách yêu cầu nâng cấp</div>
+        <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 18, lineHeight: 1.5 }}>
+          Danh sách "{listName}" chỉ dành cho một số gói thành viên hoặc khóa học nhất định. Nâng cấp tài khoản hoặc liên hệ quản trị viên để được cấp quyền truy cập.
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onViewPremium && onViewPremium();
+            }}
+            className="seal-btn"
+            style={{ ...sealBtnStyle, padding: "8px 18px", fontSize: 13 }}
+          >
+            Xem gói nâng cấp
+          </button>
+          <button type="button" onClick={onClose} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 18px", fontSize: 13 }}>
+            Đóng
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -911,6 +981,29 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const [lookupCount, setLookupCount] = useState(0);
   const [lookupLimit, setLookupLimit] = useState(100);
   const [tier, setTier] = useState("Free");
+  const [courseName, setCourseName] = useState(null);
+
+  // List access rules -- loaded for everyone, including guests, since list
+  // NAMES are meant to be visible to everyone (that's the upgrade hook).
+  // null = not loaded yet.
+  const [listSettings, setListSettings] = useState(null); // [{name, admin_only, allowed_tiers}]
+  const [listCourseAccess, setListCourseAccess] = useState(null); // [{list_name, course_name}]
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [lsRes, lcaRes] = await Promise.all([
+        supabase.from("list_settings").select("*"),
+        supabase.from("list_course_access").select("*"),
+      ]);
+      if (cancelled) return;
+      setListSettings(!lsRes.error ? lsRes.data || [] : []);
+      setListCourseAccess(!lcaRes.error ? lcaRes.data || [] : []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -952,7 +1045,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       await supabase.from("profiles").upsert({ user_id: userId, email: userEmail || null }, { onConflict: "user_id" });
       const { data, error } = await supabase
         .from("profiles")
-        .select("is_admin, lookup_count, lookup_limit, tier")
+        .select("is_admin, lookup_count, lookup_limit, tier, course_name")
         .eq("user_id", userId)
         .single();
       if (cancelled) return;
@@ -961,6 +1054,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         setLookupCount(data.lookup_count || 0);
         setLookupLimit(data.lookup_limit != null ? data.lookup_limit : 100);
         setTier(data.tier || "Free");
+        setCourseName(data.course_name || null);
       }
     })();
     return () => {
@@ -1283,18 +1377,70 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
     return Array.from(map.values());
   }, [officialBushou, customBushou]);
 
+  // List names that are completely private to admin -- draft/testing
+  // content, invisible to everyone else (not just gated by tier).
+  const adminOnlyListNames = useMemo(() => {
+    return new Set((listSettings || []).filter((s) => s.admin_only).map((s) => s.name));
+  }, [listSettings]);
+
   const characterList = useMemo(() => {
     const map = new Map();
     [...(officialChars || SEED_CHARACTERS), ...customChars].forEach((c) => map.set(c.char, c));
     deletedChars.forEach((ch) => map.delete(ch));
-    return Array.from(map.values());
-  }, [officialChars, customChars, deletedChars]);
+    let arr = Array.from(map.values());
+    if (!isAdmin && adminOnlyListNames.size > 0) {
+      arr = arr.filter((c) => {
+        const lists = getLists(c);
+        return lists.length === 0 || lists.some((l) => !adminOnlyListNames.has(l));
+      });
+    }
+    return arr;
+  }, [officialChars, customChars, deletedChars, isAdmin, adminOnlyListNames]);
 
   const wordList = useMemo(() => {
     const map = new Map();
     [...(officialWords || SEED_WORDS), ...customWords].forEach((w) => map.set(w.word, w));
-    return Array.from(map.values());
-  }, [officialWords, customWords]);
+    let arr = Array.from(map.values());
+    if (!isAdmin && adminOnlyListNames.size > 0) {
+      arr = arr.filter((w) => {
+        const lists = w.lists || [];
+        return lists.length === 0 || lists.some((l) => !adminOnlyListNames.has(l));
+      });
+    }
+    return arr;
+  }, [officialWords, customWords, isAdmin, adminOnlyListNames]);
+
+  // Whether the CURRENT user can see a given list's actual contents
+  // (separate from admin_only, which hides it entirely and is handled
+  // above) -- gated by tier, or by course for Enrolled Course students.
+  const checkListAccess = useCallback(
+    (listName) => {
+      if (isAdmin) return true;
+      const setting = (listSettings || []).find((s) => s.name === listName);
+      if (!setting) return true; // not configured -> open to everyone
+      if (setting.admin_only) return false;
+      if (setting.allowed_tiers && setting.allowed_tiers.includes(tier)) return true;
+      if (tier === "Enrolled Course" && courseName) {
+        const hasCourseGrant = (listCourseAccess || []).some(
+          (g) => g.list_name === listName && g.course_name === courseName
+        );
+        if (hasCourseGrant) return true;
+      }
+      return false;
+    },
+    [isAdmin, tier, courseName, listSettings, listCourseAccess]
+  );
+
+  // Every list name currently in use anywhere (characters or words) --
+  // note this runs on the ADMIN's own characterList/wordList, which is
+  // unfiltered (the admin_only filter only applies to non-admins), so this
+  // correctly includes admin-only lists too, for managing them.
+  const allListNamesInUse = useMemo(() => {
+    const set = new Set();
+    characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
+    wordList.forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [characterList, wordList]);
 
   // Which chars/words are currently live for everyone (vs. only in this
   // admin's personal data) — drives the promote/withdraw toggle state.
@@ -1367,6 +1513,9 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
               if (needsReview.includes(char))
                 persistNeedsReview(needsReview.filter((c) => c !== char), char, false);
             }}
+            isAdmin={isAdmin}
+            checkListAccess={checkListAccess}
+            onViewPremium={() => setTab("premium")}
           />
         ) : tab === "add" ? (
           <AddTab
@@ -1382,6 +1531,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             onDeleteWord={deleteWordRow}
             userId={userId}
             onRequireAuth={onRequireAuth}
+            onViewPremium={() => setTab("premium")}
             onQuotaUpdate={(count, limit) => {
               setLookupCount(count);
               if (typeof limit === "number") setLookupLimit(limit);
@@ -1410,6 +1560,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             overrideCharKeys={overrideCharKeys}
             onPromoteCharacter={promoteCharacterToDefault}
             onWithdrawCharacter={withdrawCharacterFromDefault}
+            checkListAccess={checkListAccess}
+            onViewPremium={() => setTab("premium")}
           />
         ) : tab === "vocab" ? (
           <WordListPanel
@@ -1424,10 +1576,14 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             overrideWordKeys={overrideWordKeys}
             onPromoteWord={promoteWordToDefault}
             onWithdrawWord={withdrawWordFromDefault}
+            checkListAccess={checkListAccess}
+            onViewPremium={() => setTab("premium")}
           />
-        ) : (
-          <AdminPanel isAdmin={isAdmin} />
-        )}
+        ) : tab === "premium" ? (
+          <PremiumTab />
+        ) : tab === "admin" ? (
+          <AdminPanel isAdmin={isAdmin} allListNamesInUse={allListNamesInUse} />
+        ) : null}
       </div>
     </div>
   );
@@ -1506,6 +1662,7 @@ function Tabs({ tab, setTab, isAdmin }) {
     { id: "radicals", label: "Bộ thủ · 部首" },
     { id: "hanzi", label: "Hán tự · 汉字" },
     { id: "vocab", label: "Từ vựng · 生词" },
+    { id: "premium", label: "★ Thành viên" },
   ];
   if (isAdmin) items.push({ id: "admin", label: "⚙ Quản trị" });
   return (
@@ -1546,13 +1703,14 @@ function Tabs({ tab, setTab, isAdmin }) {
 /* ================= PLAY TAB ================= */
 const REVIEW_LIST_VALUE = "__needs_review__";
 
-function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview }) {
+function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview, isAdmin, checkListAccess, onViewPremium }) {
   const [round, setRound] = useState(null); // { target, palette: [{id,char}] }
   const [selected, setSelected] = useState([]); // array of palette ids, in click order
   const [status, setStatus] = useState("playing"); // playing | correct | wrong | revealed
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [selectedList, setSelectedList] = useState("Tất cả");
+  const [lockedListName, setLockedListName] = useState(null);
   const usedRef = useRef(new Set());
 
   // Every playable "thing" - single characters and multi-character words -
@@ -1633,7 +1791,14 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
     <div style={{ textAlign: "center", marginBottom: 16 }}>
       <select
         value={selectedList}
-        onChange={(e) => setSelectedList(e.target.value)}
+        onChange={(e) => {
+          const next = e.target.value;
+          if (!isAdmin && next !== "Tất cả" && next !== REVIEW_LIST_VALUE && checkListAccess && !checkListAccess(next)) {
+            setLockedListName(next);
+            return;
+          }
+          setSelectedList(next);
+        }}
         style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block" }}
       >
         <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
@@ -1644,6 +1809,9 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           </option>
         ))}
       </select>
+      {lockedListName && (
+        <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
+      )}
     </div>
   );
 
@@ -1876,6 +2044,7 @@ function AddTab({
   onDeleteWord,
   userId,
   onRequireAuth,
+  onViewPremium,
   onQuotaUpdate,
 }) {
   const [charInput, setCharInput] = useState("");
@@ -2089,6 +2258,7 @@ function AddTab({
           limit={limitInfo.limit}
           tier={limitInfo.tier || "Free"}
           reason={limitInfo.reason}
+          onViewPremium={onViewPremium}
         />
       )}
 
@@ -2102,6 +2272,7 @@ function AddTab({
         onAddWord={onAddWord}
         userId={userId}
         onRequireAuth={onRequireAuth}
+        onViewPremium={onViewPremium}
         onQuotaUpdate={onQuotaUpdate}
       />
 
@@ -2116,6 +2287,7 @@ function AddTab({
         onDeleteWord={onDeleteWord}
         userId={userId}
         onRequireAuth={onRequireAuth}
+        onViewPremium={onViewPremium}
         onQuotaUpdate={onQuotaUpdate}
       />
 
@@ -2361,7 +2533,7 @@ const BULK_IMPORT_MAX = 20;
    single character or a multi-character word. Each is looked up for real
    (same lookups as the single-item auto-fill flows) and tagged with one
    list name. Existing items just get the list name appended. ---------- */
-function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord, userId, onRequireAuth, onQuotaUpdate }) {
+function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord, userId, onRequireAuth, onViewPremium, onQuotaUpdate }) {
   const [expanded, setExpanded] = useState(false);
   const [rawInput, setRawInput] = useState("");
   const [selectedLists, setSelectedLists] = useState([]);
@@ -2633,6 +2805,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
           limit={limitInfo.limit}
           tier={limitInfo.tier || "Free"}
           reason={limitInfo.reason}
+          onViewPremium={onViewPremium}
         />
       )}
 
@@ -2974,7 +3147,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
    already exist (or can be auto-filled on the spot), tag it with lists,
    and save it. Only shows/manages the current user's own custom words —
    the built-in seed words aren't editable here. ---------- */
-function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord, userId, onRequireAuth, onQuotaUpdate }) {
+function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord, userId, onRequireAuth, onViewPremium, onQuotaUpdate }) {
   const [expanded, setExpanded] = useState(false);
   const [wordInput, setWordInput] = useState("");
   const [pinyin, setPinyin] = useState("");
@@ -3224,6 +3397,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
           limit={limitInfo.limit}
           tier={limitInfo.tier || "Free"}
           reason={limitInfo.reason}
+          onViewPremium={onViewPremium}
         />
       )}
 
@@ -3437,7 +3611,75 @@ const TIER_PRESETS = { Free: 100, Silver: 500, Titan: 2000, Gold: 5000, Platinum
 // course_name field the others don't use.
 const ALL_TIERS = [...Object.keys(TIER_PRESETS), "Enrolled Course"];
 
-function AdminPanel({ isAdmin }) {
+/* ---------- Sales/info page about paid tiers and courses. Visible to
+   everyone, including guests -- this is the conversion page the
+   quota-exhausted and locked-list popups link to. Static content for now;
+   revise the copy freely, it's just plain text/JSX below. ---------- */
+function PremiumTab() {
+  const tierCard = (name, limit, blurb) => (
+    <div
+      style={{
+        background: COLORS.card,
+        border: `1px solid ${COLORS.grid}`,
+        borderRadius: 10,
+        padding: "16px 18px",
+        marginBottom: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
+        <span style={{ fontSize: 16, fontWeight: 800, color: COLORS.seal, textTransform: "uppercase" }}>{name}</span>
+        <span style={{ fontSize: 12.5, color: COLORS.inkSoft }}>{limit} lượt tra cứu tự động</span>
+      </div>
+      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.5 }}>{blurb}</div>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+        Thành viên trả phí & Khóa học
+      </div>
+      <div style={{ fontSize: 13, color: COLORS.inkSoft, textAlign: "center", marginBottom: 24, lineHeight: 1.6 }}>
+        Học Chữ Hán cung cấp miễn phí bộ dữ liệu cơ bản để bạn bắt đầu học chữ Hán mọi lúc. Với gói thành viên trả
+        phí, bạn sẽ được tra cứu tự động nhiều hơn và mở khóa các danh sách từ vựng chuyên sâu do chúng tôi biên
+        soạn riêng.
+      </div>
+
+      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
+        Bảng gói thành viên
+      </div>
+      {tierCard("Free", "100", "Truy cập toàn bộ dữ liệu cơ bản.")}
+      {tierCard("Silver", "500", "Bao gồm các danh sách từ vựng nâng cao dành riêng cho gói Silver trở lên.")}
+      {tierCard("Titan", "2.000", "Bao gồm các danh sách từ vựng nâng cao dành riêng cho gói Titan trở lên.")}
+      {tierCard("Gold", "5.000", "Bao gồm các danh sách từ vựng nâng cao dành riêng cho gói Gold trở lên.")}
+      {tierCard("Platinum", "15.000", "Bao gồm toàn bộ danh sách từ vựng nâng cao hiện có.")}
+
+      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 20, marginBottom: 10 }}>
+        Khóa học riêng
+      </div>
+      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.6, marginBottom: 20 }}>
+        Ngoài các gói thành viên, chúng tôi cũng tổ chức các khóa học với bộ từ vựng được biên soạn riêng cho từng
+        khóa. Nếu bạn đang theo học một khóa cụ thể, tài khoản của bạn sẽ được cấp quyền truy cập vào danh sách từ
+        vựng riêng của khóa đó.
+      </div>
+
+      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
+        Cách nâng cấp
+      </div>
+      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.7 }}>
+        Hiện tại, việc nâng cấp được thực hiện thủ công:
+        <ol style={{ margin: "8px 0", paddingLeft: 20 }}>
+          <li>Chuyển khoản theo thông tin: [điền thông tin chuyển khoản]</li>
+          <li>Ghi chú nội dung chuyển khoản: [email tài khoản của bạn]</li>
+          <li>Tài khoản của bạn sẽ được nâng cấp trong vòng [điền thời gian]</li>
+        </ol>
+        Mọi thắc mắc xin liên hệ: [điền email hoặc kênh liên hệ]
+      </div>
+    </div>
+  );
+}
+
+function AdminPanel({ isAdmin, allListNamesInUse }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -3450,9 +3692,20 @@ function AdminPanel({ isAdmin }) {
   const [editCourseName, setEditCourseName] = useState("");
   const [message, setMessage] = useState(null);
 
+  // List access management
+  const [listSettings, setListSettings] = useState([]);
+  const [listCourseAccess, setListCourseAccess] = useState([]);
+  const [listsLoading, setListsLoading] = useState(true);
+  const [editingListName, setEditingListName] = useState(null);
+  const [editAdminOnly, setEditAdminOnly] = useState(false);
+  const [editAllowedTiers, setEditAllowedTiers] = useState([]);
+  const [newCourseGrant, setNewCourseGrant] = useState("");
+  const [listMessage, setListMessage] = useState(null);
+
   useEffect(() => {
     if (!isAdmin) return;
     loadUsers();
+    loadListSettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
@@ -3464,6 +3717,92 @@ function AdminPanel({ isAdmin }) {
       .order("email", { ascending: true });
     if (!error) setUsers(data || []);
     setLoading(false);
+  }
+
+  async function loadListSettings() {
+    setListsLoading(true);
+    const [lsRes, lcaRes] = await Promise.all([
+      supabase.from("list_settings").select("*"),
+      supabase.from("list_course_access").select("*"),
+    ]);
+    if (!lsRes.error) setListSettings(lsRes.data || []);
+    if (!lcaRes.error) setListCourseAccess(lcaRes.data || []);
+    setListsLoading(false);
+  }
+
+  function getListSetting(name) {
+    return listSettings.find((s) => s.name === name);
+  }
+
+  function getListCourseGrants(name) {
+    return listCourseAccess.filter((g) => g.list_name === name).map((g) => g.course_name);
+  }
+
+  function startEditList(name) {
+    const setting = getListSetting(name);
+    setEditingListName(name);
+    setEditAdminOnly(setting ? setting.admin_only : false);
+    setEditAllowedTiers(setting && setting.allowed_tiers ? setting.allowed_tiers : []);
+    setNewCourseGrant("");
+  }
+
+  function toggleEditTier(t) {
+    setEditAllowedTiers((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  }
+
+  async function saveListSetting(name) {
+    const { error } = await supabase
+      .from("list_settings")
+      .upsert({ name, admin_only: editAdminOnly, allowed_tiers: editAllowedTiers }, { onConflict: "name" });
+    if (error) {
+      setListMessage({ type: "error", text: "Không thể lưu: " + error.message });
+      return;
+    }
+    setListSettings((prev) => {
+      const without = prev.filter((s) => s.name !== name);
+      return [...without, { name, admin_only: editAdminOnly, allowed_tiers: editAllowedTiers }];
+    });
+    setEditingListName(null);
+    setListMessage({ type: "success", text: "Đã lưu." });
+    setTimeout(() => setListMessage(null), 2500);
+  }
+
+  async function addCourseGrant(name) {
+    const course = newCourseGrant.trim();
+    if (!course) return;
+    // A course grant implies the list needs a list_settings row to exist
+    // at all (otherwise it's already open to everyone and the grant is
+    // moot) -- make sure one exists first.
+    if (!getListSetting(name)) {
+      const { error: upsertErr } = await supabase
+        .from("list_settings")
+        .upsert({ name, admin_only: false, allowed_tiers: [] }, { onConflict: "name" });
+      if (upsertErr) {
+        setListMessage({ type: "error", text: "Không thể lưu: " + upsertErr.message });
+        return;
+      }
+      setListSettings((prev) => [...prev, { name, admin_only: false, allowed_tiers: [] }]);
+    }
+    const { error } = await supabase.from("list_course_access").upsert({ list_name: name, course_name: course });
+    if (error) {
+      setListMessage({ type: "error", text: "Không thể thêm khóa học: " + error.message });
+      return;
+    }
+    setListCourseAccess((prev) => [...prev, { list_name: name, course_name: course }]);
+    setNewCourseGrant("");
+  }
+
+  async function removeCourseGrant(name, course) {
+    const { error } = await supabase
+      .from("list_course_access")
+      .delete()
+      .eq("list_name", name)
+      .eq("course_name", course);
+    if (error) {
+      setListMessage({ type: "error", text: "Không thể xóa: " + error.message });
+      return;
+    }
+    setListCourseAccess((prev) => prev.filter((g) => !(g.list_name === name && g.course_name === course)));
   }
 
   function startEdit(u) {
@@ -3741,15 +4080,197 @@ function AdminPanel({ isAdmin }) {
           )}
         </div>
       )}
+
+      <div style={{ marginTop: 32, paddingTop: 22, borderTop: `1px dashed ${COLORS.grid}` }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+          Quản lý danh sách
+        </div>
+        <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16, lineHeight: 1.5 }}>
+          Danh sách chưa cấu hình bên dưới mặc định mở cho mọi người. "Chỉ admin" ẩn hoàn toàn khỏi người dùng
+          thường. Chọn gói và/hoặc gán khóa học cụ thể để giới hạn quyền xem nội dung (tên danh sách vẫn hiển thị
+          cho mọi người, trừ khi chọn "Chỉ admin").
+        </div>
+
+        {listMessage && (
+          <div
+            style={{
+              textAlign: "center",
+              fontSize: 12.5,
+              fontWeight: 600,
+              marginBottom: 12,
+              color: listMessage.type === "error" ? COLORS.error : COLORS.bamboo,
+            }}
+          >
+            {listMessage.text}
+          </div>
+        )}
+
+        {listsLoading ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>Đang tải…</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {allListNamesInUse.map((name) => {
+              const setting = getListSetting(name);
+              const courseGrants = getListCourseGrants(name);
+              const isOpen = !setting;
+              const isEditing = editingListName === name;
+              return (
+                <div
+                  key={name}
+                  style={{
+                    background: COLORS.card,
+                    border: `1px solid ${COLORS.grid}`,
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                  }}
+                >
+                  {isEditing ? (
+                    <div>
+                      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                        <div style={{ flex: "1 1 160px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>{name}</div>
+                        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: COLORS.ink, cursor: "pointer" }}>
+                          <input type="checkbox" checked={editAdminOnly} onChange={(e) => setEditAdminOnly(e.target.checked)} />
+                          Chỉ admin
+                        </label>
+                      </div>
+
+                      {!editAdminOnly && (
+                        <>
+                          <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 6 }}>Gói được phép xem:</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+                            {ALL_TIERS.map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => toggleEditTier(t)}
+                                style={{
+                                  fontSize: 11.5,
+                                  padding: "4px 10px",
+                                  borderRadius: 999,
+                                  border: `1px solid ${editAllowedTiers.includes(t) ? COLORS.seal : COLORS.grid}`,
+                                  background: editAllowedTiers.includes(t) ? "rgba(85,107,47,0.08)" : "transparent",
+                                  color: editAllowedTiers.includes(t) ? COLORS.seal : COLORS.inkSoft,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {editAllowedTiers.includes(t) ? "✓ " : ""}
+                                {t}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 6 }}>
+                            Cấp riêng cho khóa học cụ thể (dành cho gói "Enrolled Course"):
+                          </div>
+                          {courseGrants.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                              {courseGrants.map((c) => (
+                                <span
+                                  key={c}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    fontSize: 11.5,
+                                    padding: "3px 6px 3px 10px",
+                                    borderRadius: 999,
+                                    border: `1px solid ${COLORS.seal}`,
+                                    background: "rgba(85,107,47,0.08)",
+                                    color: COLORS.seal,
+                                  }}
+                                >
+                                  {c}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCourseGrant(name, c)}
+                                    style={{ background: "none", border: "none", color: COLORS.seal, cursor: "pointer", fontSize: 11.5, lineHeight: 1, padding: 0 }}
+                                  >
+                                    ✕
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                            <input
+                              value={newCourseGrant}
+                              onChange={(e) => setNewCourseGrant(e.target.value)}
+                              placeholder="Tên khóa học…"
+                              style={{ ...inputStyle, fontSize: 12.5, padding: "6px 10px", width: 200 }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => addCourseGrant(name)}
+                              className="ghost-btn"
+                              style={{ ...ghostBtnStyle, padding: "6px 12px", fontSize: 12 }}
+                            >
+                              + Thêm
+                            </button>
+                          </div>
+                        </>
+                      )}
+
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => saveListSetting(name)}
+                          className="seal-btn"
+                          style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingListName(null)}
+                          className="ghost-btn"
+                          style={{ ...ghostBtnStyle, padding: "6px 14px", fontSize: 12 }}
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+                      <div style={{ flex: "1 1 160px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>{name}</div>
+                      <div style={{ fontSize: 12, color: COLORS.inkSoft }}>
+                        {isOpen
+                          ? "Mở cho tất cả"
+                          : setting.admin_only
+                          ? "🔒 Chỉ admin"
+                          : [
+                              ...(setting.allowed_tiers || []),
+                              ...(courseGrants.length > 0 ? [`${courseGrants.length} khóa học`] : []),
+                            ].join(", ") || "Không ai được xem"}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => startEditList(name)}
+                        className="ghost-btn"
+                        style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
+                      >
+                        Sửa
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {allListNamesInUse.length === 0 && (
+              <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>Chưa có danh sách nào.</div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord }) {
+function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord, checkListAccess, onViewPremium }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
   const [exportMessage, setExportMessage] = useState(null);
+  const [lockedListName, setLockedListName] = useState(null);
 
   const allLists = useMemo(() => {
     const set = new Set();
@@ -3831,7 +4352,18 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
               placeholder="Tìm từ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…"
               style={{ ...inputStyle, width: 260, textAlign: "center" }}
             />
-            <select value={listFilter} onChange={(e) => setListFilter(e.target.value)} style={{ ...selectStyle, width: 190, flex: "none" }}>
+            <select
+              value={listFilter}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (!isAdmin && next !== "Tất cả" && checkListAccess && !checkListAccess(next)) {
+                  setLockedListName(next);
+                  return;
+                }
+                setListFilter(next);
+              }}
+              style={{ ...selectStyle, width: 190, flex: "none" }}
+            >
               <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
@@ -3839,6 +4371,9 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 </option>
               ))}
             </select>
+            {lockedListName && (
+              <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
+            )}
             {isAdmin && (
               <select value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)} style={{ ...selectStyle, width: 190, flex: "none" }}>
                 <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả trạng thái</option>
@@ -4364,11 +4899,12 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
 }
 
 /* ---------- List function: browse every character already in the database ---------- */
-function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter }) {
+function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter, checkListAccess, onViewPremium }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
   const [exportMessage, setExportMessage] = useState(null);
+  const [lockedListName, setLockedListName] = useState(null);
 
   const findBushou = (ch) =>
     bushouList.find((b) => b.char === ch) || { char: ch, pinyin: "—", meaning: "unknown", sv: "—" };
@@ -4456,7 +4992,14 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
           />
           <select
             value={listFilter}
-            onChange={(e) => setListFilter(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (!isAdmin && next !== "Tất cả" && checkListAccess && !checkListAccess(next)) {
+                setLockedListName(next);
+                return;
+              }
+              setListFilter(next);
+            }}
             style={{ ...selectStyle, width: 170, flex: "none" }}
           >
             <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
@@ -4466,6 +5009,9 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
               </option>
             ))}
           </select>
+          {lockedListName && (
+            <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
+          )}
           {isAdmin && (
             <select value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)} style={{ ...selectStyle, width: 190, flex: "none" }}>
               <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả trạng thái</option>
