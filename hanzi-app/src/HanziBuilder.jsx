@@ -3432,6 +3432,10 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 /* ---------- Admin-only: browse every user, adjust their tier/limit, or
    reset their usage — replaces doing the same thing via raw SQL. ---------- */
 const TIER_PRESETS = { Free: 100, Silver: 500, Titan: 2000, Gold: 5000, Platinum: 15000 };
+// "Enrolled Course" isn't a fixed-limit preset like the others -- its
+// limit is set manually per course/student, and it carries an extra
+// course_name field the others don't use.
+const ALL_TIERS = [...Object.keys(TIER_PRESETS), "Enrolled Course"];
 
 function AdminPanel({ isAdmin }) {
   const [users, setUsers] = useState([]);
@@ -3439,9 +3443,11 @@ function AdminPanel({ isAdmin }) {
   const [query, setQuery] = useState("");
   const [tierFilter, setTierFilter] = useState("Tất cả");
   const [statusFilter, setStatusFilter] = useState("all"); // all | disabled | enabled
+  const [courseFilter, setCourseFilter] = useState("Tất cả");
   const [editingId, setEditingId] = useState(null);
   const [editTier, setEditTier] = useState("Free");
   const [editLimit, setEditLimit] = useState("100");
+  const [editCourseName, setEditCourseName] = useState("");
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
@@ -3454,7 +3460,7 @@ function AdminPanel({ isAdmin }) {
     setLoading(true);
     const { data, error } = await supabase
       .from("profiles")
-      .select("user_id, email, is_admin, tier, lookup_count, lookup_limit, disabled")
+      .select("user_id, email, is_admin, tier, lookup_count, lookup_limit, disabled, course_name")
       .order("email", { ascending: true });
     if (!error) setUsers(data || []);
     setLoading(false);
@@ -3462,13 +3468,16 @@ function AdminPanel({ isAdmin }) {
 
   function startEdit(u) {
     setEditingId(u.user_id);
-    setEditTier(u.tier && TIER_PRESETS[u.tier] != null ? u.tier : "Free");
+    setEditTier(u.tier && ALL_TIERS.includes(u.tier) ? u.tier : "Free");
     setEditLimit(String(u.lookup_limit != null ? u.lookup_limit : 100));
+    setEditCourseName(u.course_name || "");
   }
 
   function handleTierChange(newTier) {
     setEditTier(newTier);
     if (TIER_PRESETS[newTier] != null) setEditLimit(String(TIER_PRESETS[newTier]));
+    // Leave the limit as-is when switching to Enrolled Course -- there's no
+    // fixed preset for it, it's set manually per course/student.
   }
 
   async function saveEdit(userId) {
@@ -3477,12 +3486,23 @@ function AdminPanel({ isAdmin }) {
       setMessage({ type: "error", text: "Giới hạn không hợp lệ." });
       return;
     }
-    const { error } = await supabase.from("profiles").update({ tier: editTier, lookup_limit: limitNum }).eq("user_id", userId);
+    const isCourse = editTier === "Enrolled Course";
+    if (isCourse && !editCourseName.trim()) {
+      setMessage({ type: "error", text: "Vui lòng nhập tên khóa học." });
+      return;
+    }
+    const courseNameToSave = isCourse ? editCourseName.trim() : null;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ tier: editTier, lookup_limit: limitNum, course_name: courseNameToSave })
+      .eq("user_id", userId);
     if (error) {
       setMessage({ type: "error", text: "Không thể lưu: " + error.message });
       return;
     }
-    setUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, tier: editTier, lookup_limit: limitNum } : u)));
+    setUsers((prev) =>
+      prev.map((u) => (u.user_id === userId ? { ...u, tier: editTier, lookup_limit: limitNum, course_name: courseNameToSave } : u))
+    );
     setEditingId(null);
     setMessage({ type: "success", text: "Đã lưu." });
     setTimeout(() => setMessage(null), 2500);
@@ -3515,10 +3535,15 @@ function AdminPanel({ isAdmin }) {
 
   if (!isAdmin) return null;
 
+  const existingCourseNames = Array.from(new Set(users.map((u) => u.course_name).filter(Boolean))).sort((a, b) =>
+    a.localeCompare(b, "vi")
+  );
+
   const filtered = users.filter((u) => {
     if (tierFilter !== "Tất cả" && (u.tier || "Free") !== tierFilter) return false;
     if (statusFilter === "disabled" && !u.disabled) return false;
     if (statusFilter === "enabled" && u.disabled) return false;
+    if (courseFilter !== "Tất cả" && (u.course_name || "") !== courseFilter) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return (u.email || "").toLowerCase().includes(q) || u.user_id.toLowerCase().includes(q);
@@ -3539,7 +3564,7 @@ function AdminPanel({ isAdmin }) {
         />
         <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} style={{ ...selectStyle, width: 150, flex: "none" }}>
           <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả gói</option>
-          {Object.keys(TIER_PRESETS).map((t) => (
+          {ALL_TIERS.map((t) => (
             <option key={t} value={t} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
               {t}
             </option>
@@ -3550,6 +3575,16 @@ function AdminPanel({ isAdmin }) {
           <option value="enabled" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Đang hoạt động</option>
           <option value="disabled" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Đã vô hiệu hóa</option>
         </select>
+        {existingCourseNames.length > 0 && (
+          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} style={{ ...selectStyle, width: 170, flex: "none" }}>
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả khóa học</option>
+            {existingCourseNames.map((c) => (
+              <option key={c} value={c} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                {c}
+              </option>
+            ))}
+          </select>
+        )}
         <button type="button" onClick={loadUsers} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5 }}>
           ⟳ Làm mới
         </button>
@@ -3593,8 +3628,8 @@ function AdminPanel({ isAdmin }) {
                     {u.email || u.user_id}
                     {u.is_admin && <span style={{ marginLeft: 6, fontSize: 10.5, color: COLORS.gold }}>(admin)</span>}
                   </div>
-                  <select value={editTier} onChange={(e) => handleTierChange(e.target.value)} style={{ ...selectStyle, width: 130 }}>
-                    {Object.keys(TIER_PRESETS).map((t) => (
+                  <select value={editTier} onChange={(e) => handleTierChange(e.target.value)} style={{ ...selectStyle, width: 150 }}>
+                    {ALL_TIERS.map((t) => (
                       <option key={t} value={t} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                         {t}
                       </option>
@@ -3606,6 +3641,22 @@ function AdminPanel({ isAdmin }) {
                     onChange={(e) => setEditLimit(e.target.value)}
                     style={{ ...inputStyle, width: 100 }}
                   />
+                  {editTier === "Enrolled Course" && (
+                    <>
+                      <input
+                        value={editCourseName}
+                        onChange={(e) => setEditCourseName(e.target.value)}
+                        placeholder="Tên khóa học…"
+                        list="admin-course-names"
+                        style={{ ...inputStyle, width: 170 }}
+                      />
+                      <datalist id="admin-course-names">
+                        {existingCourseNames.map((c) => (
+                          <option key={c} value={c} />
+                        ))}
+                      </datalist>
+                    </>
+                  )}
                   <button type="button" onClick={() => saveEdit(u.user_id)} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
                     Lưu
                   </button>
@@ -3640,7 +3691,12 @@ function AdminPanel({ isAdmin }) {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: COLORS.sealDark, minWidth: 60 }}>{u.tier || "Free"}</div>
+                  <div style={{ fontSize: 12, color: COLORS.sealDark, minWidth: 60 }}>
+                    {u.tier || "Free"}
+                    {u.tier === "Enrolled Course" && u.course_name && (
+                      <span style={{ color: COLORS.inkSoft, fontWeight: 500 }}> · {u.course_name}</span>
+                    )}
+                  </div>
                   <div style={{ fontSize: 12, color: COLORS.inkSoft, minWidth: 80 }}>
                     {u.lookup_count ?? 0} / {u.lookup_limit ?? 100}
                   </div>
