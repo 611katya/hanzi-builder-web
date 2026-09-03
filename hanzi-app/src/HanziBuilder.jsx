@@ -1560,8 +1560,10 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <Header />
-        {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
-        <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
+          {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
+          <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
+        </div>
         <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} />
 
         {!loaded ? (
@@ -1711,26 +1713,24 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
   const accentColor = isOut ? COLORS.error : isLow ? COLORS.gold : COLORS.seal;
   const bg = isOut ? "rgba(166,67,46,0.08)" : isLow ? "rgba(89,89,0,0.08)" : "rgba(85,107,47,0.07)";
   return (
-    <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "10px 22px",
-          borderRadius: 999,
-          border: `2px solid ${accentColor}`,
-          background: bg,
-        }}
-      >
-        <span style={{ fontSize: 17, fontWeight: 800, color: accentColor, letterSpacing: 0.4, textTransform: "uppercase" }}>
-          {isAdmin ? "Admin" : tier}
-        </span>
-        <span style={{ width: 1, height: 20, background: accentColor, opacity: 0.35 }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.ink }}>
-          {isAdmin ? `${count} lượt đã dùng · không giới hạn` : `${remaining}/${limit} lượt tra cứu còn lại`}
-        </span>
-      </div>
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 22px",
+        borderRadius: 999,
+        border: `2px solid ${accentColor}`,
+        background: bg,
+      }}
+    >
+      <span style={{ fontSize: 17, fontWeight: 800, color: accentColor, letterSpacing: 0.4, textTransform: "uppercase" }}>
+        {isAdmin ? "Admin" : tier}
+      </span>
+      <span style={{ width: 1, height: 20, background: accentColor, opacity: 0.35 }} />
+      <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.ink }}>
+        {isAdmin ? `${count} lượt đã dùng · không giới hạn` : `${remaining}/${limit} lượt tra cứu còn lại`}
+      </span>
     </div>
   );
 }
@@ -1745,34 +1745,33 @@ function MeaningDisplayToggle({ value, onChange }) {
     { id: "vi", label: "VI" },
   ];
   return (
-    <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-      <div
-        style={{
-          display: "inline-flex",
-          borderRadius: 999,
-          border: `1px solid ${COLORS.grid}`,
-          overflow: "hidden",
-        }}
-      >
-        {options.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            style={{
-              padding: "5px 14px",
-              fontSize: 11.5,
-              fontWeight: 700,
-              border: "none",
-              cursor: "pointer",
-              background: value === opt.id ? COLORS.seal : "transparent",
-              color: value === opt.id ? "#FBF9EF" : COLORS.inkSoft,
-            }}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+    <div
+      style={{
+        display: "inline-flex",
+        borderRadius: 999,
+        border: `2px solid ${COLORS.seal}`,
+        overflow: "hidden",
+      }}
+    >
+      {options.map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onChange(opt.id)}
+          style={{
+            padding: "10px 20px",
+            fontSize: 15,
+            fontWeight: 800,
+            letterSpacing: 0.3,
+            border: "none",
+            cursor: "pointer",
+            background: value === opt.id ? COLORS.seal : "transparent",
+            color: value === opt.id ? "#FBF9EF" : COLORS.seal,
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -2042,7 +2041,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 8, fontSize: 14.5, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{target.pinyin}</strong></span>
-          {target.sv && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>}
+          {target.sv && meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>}
         </div>
       </div>
 
@@ -2097,7 +2096,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
         {status === "revealed" && (
           <span style={{ color: COLORS.gold }}>
             💡 Đáp án: {answerBreakdown} ({target.pinyin}) — {formatMeaningInline(target.meaning, target.meaningVi, meaningDisplay)}
-            {target.sv ? `, Hán Việt: ${target.sv}` : ""}
+            {target.sv && meaningDisplay !== "en" ? `, Hán Việt: ${target.sv}` : ""}
           </span>
         )}
       </div>
@@ -2408,7 +2407,9 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
                 <div style={{ marginBottom: 4 }}>
                   <MeaningBoxes meaning={current.data.meaning} meaningVi={current.data.meaning_vi} meaningDisplay={meaningDisplay} large />
                 </div>
-                {current.data.sv && <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>}
+                {current.data.sv && meaningDisplay !== "en" && (
+                  <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>
+                )}
               </div>
             )}
           </div>
@@ -5158,7 +5159,9 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
       <div style={{ marginTop: 4 }}>
         <MeaningBoxes meaning={w.meaning} meaningVi={w.meaning_vi} meaningDisplay={meaningDisplay} />
       </div>
-      {w.sv && <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 4, fontWeight: 600 }}>HV: {w.sv}</div>}
+      {w.sv && meaningDisplay !== "en" && (
+        <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 4, fontWeight: 600 }}>HV: {w.sv}</div>
+      )}
       {isAdmin && (
         <button
           type="button"
@@ -5304,7 +5307,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 18, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{w.pinyin}</strong></span>
-          {w.sv && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{w.sv}</strong></span>}
+          {w.sv && meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{w.sv}</strong></span>}
         </div>
 
         {characterList && (
@@ -5901,7 +5904,9 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <div style={{ marginTop: 4 }}>
             <MeaningBoxes meaning={c.meaning} meaningVi={c.meaning_vi} meaningDisplay={meaningDisplay} />
           </div>
-          <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 4, fontWeight: 600 }}>HV: {c.sv}</div>
+          {meaningDisplay !== "en" && (
+            <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 4, fontWeight: 600 }}>HV: {c.sv}</div>
+          )}
           {isAdmin && (
             <button
               type="button"
@@ -6101,7 +6106,7 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 12, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{c.pinyin}</strong></span>
-          <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{c.sv}</strong></span>
+          {meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{c.sv}</strong></span>}
         </div>
 
         <div style={{ marginBottom: 18 }}>
