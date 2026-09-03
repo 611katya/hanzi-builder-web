@@ -46,6 +46,32 @@ export default async (req) => {
   }
   // --- end auth check ---
 
+  // --- Check and consume one lookup from this user's quota, atomically ---
+  // Uses a client scoped to THIS user's own token (not the anon key alone)
+  // so the increment_lookup_count() function's auth.uid() resolves
+  // correctly and only ever touches their own row.
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: quotaRows, error: quotaError } = await userClient.rpc("increment_lookup_count");
+  if (quotaError) {
+    console.error("Quota check failed:", quotaError);
+    return new Response(JSON.stringify({ error: "Could not verify lookup quota" }), { status: 500 });
+  }
+  const quota = Array.isArray(quotaRows) ? quotaRows[0] : quotaRows;
+  if (!quota || !quota.allowed) {
+    return new Response(
+      JSON.stringify({
+        error: "LIMIT_REACHED",
+        message: "You've used all your free lookups.",
+        lookup_count: quota ? quota.new_count : 0,
+        lookup_limit: quota ? quota.limit_value : 0,
+      }),
+      { status: 403 }
+    );
+  }
+  // --- end quota check ---
+
   let char;
   try {
     const body = await req.json();
@@ -82,6 +108,8 @@ export default async (req) => {
     }
 
     const data = await anthropicRes.json();
+    data.lookup_count = quota.new_count;
+    data.lookup_limit = quota.limit_value;
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { "Content-Type": "application/json" },

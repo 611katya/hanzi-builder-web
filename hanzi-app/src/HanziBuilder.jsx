@@ -639,6 +639,49 @@ function AuthRequiredModal({ onClose, onSignIn }) {
   );
 }
 
+/* ---------- Shown when a logged-in user hits their lookup quota. ---------- */
+function LimitReachedModal({ onClose, count, limit, tier }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,28,10,0.55)",
+        zIndex: 1300,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: COLORS.card,
+          borderRadius: 14,
+          padding: "26px 24px",
+          width: "90%",
+          maxWidth: 340,
+          textAlign: "center",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        }}
+      >
+        <div style={{ fontSize: 17, fontWeight: 700, color: COLORS.error, marginBottom: 8 }}>Đã hết lượt tra cứu</div>
+        <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 6, lineHeight: 1.5 }}>
+          Bạn đã dùng {count}/{limit} lượt tra cứu tự động ở gói {tier}.
+        </div>
+        <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 18, lineHeight: 1.5 }}>
+          Bạn vẫn có thể thêm chữ/từ thủ công (không cần tra cứu tự động) mà không bị giới hạn. Liên hệ quản trị viên để tăng giới hạn.
+        </div>
+        <button type="button" onClick={onClose} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 20px", fontSize: 13 }}>
+          Đã hiểu
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Stroke order animation, shared by both radicals and characters.
    Uses HanziWriter + its default Make Me a Hanzi data source (a real,
    dictionary-derived stroke database fetched on demand) — NOT anything
@@ -856,6 +899,9 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
   const [officialChars, setOfficialChars] = useState(null);
   const [officialWords, setOfficialWords] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [lookupCount, setLookupCount] = useState(0);
+  const [lookupLimit, setLookupLimit] = useState(100);
+  const [tier, setTier] = useState("Free");
 
   useEffect(() => {
     let cancelled = false;
@@ -894,8 +940,18 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
       // Ensure a profiles row exists (harmless no-op if it already does),
       // then check the flag. is_admin itself is never set through the app.
       await supabase.from("profiles").upsert({ user_id: userId }, { onConflict: "user_id", ignoreDuplicates: true });
-      const { data, error } = await supabase.from("profiles").select("is_admin").eq("user_id", userId).single();
-      if (!cancelled) setIsAdmin(!error && data ? !!data.is_admin : false);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_admin, lookup_count, lookup_limit, tier")
+        .eq("user_id", userId)
+        .single();
+      if (cancelled) return;
+      setIsAdmin(!error && data ? !!data.is_admin : false);
+      if (!error && data) {
+        setLookupCount(data.lookup_count || 0);
+        setLookupLimit(data.lookup_limit != null ? data.lookup_limit : 100);
+        setTier(data.tier || "Free");
+      }
     })();
     return () => {
       cancelled = true;
@@ -1282,6 +1338,7 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
 
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <Header />
+        {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
         <Tabs tab={tab} setTab={setTab} />
 
         {!loaded ? (
@@ -1315,6 +1372,10 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
             onDeleteWord={deleteWordRow}
             userId={userId}
             onRequireAuth={onRequireAuth}
+            onQuotaUpdate={(count, limit) => {
+              setLookupCount(count);
+              if (typeof limit === "number") setLookupLimit(limit);
+            }}
           />
         ) : tab === "radicals" ? (
           <RadicalsTab
@@ -1392,7 +1453,33 @@ function Header() {
   );
 }
 
-/* ---------- Tabs ---------- */
+/* ---------- Countdown showing how many auto-fill lookups this user has
+   left. Admins are unlimited, so it shows their usage without a limit. ---------- */
+function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
+  const remaining = Math.max(0, limit - count);
+  const isLow = !isAdmin && remaining <= Math.max(5, limit * 0.1);
+  const isOut = !isAdmin && remaining === 0;
+  return (
+    <div style={{ textAlign: "center", marginBottom: 16 }}>
+      <span
+        style={{
+          display: "inline-block",
+          fontSize: 11.5,
+          fontWeight: 600,
+          padding: "4px 12px",
+          borderRadius: 999,
+          border: `1px solid ${isOut ? COLORS.error : isLow ? COLORS.gold : COLORS.grid}`,
+          background: isOut ? "rgba(166,67,46,0.08)" : isLow ? "rgba(89,89,0,0.08)" : COLORS.chipBg,
+          color: isOut ? COLORS.error : isLow ? COLORS.gold : COLORS.inkSoft,
+        }}
+      >
+        {isAdmin ? `Admin · ${count} lượt tra cứu đã dùng (không giới hạn)` : `${tier} · ${remaining}/${limit} lượt tra cứu còn lại`}
+      </span>
+    </div>
+  );
+}
+
+
 function Tabs({ tab, setTab }) {
   const items = [
     { id: "play", label: "Học · 学习" },
@@ -1769,12 +1856,14 @@ function AddTab({
   onDeleteWord,
   userId,
   onRequireAuth,
+  onQuotaUpdate,
 }) {
   const [charInput, setCharInput] = useState("");
   const [meaning, setMeaning] = useState("");
   const [pinyin, setPinyin] = useState("");
   const [sv, setSv] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [limitInfo, setLimitInfo] = useState(null); // { count, limit, tier } | null
   const [selectedLists, setSelectedLists] = useState([]); // a word can belong to more than one list
   const [listTypeahead, setListTypeahead] = useState("");
   const [message, setMessage] = useState(null);
@@ -1891,9 +1980,18 @@ function AddTab({
           setShowAuthModal(true);
           return;
         }
+        if (response.status === 403 && errBody.error === "LIMIT_REACHED") {
+          setLookupStatus("idle");
+          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit });
+          onQuotaUpdate && onQuotaUpdate(errBody.lookup_count, errBody.lookup_limit);
+          return;
+        }
         throw new Error(errBody.error || `Lookup failed (${response.status})`);
       }
       const data = await response.json();
+      if (typeof data.lookup_count === "number") {
+        onQuotaUpdate && onQuotaUpdate(data.lookup_count, data.lookup_limit);
+      }
       const text = (data.content || []).map((b) => b.text || "").join("");
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
@@ -1964,6 +2062,14 @@ function AddTab({
   return (
     <div>
       {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} onSignIn={onRequireAuth} />}
+      {limitInfo && (
+        <LimitReachedModal
+          onClose={() => setLimitInfo(null)}
+          count={limitInfo.count}
+          limit={limitInfo.limit}
+          tier={limitInfo.tier || "Free"}
+        />
+      )}
 
       <BulkImportPanel
         characterList={characterList}
@@ -1975,6 +2081,7 @@ function AddTab({
         onAddWord={onAddWord}
         userId={userId}
         onRequireAuth={onRequireAuth}
+        onQuotaUpdate={onQuotaUpdate}
       />
 
       <AddWordPanel
@@ -1988,6 +2095,7 @@ function AddTab({
         onDeleteWord={onDeleteWord}
         userId={userId}
         onRequireAuth={onRequireAuth}
+        onQuotaUpdate={onQuotaUpdate}
       />
 
       <RenameListPanel
@@ -2232,7 +2340,7 @@ const BULK_IMPORT_MAX = 20;
    single character or a multi-character word. Each is looked up for real
    (same lookups as the single-item auto-fill flows) and tagged with one
    list name. Existing items just get the list name appended. ---------- */
-function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord, userId, onRequireAuth }) {
+function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord, userId, onRequireAuth, onQuotaUpdate }) {
   const [expanded, setExpanded] = useState(false);
   const [rawInput, setRawInput] = useState("");
   const [selectedLists, setSelectedLists] = useState([]);
@@ -2241,6 +2349,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
   const [results, setResults] = useState([]); // [{item, kind: 'char'|'word', outcome, detail}]
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [limitInfo, setLimitInfo] = useState(null); // { count, limit } | null
   const cancelRef = useRef(false);
 
   const existingLists = useMemo(() => {
@@ -2294,8 +2403,20 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
       body: JSON.stringify({ char: ch }),
     });
     if (response.status === 401) throw new Error("AUTH_REQUIRED");
+    if (response.status === 403) {
+      const errBody = await response.json().catch(() => ({}));
+      if (errBody.error === "LIMIT_REACHED") {
+        const limitErr = new Error("LIMIT_REACHED");
+        limitErr.lookup_count = errBody.lookup_count;
+        limitErr.lookup_limit = errBody.lookup_limit;
+        throw limitErr;
+      }
+    }
     if (!response.ok) throw new Error(`lookup failed (${response.status})`);
     const data = await response.json();
+    if (typeof data.lookup_count === "number") {
+      onQuotaUpdate && onQuotaUpdate(data.lookup_count, data.lookup_limit);
+    }
     const text = (data.content || []).map((b) => b.text || "").join("");
     const clean = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
@@ -2390,8 +2511,20 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
               body: JSON.stringify({ word: item }),
             });
             if (wordResponse.status === 401) throw new Error("AUTH_REQUIRED");
+            if (wordResponse.status === 403) {
+              const errBody = await wordResponse.json().catch(() => ({}));
+              if (errBody.error === "LIMIT_REACHED") {
+                const limitErr = new Error("LIMIT_REACHED");
+                limitErr.lookup_count = errBody.lookup_count;
+                limitErr.lookup_limit = errBody.lookup_limit;
+                throw limitErr;
+              }
+            }
             if (!wordResponse.ok) throw new Error(`word lookup failed (${wordResponse.status})`);
             const wordData = await wordResponse.json();
+            if (typeof wordData.lookup_count === "number") {
+              onQuotaUpdate && onQuotaUpdate(wordData.lookup_count, wordData.lookup_limit);
+            }
             const wordText = (wordData.content || []).map((b) => b.text || "").join("");
             const wordClean = wordText.replace(/```json|```/g, "").trim();
             const wordParsed = JSON.parse(wordClean);
@@ -2425,6 +2558,12 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
         if (err.message === "AUTH_REQUIRED") {
           console.error(`Bulk import stopped for "${item}": session expired`);
           setShowAuthModal(true);
+          break;
+        }
+        if (err.message === "LIMIT_REACHED") {
+          console.error(`Bulk import stopped for "${item}": lookup limit reached`);
+          setLimitInfo({ count: err.lookup_count, limit: err.lookup_limit });
+          onQuotaUpdate && onQuotaUpdate(err.lookup_count, err.lookup_limit);
           break;
         }
         console.error(`Bulk import failed for "${item}":`, err);
@@ -2464,6 +2603,14 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
       }}
     >
       {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} onSignIn={onRequireAuth} />}
+      {limitInfo && (
+        <LimitReachedModal
+          onClose={() => setLimitInfo(null)}
+          count={limitInfo.count}
+          limit={limitInfo.limit}
+          tier={limitInfo.tier || "Free"}
+        />
+      )}
 
       <button
         type="button"
@@ -2803,7 +2950,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
    already exist (or can be auto-filled on the spot), tag it with lists,
    and save it. Only shows/manages the current user's own custom words —
    the built-in seed words aren't editable here. ---------- */
-function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord, userId, onRequireAuth }) {
+function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord, userId, onRequireAuth, onQuotaUpdate }) {
   const [expanded, setExpanded] = useState(false);
   const [wordInput, setWordInput] = useState("");
   const [pinyin, setPinyin] = useState("");
@@ -2815,6 +2962,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   const [charStatus, setCharStatus] = useState({}); // char -> "loading" | "error"
   const [wordLookupStatus, setWordLookupStatus] = useState("idle"); // idle | loading | error
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [limitInfo, setLimitInfo] = useState(null); // { count, limit } | null
   const lastAutoFilledRef = useRef("");
 
   const chars = Array.from(wordInput).filter((ch) => /[\u4e00-\u9fff]/.test(ch));
@@ -2865,8 +3013,24 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
         setShowAuthModal(true);
         return;
       }
+      if (response.status === 403) {
+        const errBody = await response.json().catch(() => ({}));
+        setCharStatus((prev) => {
+          const next = { ...prev };
+          delete next[ch];
+          return next;
+        });
+        if (errBody.error === "LIMIT_REACHED") {
+          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit });
+          onQuotaUpdate && onQuotaUpdate(errBody.lookup_count, errBody.lookup_limit);
+          return;
+        }
+      }
       if (!response.ok) throw new Error(`lookup failed (${response.status})`);
       const data = await response.json();
+      if (typeof data.lookup_count === "number") {
+        onQuotaUpdate && onQuotaUpdate(data.lookup_count, data.lookup_limit);
+      }
       const text = (data.content || []).map((b) => b.text || "").join("");
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
@@ -2926,8 +3090,20 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
         setShowAuthModal(true);
         return;
       }
+      if (response.status === 403) {
+        const errBody = await response.json().catch(() => ({}));
+        setWordLookupStatus("idle");
+        if (errBody.error === "LIMIT_REACHED") {
+          setLimitInfo({ count: errBody.lookup_count, limit: errBody.lookup_limit });
+          onQuotaUpdate && onQuotaUpdate(errBody.lookup_count, errBody.lookup_limit);
+          return;
+        }
+      }
       if (!response.ok) throw new Error(`lookup failed (${response.status})`);
       const data = await response.json();
+      if (typeof data.lookup_count === "number") {
+        onQuotaUpdate && onQuotaUpdate(data.lookup_count, data.lookup_limit);
+      }
       const text = (data.content || []).map((b) => b.text || "").join("");
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
@@ -3017,6 +3193,14 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       }}
     >
       {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} onSignIn={onRequireAuth} />}
+      {limitInfo && (
+        <LimitReachedModal
+          onClose={() => setLimitInfo(null)}
+          count={limitInfo.count}
+          limit={limitInfo.limit}
+          tier={limitInfo.tier || "Free"}
+        />
+      )}
 
       <button
         type="button"
