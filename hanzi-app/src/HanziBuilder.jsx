@@ -873,15 +873,15 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-export default function HanziBuilder({ userId, onRequireAuth }) {
+export default function HanziBuilder({ userId, userEmail, onRequireAuth }) {
   return (
     <ErrorBoundary>
-      <HanziBuilderApp userId={userId} onRequireAuth={onRequireAuth} />
+      <HanziBuilderApp userId={userId} userEmail={userEmail} onRequireAuth={onRequireAuth} />
     </ErrorBoundary>
   );
 }
 
-function HanziBuilderApp({ userId, onRequireAuth }) {
+function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const [customBushou, setCustomBushou] = useState([]);
   const [customChars, setCustomChars] = useState([]);
   const [customWords, setCustomWords] = useState([]);
@@ -938,8 +938,9 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
     let cancelled = false;
     (async () => {
       // Ensure a profiles row exists (harmless no-op if it already does),
-      // then check the flag. is_admin itself is never set through the app.
-      await supabase.from("profiles").upsert({ user_id: userId }, { onConflict: "user_id", ignoreDuplicates: true });
+      // and keep the email fresh for the admin panel to search by. is_admin
+      // itself is never set through the app.
+      await supabase.from("profiles").upsert({ user_id: userId, email: userEmail || null }, { onConflict: "user_id" });
       const { data, error } = await supabase
         .from("profiles")
         .select("is_admin, lookup_count, lookup_limit, tier")
@@ -956,7 +957,7 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, userEmail]);
 
   /* ---------- load this user's data from Supabase (skipped for guests) ---------- */
   useEffect(() => {
@@ -1339,7 +1340,7 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <Header />
         {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
-        <Tabs tab={tab} setTab={setTab} />
+        <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} />
 
         {!loaded ? (
           <div style={{ textAlign: "center", padding: 60, color: COLORS.inkSoft }}>Đang tải…</div>
@@ -1401,7 +1402,7 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
             onPromoteCharacter={promoteCharacterToDefault}
             onWithdrawCharacter={withdrawCharacterFromDefault}
           />
-        ) : (
+        ) : tab === "vocab" ? (
           <WordListPanel
             wordList={wordList}
             characterList={characterList}
@@ -1415,6 +1416,8 @@ function HanziBuilderApp({ userId, onRequireAuth }) {
             onPromoteWord={promoteWordToDefault}
             onWithdrawWord={withdrawWordFromDefault}
           />
+        ) : (
+          <AdminPanel isAdmin={isAdmin} />
         )}
       </div>
     </div>
@@ -1480,7 +1483,7 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
 }
 
 
-function Tabs({ tab, setTab }) {
+function Tabs({ tab, setTab, isAdmin }) {
   const items = [
     { id: "play", label: "Học · 学习" },
     { id: "add", label: "Thêm chữ · 添加" },
@@ -1488,6 +1491,7 @@ function Tabs({ tab, setTab }) {
     { id: "hanzi", label: "Hán tự · 汉字" },
     { id: "vocab", label: "Từ vựng · 生词" },
   ];
+  if (isAdmin) items.push({ id: "admin", label: "⚙ Quản trị" });
   return (
     <div
       style={{
@@ -3404,6 +3408,203 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 /* ---------- Searchable, filterable list of the user's own saved words —
    same search/filter pattern as CharacterListPanel, so this scales as more
    words get added instead of staying a single unsorted row. ---------- */
+/* ---------- Admin-only: browse every user, adjust their tier/limit, or
+   reset their usage — replaces doing the same thing via raw SQL. ---------- */
+const TIER_PRESETS = { Free: 100, Silver: 500, Titan: 2000, Gold: 5000, Platinum: 15000 };
+
+function AdminPanel({ isAdmin }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editTier, setEditTier] = useState("Free");
+  const [editLimit, setEditLimit] = useState("100");
+  const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
+  async function loadUsers() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("user_id, email, is_admin, tier, lookup_count, lookup_limit")
+      .order("email", { ascending: true });
+    if (!error) setUsers(data || []);
+    setLoading(false);
+  }
+
+  function startEdit(u) {
+    setEditingId(u.user_id);
+    setEditTier(u.tier && TIER_PRESETS[u.tier] != null ? u.tier : "Free");
+    setEditLimit(String(u.lookup_limit != null ? u.lookup_limit : 100));
+  }
+
+  function handleTierChange(newTier) {
+    setEditTier(newTier);
+    if (TIER_PRESETS[newTier] != null) setEditLimit(String(TIER_PRESETS[newTier]));
+  }
+
+  async function saveEdit(userId) {
+    const limitNum = parseInt(editLimit, 10);
+    if (!Number.isFinite(limitNum) || limitNum < 0) {
+      setMessage({ type: "error", text: "Giới hạn không hợp lệ." });
+      return;
+    }
+    const { error } = await supabase.from("profiles").update({ tier: editTier, lookup_limit: limitNum }).eq("user_id", userId);
+    if (error) {
+      setMessage({ type: "error", text: "Không thể lưu: " + error.message });
+      return;
+    }
+    setUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, tier: editTier, lookup_limit: limitNum } : u)));
+    setEditingId(null);
+    setMessage({ type: "success", text: "Đã lưu." });
+    setTimeout(() => setMessage(null), 2500);
+  }
+
+  async function resetUsage(userId) {
+    if (!window.confirm("Đặt lại lượt tra cứu về 0 cho người dùng này?")) return;
+    const { error } = await supabase.from("profiles").update({ lookup_count: 0 }).eq("user_id", userId);
+    if (error) {
+      setMessage({ type: "error", text: "Không thể đặt lại: " + error.message });
+      return;
+    }
+    setUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, lookup_count: 0 } : u)));
+    setMessage({ type: "success", text: "Đã đặt lại." });
+    setTimeout(() => setMessage(null), 2500);
+  }
+
+  if (!isAdmin) return null;
+
+  const filtered = users.filter((u) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (u.email || "").toLowerCase().includes(q) || u.user_id.toLowerCase().includes(q);
+  });
+
+  return (
+    <div>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+        Quản trị người dùng
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 10 }}>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Tìm theo email…"
+          style={{ ...inputStyle, width: 280, textAlign: "center" }}
+        />
+        <button type="button" onClick={loadUsers} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5 }}>
+          ⟳ Làm mới
+        </button>
+      </div>
+
+      <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 14 }}>
+        {filtered.length} / {users.length} người dùng
+      </div>
+
+      {message && (
+        <div
+          style={{
+            textAlign: "center",
+            fontSize: 12.5,
+            fontWeight: 600,
+            marginBottom: 12,
+            color: message.type === "error" ? COLORS.error : COLORS.bamboo,
+          }}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>Đang tải…</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {filtered.map((u) => (
+            <div
+              key={u.user_id}
+              style={{
+                background: COLORS.card,
+                border: `1px solid ${COLORS.grid}`,
+                borderRadius: 8,
+                padding: "10px 14px",
+              }}
+            >
+              {editingId === u.user_id ? (
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: "1 1 200px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>
+                    {u.email || u.user_id}
+                    {u.is_admin && <span style={{ marginLeft: 6, fontSize: 10.5, color: COLORS.gold }}>(admin)</span>}
+                  </div>
+                  <select value={editTier} onChange={(e) => handleTierChange(e.target.value)} style={{ ...selectStyle, width: 130 }}>
+                    {Object.keys(TIER_PRESETS).map((t) => (
+                      <option key={t} value={t} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={editLimit}
+                    onChange={(e) => setEditLimit(e.target.value)}
+                    style={{ ...inputStyle, width: 100 }}
+                  />
+                  <button type="button" onClick={() => saveEdit(u.user_id)} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
+                    Lưu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(null)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "6px 14px", fontSize: 12 }}
+                  >
+                    Hủy
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+                  <div style={{ flex: "1 1 200px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>
+                    {u.email || u.user_id}
+                    {u.is_admin && <span style={{ marginLeft: 6, fontSize: 10.5, color: COLORS.gold }}>(admin)</span>}
+                  </div>
+                  <div style={{ fontSize: 12, color: COLORS.sealDark, minWidth: 60 }}>{u.tier || "Free"}</div>
+                  <div style={{ fontSize: 12, color: COLORS.inkSoft, minWidth: 80 }}>
+                    {u.lookup_count ?? 0} / {u.lookup_limit ?? 100}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(u)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => resetUsage(u.user_id)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
+                  >
+                    Đặt lại về 0
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>Không tìm thấy người dùng.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");

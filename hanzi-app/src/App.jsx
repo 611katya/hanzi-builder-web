@@ -28,7 +28,7 @@ export default function App() {
             Log out
           </button>
         </TopBar>
-        <HanziBuilder userId={session.user.id} onRequireAuth={() => {}} />
+        <HanziBuilder userId={session.user.id} userEmail={session.user.email} onRequireAuth={() => {}} />
       </div>
     );
   }
