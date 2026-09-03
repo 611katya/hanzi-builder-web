@@ -1805,7 +1805,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
         <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>🔁 Cần ôn lại ({needsReview.length})</option>
         {allLists.map((l) => (
           <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-            {l}
+            {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
           </option>
         ))}
       </select>
@@ -4367,7 +4367,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
               <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                  {l}
+                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
                 </option>
               ))}
             </select>
@@ -5005,7 +5005,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
             <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
             {allLists.map((l) => (
               <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                {l}
+                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
               </option>
             ))}
           </select>
