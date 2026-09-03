@@ -417,6 +417,7 @@ function rowToChar(row) {
     char: row.char,
     pinyin: row.pinyin,
     meaning: row.meaning,
+    meaning_vi: row.meaning_vi || "",
     sv: row.sv,
     components: row.components || [],
     lists: row.lists || [],
@@ -428,6 +429,7 @@ function charToRow(c, userId) {
     char: c.char,
     pinyin: c.pinyin,
     meaning: c.meaning,
+    meaning_vi: c.meaning_vi || "",
     sv: c.sv,
     components: c.components || [],
     lists: c.lists || [],
@@ -439,6 +441,7 @@ function rowToWord(row) {
     chars: row.chars || [],
     pinyin: row.pinyin,
     meaning: row.meaning,
+    meaning_vi: row.meaning_vi || "",
     sv: row.sv,
     lists: row.lists || [],
   };
@@ -450,6 +453,7 @@ function wordToRow(w, userId) {
     chars: w.chars || [],
     pinyin: w.pinyin,
     meaning: w.meaning,
+    meaning_vi: w.meaning_vi || "",
     sv: w.sv,
     lists: w.lists || [],
   };
@@ -459,6 +463,7 @@ function charToOfficialRow(c) {
     char: c.char,
     pinyin: c.pinyin,
     meaning: c.meaning,
+    meaning_vi: c.meaning_vi || "",
     sv: c.sv,
     components: c.components || [],
     lists: c.lists || [],
@@ -470,6 +475,7 @@ function wordToOfficialRow(w) {
     chars: w.chars || [],
     pinyin: w.pinyin,
     meaning: w.meaning,
+    meaning_vi: w.meaning_vi || "",
     sv: w.sv,
     lists: w.lists || [],
   };
@@ -543,6 +549,54 @@ function CharacterGrid({ children, state, size = 168 }) {
 }
 
 /* ---------- A single bushou chip (palette or selection) ---------- */
+/* ---------- Shared two-box meaning display (English + Vietnamese),
+   respecting the viewer's meaningDisplay preference. Used everywhere a
+   character/word's meaning is shown. ---------- */
+/* ---------- Same EN/VI preference as MeaningBoxes, but as a plain string
+   for compact inline sentences (status messages) rather than boxes. ---------- */
+function formatMeaningInline(meaning, meaningVi, meaningDisplay) {
+  const en = meaning || "";
+  const vi = meaningVi || "";
+  if (meaningDisplay === "en") return en;
+  if (meaningDisplay === "vi") return vi || en;
+  if (en && vi) return `${en} / ${vi}`;
+  return en || vi;
+}
+
+
+function MeaningBoxes({ meaning, meaningVi, meaningDisplay, large }) {
+  const showEn = meaningDisplay !== "vi";
+  const showVi = meaningDisplay !== "en";
+  const valueSize = large ? 15 : 11.5;
+  const labelSize = large ? 10 : 9;
+  const boxStyle = {
+    padding: large ? "5px 10px" : "3px 7px",
+    borderRadius: 6,
+    background: COLORS.chipBg,
+    border: `1px solid ${COLORS.grid}`,
+    textAlign: "center",
+  };
+  return (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+      {showEn && (
+        <div style={boxStyle}>
+          <div style={{ fontSize: labelSize, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>EN</div>
+          <div style={{ fontSize: valueSize, color: COLORS.ink }}>{meaning || "—"}</div>
+        </div>
+      )}
+      {showVi && (
+        <div style={boxStyle}>
+          <div style={{ fontSize: labelSize, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>VI</div>
+          <div style={{ fontSize: valueSize, color: meaningVi ? COLORS.ink : COLORS.inkSoft, fontStyle: meaningVi ? "normal" : "italic" }}>
+            {meaningVi || "(chưa dịch)"}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function Chip({ info, onClick, disabled, big, tone }) {
   return (
     <button
@@ -982,6 +1036,17 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const [lookupLimit, setLookupLimit] = useState(100);
   const [tier, setTier] = useState("Free");
   const [courseName, setCourseName] = useState(null);
+  const [meaningDisplay, setMeaningDisplay] = useState("both"); // 'both' | 'en' | 'vi'
+
+  const updateMeaningDisplay = useCallback(
+    async (next) => {
+      setMeaningDisplay(next);
+      if (!userId) return; // guest: session-only, nothing to persist
+      const { error } = await supabase.from("profiles").update({ meaning_display: next }).eq("user_id", userId);
+      if (error) console.error("Could not save meaning display preference:", error);
+    },
+    [userId]
+  );
 
   // List access rules -- loaded for everyone, including guests, since list
   // NAMES are meant to be visible to everyone (that's the upgrade hook).
@@ -1045,7 +1110,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       await supabase.from("profiles").upsert({ user_id: userId, email: userEmail || null }, { onConflict: "user_id" });
       const { data, error } = await supabase
         .from("profiles")
-        .select("is_admin, lookup_count, lookup_limit, tier, course_name")
+        .select("is_admin, lookup_count, lookup_limit, tier, course_name, meaning_display")
         .eq("user_id", userId)
         .single();
       if (cancelled) return;
@@ -1055,6 +1120,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         setLookupLimit(data.lookup_limit != null ? data.lookup_limit : 100);
         setTier(data.tier || "Free");
         setCourseName(data.course_name || null);
+        setMeaningDisplay(data.meaning_display || "both");
       }
     })();
     return () => {
@@ -1495,6 +1561,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <Header />
         {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
+        <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
         <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} />
 
         {!loaded ? (
@@ -1516,6 +1583,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             isAdmin={isAdmin}
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
+            meaningDisplay={meaningDisplay}
           />
         ) : tab === "flashcards" ? (
           <FlashcardsTab
@@ -1526,6 +1594,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             checkListAccess={checkListAccess}
             onRequireAuth={onRequireAuth}
             onViewPremium={() => setTab("premium")}
+            meaningDisplay={meaningDisplay}
           />
         ) : tab === "add" ? (
           <AddTab
@@ -1572,6 +1641,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             onWithdrawCharacter={withdrawCharacterFromDefault}
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
+            meaningDisplay={meaningDisplay}
           />
         ) : tab === "vocab" ? (
           <WordListPanel
@@ -1588,6 +1658,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             onWithdrawWord={withdrawWordFromDefault}
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
+            meaningDisplay={meaningDisplay}
           />
         ) : tab === "premium" ? (
           <PremiumTab />
@@ -1664,6 +1735,48 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
   );
 }
 
+/* ---------- Which meaning box(es) to show -- English, Vietnamese, or
+   both. Persisted per-account; guests get a session-only choice since
+   there's no account to save it to. ---------- */
+function MeaningDisplayToggle({ value, onChange }) {
+  const options = [
+    { id: "both", label: "EN + VI" },
+    { id: "en", label: "EN" },
+    { id: "vi", label: "VI" },
+  ];
+  return (
+    <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "inline-flex",
+          borderRadius: 999,
+          border: `1px solid ${COLORS.grid}`,
+          overflow: "hidden",
+        }}
+      >
+        {options.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            style={{
+              padding: "5px 14px",
+              fontSize: 11.5,
+              fontWeight: 700,
+              border: "none",
+              cursor: "pointer",
+              background: value === opt.id ? COLORS.seal : "transparent",
+              color: value === opt.id ? "#FBF9EF" : COLORS.inkSoft,
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 function Tabs({ tab, setTab, isAdmin }) {
   const items = [
@@ -1714,7 +1827,7 @@ function Tabs({ tab, setTab, isAdmin }) {
 /* ================= PLAY TAB ================= */
 const REVIEW_LIST_VALUE = "__needs_review__";
 
-function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview, isAdmin, checkListAccess, onViewPremium }) {
+function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview, isAdmin, checkListAccess, onViewPremium, meaningDisplay }) {
   const [round, setRound] = useState(null); // { target, palette: [{id,char}] }
   const [selected, setSelected] = useState([]); // array of palette ids, in click order
   const [status, setStatus] = useState("playing"); // playing | correct | wrong | revealed
@@ -1735,6 +1848,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
       display: c.char,
       pinyin: c.pinyin,
       meaning: c.meaning,
+      meaningVi: c.meaning_vi,
       sv: c.sv,
       lists: getLists(c),
       charGroups: buildCharGroups([c.char], characterList),
@@ -1744,6 +1858,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
       display: w.word,
       pinyin: w.pinyin,
       meaning: w.meaning,
+      meaningVi: w.meaning_vi,
       sv: w.sv || "",
       lists: w.lists || ["Cơ bản"],
       charGroups: buildCharGroups(w.chars, characterList),
@@ -1922,8 +2037,8 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           textAlign: "center",
         }}
       >
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, color: COLORS.ink }}>
-          {target.meaning}
+        <div style={{ marginBottom: 4 }}>
+          <MeaningBoxes meaning={target.meaning} meaningVi={target.meaningVi} meaningDisplay={meaningDisplay} large />
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 8, fontSize: 14.5, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{target.pinyin}</strong></span>
@@ -1973,11 +2088,16 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
       </div>
 
       <div style={{ textAlign: "center", minHeight: 22, marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
-        {status === "correct" && <span style={{ color: COLORS.gold }}>✓ Chính xác! {target.display} ({target.pinyin}) — {target.meaning}</span>}
+        {status === "correct" && (
+          <span style={{ color: COLORS.gold }}>
+            ✓ Chính xác! {target.display} ({target.pinyin}) — {formatMeaningInline(target.meaning, target.meaningVi, meaningDisplay)}
+          </span>
+        )}
         {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {answerBreakdown}</span>}
         {status === "revealed" && (
           <span style={{ color: COLORS.gold }}>
-            💡 Đáp án: {answerBreakdown} ({target.pinyin}) — {target.meaning}{target.sv ? `, Hán Việt: ${target.sv}` : ""}
+            💡 Đáp án: {answerBreakdown} ({target.pinyin}) — {formatMeaningInline(target.meaning, target.meaningVi, meaningDisplay)}
+            {target.sv ? `, Hán Việt: ${target.sv}` : ""}
           </span>
         )}
       </div>
@@ -2082,7 +2202,7 @@ function updateSM2(progress, rating) {
 }
 
 /* ================= FLASHCARDS TAB ================= */
-function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAccess, onRequireAuth, onViewPremium }) {
+function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAccess, onRequireAuth, onViewPremium, meaningDisplay }) {
   const [selectedList, setSelectedList] = useState("Tất cả");
   const [lockedListName, setLockedListName] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -2284,9 +2404,11 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
                 <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 34, color: COLORS.ink, marginBottom: 10 }}>
                   {current.key}
                 </div>
-                <div style={{ fontSize: 16, color: COLORS.sealDark, marginBottom: 4 }}>{current.data.pinyin}</div>
-                <div style={{ fontSize: 15, color: COLORS.inkSoft, marginBottom: 4 }}>{current.data.meaning}</div>
-                {current.data.sv && <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600 }}>HV: {current.data.sv}</div>}
+                <div style={{ fontSize: 16, color: COLORS.sealDark, marginBottom: 6 }}>{current.data.pinyin}</div>
+                <div style={{ marginBottom: 4 }}>
+                  <MeaningBoxes meaning={current.data.meaning} meaningVi={current.data.meaning_vi} meaningDisplay={meaningDisplay} large />
+                </div>
+                {current.data.sv && <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>}
               </div>
             )}
           </div>
@@ -2364,6 +2486,7 @@ function AddTab({
 }) {
   const [charInput, setCharInput] = useState("");
   const [meaning, setMeaning] = useState("");
+  const [meaningVi, setMeaningVi] = useState("");
   const [pinyin, setPinyin] = useState("");
   const [sv, setSv] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -2405,6 +2528,7 @@ function AddTab({
   function resetForm() {
     setCharInput("");
     setMeaning("");
+    setMeaningVi("");
     setPinyin("");
     setSv("");
     setComponents([]);
@@ -2502,6 +2626,7 @@ function AddTab({
 
       if (parsed.pinyin && (overwrite || !pinyin.trim())) setPinyin(parsed.pinyin);
       if (parsed.meaning && (overwrite || !meaning.trim())) setMeaning(parsed.meaning);
+      if (parsed.meaning_vi && (overwrite || !meaningVi.trim())) setMeaningVi(parsed.meaning_vi);
       if (parsed.sino_vietnamese && (overwrite || !sv.trim())) setSv(parsed.sino_vietnamese);
 
       if (Array.isArray(parsed.components) && (overwrite || components.length === 0)) {
@@ -2546,6 +2671,7 @@ function AddTab({
       onAddCharacter({
         char: trimmedChar,
         meaning: meaning.trim(),
+        meaning_vi: meaningVi.trim(),
         pinyin: pinyin.trim(),
         sv: sv.trim(),
         components: components,
@@ -2712,12 +2838,22 @@ function AddTab({
           )}
         </div>
 
-        <FieldRow label="Nghĩa (Meaning)">
+        <FieldRow label="Nghĩa (English)">
           <input
             value={meaning}
             onChange={(e) => setMeaning(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
             placeholder="good, well"
+            style={inputStyle}
+          />
+        </FieldRow>
+
+        <FieldRow label="Nghĩa (Tiếng Việt)">
+          <input
+            value={meaningVi}
+            onChange={(e) => setMeaningVi(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
+            placeholder="tốt"
             style={inputStyle}
           />
         </FieldRow>
@@ -2946,6 +3082,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
       char: ch,
       pinyin: parsed.pinyin || "",
       meaning: parsed.meaning || "",
+      meaning_vi: parsed.meaning_vi || "",
       sv: parsed.sino_vietnamese || "",
       components: compChars,
       lists: tags,
@@ -3043,6 +3180,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
               chars: Array.from(item),
               pinyin: wordParsed.pinyin || "",
               meaning: wordParsed.meaning || "",
+              meaning_vi: wordParsed.meaning_vi || "",
               sv: wordParsed.sino_vietnamese || "",
               lists: selectedLists,
             });
@@ -3467,6 +3605,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   const [wordInput, setWordInput] = useState("");
   const [pinyin, setPinyin] = useState("");
   const [meaning, setMeaning] = useState("");
+  const [meaningVi, setMeaningVi] = useState("");
   const [sv, setSv] = useState("");
   const [selectedLists, setSelectedLists] = useState([]);
   const [listTypeahead, setListTypeahead] = useState("");
@@ -3562,6 +3701,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
         char: ch,
         pinyin: parsed.pinyin || "",
         meaning: parsed.meaning || "",
+        meaning_vi: parsed.meaning_vi || "",
         sv: parsed.sino_vietnamese || "",
         components: compChars,
         lists: ["Chưa phân loại"],
@@ -3621,6 +3761,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       const parsed = JSON.parse(clean);
       if (parsed.pinyin) setPinyin(parsed.pinyin);
       if (parsed.meaning) setMeaning(parsed.meaning);
+      if (parsed.meaning_vi) setMeaningVi(parsed.meaning_vi);
       if (parsed.sino_vietnamese) setSv(parsed.sino_vietnamese);
       if (!parsed.pinyin && !parsed.meaning) {
         setMessage({ type: "error", text: `Không tra được thông tin cho từ "${word}". Vui lòng nhập tay.` });
@@ -3686,11 +3827,12 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       return;
     }
     const listsToSave = selectedLists.length > 0 ? selectedLists : ["Chưa phân loại"];
-    onAddWord({ word, chars, pinyin: pinyin.trim(), meaning: meaning.trim(), sv: sv.trim(), lists: listsToSave });
+    onAddWord({ word, chars, pinyin: pinyin.trim(), meaning: meaning.trim(), meaning_vi: meaningVi.trim(), sv: sv.trim(), lists: listsToSave });
     setMessage({ type: "success", text: `Đã thêm từ "${word}"!` });
     setWordInput("");
     setPinyin("");
     setMeaning("");
+    setMeaningVi("");
     setSv("");
   }
 
@@ -3811,8 +3953,11 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
           <FieldRow label="Pinyin cả từ">
             <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
           </FieldRow>
-          <FieldRow label="Nghĩa cả từ">
+          <FieldRow label="Nghĩa cả từ (English)">
             <input value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
+          </FieldRow>
+          <FieldRow label="Nghĩa cả từ (Tiếng Việt)">
+            <input value={meaningVi} onChange={(e) => setMeaningVi(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
           </FieldRow>
           <FieldRow label="Hán Việt (tùy chọn)">
             <input value={sv} onChange={(e) => setSv(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
@@ -4580,7 +4725,7 @@ function AdminPanel({ isAdmin, allListNamesInUse }) {
   );
 }
 
-function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord, checkListAccess, onViewPremium }) {
+function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord, checkListAccess, onViewPremium, meaningDisplay }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
@@ -4622,7 +4767,8 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
       const rows = filtered.map((w) => ({
         "Từ vựng": w.word,
         Pinyin: w.pinyin,
-        "Nghĩa (Meaning)": w.meaning,
+        "Nghĩa (English)": w.meaning,
+        "Nghĩa (Tiếng Việt)": w.meaning_vi || "",
         "Âm Hán Việt": w.sv,
         "Danh sách": (w.lists || []).join(", "),
         "Chữ cấu thành": (w.chars || []).join(" + "),
@@ -4631,6 +4777,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
       worksheet["!cols"] = [
         { wch: 12 },
         { wch: 14 },
+        { wch: 32 },
         { wch: 32 },
         { wch: 16 },
         { wch: 20 },
@@ -4738,6 +4885,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 hasOverride={overrideWordKeys ? overrideWordKeys.has(w.word) : false}
                 onPromoteWord={onPromoteWord}
                 onWithdrawWord={onWithdrawWord}
+                meaningDisplay={meaningDisplay}
               />
             ))}
           </div>
@@ -4755,11 +4903,12 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
    (expands into a small inline form). Saving re-upserts the same word via
    onAddWord, which already overwrites on conflict — same pattern as
    character and radical editing. ---------- */
-function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord }) {
+function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord, meaningDisplay }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [zoomed, setZoomed] = useState(false);
   const [pinyin, setPinyin] = useState(w.pinyin);
   const [meaning, setMeaning] = useState(w.meaning);
+  const [meaningVi, setMeaningVi] = useState(w.meaning_vi || "");
   const [sv, setSv] = useState(w.sv || "");
   const [selectedLists, setSelectedLists] = useState(w.lists || []);
   const [listTypeahead, setListTypeahead] = useState("");
@@ -4780,6 +4929,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
   function startEdit() {
     setPinyin(w.pinyin);
     setMeaning(w.meaning);
+    setMeaningVi(w.meaning_vi || "");
     setSv(w.sv || "");
     setSelectedLists(w.lists || []);
     setListTypeahead("");
@@ -4811,6 +4961,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         ...w,
         pinyin: pinyin.trim(),
         meaning: meaning.trim(),
+        meaning_vi: meaningVi.trim(),
         sv: sv.trim(),
         lists: lists.length > 0 ? lists : ["Chưa phân loại"],
       });
@@ -4834,8 +4985,10 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18, marginBottom: 6 }}>{w.word}</div>
         <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
         <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
-        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa</label>
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (English)</label>
         <input value={meaning} onChange={(e) => setMeaning(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (Tiếng Việt)</label>
+        <input value={meaningVi} onChange={(e) => setMeaningVi(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
         <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Hán Việt</label>
         <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
         <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Danh sách</label>
@@ -5002,8 +5155,10 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         {w.word}
       </div>
       <div style={{ color: COLORS.sealDark, fontSize: 11.5 }}>{w.pinyin}</div>
-      <div style={{ color: COLORS.inkSoft, fontSize: 11.5, marginTop: 2 }}>{w.meaning}</div>
-      {w.sv && <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 2, fontWeight: 600 }}>HV: {w.sv}</div>}
+      <div style={{ marginTop: 4 }}>
+        <MeaningBoxes meaning={w.meaning} meaningVi={w.meaning_vi} meaningDisplay={meaningDisplay} />
+      </div>
+      {w.sv && <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 4, fontWeight: 600 }}>HV: {w.sv}</div>}
       {isAdmin && (
         <button
           type="button"
@@ -5064,7 +5219,9 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         </div>
       )}
 
-      {zoomed && <WordZoomModal w={w} characterList={characterList} findBushou={findBushou} onClose={() => setZoomed(false)} />}
+      {zoomed && (
+        <WordZoomModal w={w} characterList={characterList} findBushou={findBushou} onClose={() => setZoomed(false)} meaningDisplay={meaningDisplay} />
+      )}
     </div>
   );
 }
@@ -5072,7 +5229,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
 /* ---------- Full-screen study view for one word: one mizige box per
    character (same idea as the Play tab's multi-box build area), plus
    pinyin/meaning/Hán Việt and each character's own bushou breakdown. ---------- */
-function WordZoomModal({ w, characterList, findBushou, onClose }) {
+function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }) {
   const chars = Array.from(w.word);
   const boxSize = chars.length <= 2 ? 130 : chars.length === 3 ? 100 : 80;
   const [strokeChar, setStrokeChar] = useState(null);
@@ -5142,8 +5299,8 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
           ))}
         </div>
 
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, color: COLORS.ink, marginBottom: 10 }}>
-          {w.meaning}
+        <div style={{ marginBottom: 10 }}>
+          <MeaningBoxes meaning={w.meaning} meaningVi={w.meaning_vi} meaningDisplay={meaningDisplay} large />
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 18, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{w.pinyin}</strong></span>
@@ -5214,7 +5371,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose }) {
 }
 
 /* ---------- List function: browse every character already in the database ---------- */
-function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter, checkListAccess, onViewPremium }) {
+function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter, checkListAccess, onViewPremium, meaningDisplay }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
@@ -5266,7 +5423,8 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
       const rows = filtered.map((c) => ({
         "Chữ Hán": c.char,
         Pinyin: c.pinyin,
-        "Nghĩa (Meaning)": c.meaning,
+        "Nghĩa (English)": c.meaning,
+        "Nghĩa (Tiếng Việt)": c.meaning_vi || "",
         "Âm Hán Việt": c.sv,
         "Danh sách": getLists(c).join(", "),
         "Bộ thủ cấu thành": (c.components || []).join(" + "),
@@ -5275,6 +5433,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
       worksheet["!cols"] = [
         { wch: 10 },
         { wch: 14 },
+        { wch: 32 },
         { wch: 32 },
         { wch: 16 },
         { wch: 20 },
@@ -5377,6 +5536,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
               hasOverride={overrideCharKeys ? overrideCharKeys.has(c.char) : false}
               onPromoteCharacter={onPromoteCharacter}
               onWithdrawCharacter={onWithdrawCharacter}
+              meaningDisplay={meaningDisplay}
             />
           ))}
         </div>
@@ -5391,10 +5551,11 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
 }
 
 /* ---------- A single character card: view mode, edit mode, delete confirm ---------- */
-function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, hasOverride, onPromoteCharacter, onWithdrawCharacter }) {
+function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, hasOverride, onPromoteCharacter, onWithdrawCharacter, meaningDisplay }) {
   const [mode, setMode] = useState("view"); // view | edit | confirmDelete
   const [zoomed, setZoomed] = useState(false);
   const [meaning, setMeaning] = useState(c.meaning);
+  const [meaningVi, setMeaningVi] = useState(c.meaning_vi || "");
   const [pinyin, setPinyin] = useState(c.pinyin);
   const [sv, setSv] = useState(c.sv);
   const [lists, setLists] = useState(getLists(c));
@@ -5421,6 +5582,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
 
   function startEdit() {
     setMeaning(c.meaning);
+    setMeaningVi(c.meaning_vi || "");
     setPinyin(c.pinyin);
     setSv(c.sv);
     setLists(getLists(c));
@@ -5451,6 +5613,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
     onUpdateCharacter &&
       onUpdateCharacter(c.char, {
         meaning: meaning.trim(),
+        meaning_vi: meaningVi.trim(),
         pinyin: pinyin.trim(),
         sv: sv.trim(),
         lists: lists.length > 0 ? lists : ["Chưa phân loại"],
@@ -5573,8 +5736,10 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
             {c.char}
           </div>
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (English)</label>
           <input value={meaning} onChange={(e) => setMeaning(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (Tiếng Việt)</label>
+          <input value={meaningVi} onChange={(e) => setMeaningVi(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
           <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
           <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
           <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Hán Việt</label>
@@ -5733,8 +5898,10 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
             {c.char}
           </div>
           <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{c.pinyin}</div>
-          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{c.meaning}</div>
-          <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {c.sv}</div>
+          <div style={{ marginTop: 4 }}>
+            <MeaningBoxes meaning={c.meaning} meaningVi={c.meaning_vi} meaningDisplay={meaningDisplay} />
+          </div>
+          <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 4, fontWeight: 600 }}>HV: {c.sv}</div>
           {isAdmin && (
             <button
               type="button"
@@ -5858,7 +6025,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
         </>
       )}
 
-      {zoomed && <CharacterZoomModal c={c} findBushou={findBushou} onClose={() => setZoomed(false)} />}
+      {zoomed && <CharacterZoomModal c={c} findBushou={findBushou} onClose={() => setZoomed(false)} meaningDisplay={meaningDisplay} />}
     </div>
   );
 }
@@ -5866,7 +6033,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
 /* ---------- Full-screen study view for one character: big glyph in the
    same mizige grid used during Play, plus pinyin/meaning/Hán Việt and each
    component's own details, all at a much larger size than the card. ---------- */
-function CharacterZoomModal({ c, findBushou, onClose }) {
+function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
   const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   return (
     <div
@@ -5929,8 +6096,8 @@ function CharacterZoomModal({ c, findBushou, onClose }) {
           </CharacterGrid>
         </div>
 
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, color: COLORS.ink, marginBottom: 10 }}>
-          {c.meaning}
+        <div style={{ marginBottom: 10 }}>
+          <MeaningBoxes meaning={c.meaning} meaningVi={c.meaning_vi} meaningDisplay={meaningDisplay} large />
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 12, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{c.pinyin}</strong></span>

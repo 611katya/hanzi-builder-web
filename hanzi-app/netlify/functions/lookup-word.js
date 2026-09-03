@@ -89,9 +89,9 @@ export default async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 300,
+        max_tokens: 350,
         system:
-          'You are a Chinese dictionary lookup tool. Given a multi-character Chinese word or phrase, respond with ONLY a raw JSON object (no markdown, no code fences, no extra text) in exactly this shape: {"pinyin": "...", "meaning": "...", "sino_vietnamese": "..."}. "pinyin" is the Hanyu Pinyin for the whole word with tone marks, one syllable per character separated by a space (e.g. "nǐ hǎo"). "meaning" is a short English gloss for the word as a whole, a few words. "sino_vietnamese" is the standard Sino-Vietnamese (Hán Việt) reading of the whole word, lowercase Vietnamese with correct diacritics, one word per character separated by a space (e.g. "nễ hảo"). If given something unrecognized, respond with {"pinyin": "", "meaning": "", "sino_vietnamese": ""}.',
+          'You are a Chinese dictionary lookup tool. Given a multi-character Chinese word or phrase, respond with ONLY a raw JSON object (no markdown, no code fences, no extra text) in exactly this shape: {"pinyin": "...", "meaning": "...", "meaning_vi": "...", "sino_vietnamese": "..."}. "pinyin" is the Hanyu Pinyin for the whole word with tone marks, one syllable per character separated by a space (e.g. "nǐ hǎo"). "meaning" is a short English gloss for the word as a whole, a few words. "meaning_vi" is a short Vietnamese-language TRANSLATION of that meaning (e.g. "xin chào" for 你好) -- this is DIFFERENT from "sino_vietnamese": meaning_vi is what the word MEANS in Vietnamese (an ordinary Vietnamese phrase a reader would use), while sino_vietnamese is how the word is PRONOUNCED using the Sino-Vietnamese reading system (e.g. "nễ hảo" for 你好) -- do not confuse these, they are usually completely different words. "sino_vietnamese" is the standard Sino-Vietnamese (Hán Việt) reading of the whole word, lowercase Vietnamese with correct diacritics, one word per character separated by a space. If given something unrecognized, respond with {"pinyin": "", "meaning": "", "meaning_vi": "", "sino_vietnamese": ""}.',
         messages: [{ role: "user", content: word }],
       }),
     });
