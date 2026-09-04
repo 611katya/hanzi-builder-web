@@ -2494,7 +2494,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
   const [mistakes, setMistakes] = useState(0);
-  // "loading" | "demo" | "practicing" | "done-char" | "recall" | "error"
+  // "loading" | "demo" | "practicing" | "done-char" | "dots" | "recall" | "error"
   const [status, setStatus] = useState("idle");
   const [revealOn, setRevealOn] = useState(false);
   const targetRef = useRef(null);
@@ -2502,6 +2502,17 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const recallCanvasRef = useRef(null);
   const recallStrokesRef = useRef([]); // array of strokes, each a list of {x,y} points
   const isDrawingRef = useRef(false);
+
+  // Dot-connecting step (between guided tracing and recall): shows each
+  // stroke's real start/end point (from HanziWriter's own raw median
+  // data) and checks whether the user's drawn line starts and ends near
+  // enough to those two points.
+  const [dotCharData, setDotCharData] = useState(null); // { medians, strokes } | null
+  const [dotStrokeIndex, setDotStrokeIndex] = useState(0);
+  const [completedDotStrokes, setCompletedDotStrokes] = useState([]);
+  const [dotFeedback, setDotFeedback] = useState(null); // null | "correct" | "wrong"
+  const dotsCanvasRef = useRef(null);
+  const dotDrawStartRef = useRef(null);
 
   const RECALL_INK_COLOR = "#2456A6";
   const BRUSH_WIDTHS = { thin: 12, normal: 20, thick: 32 };
@@ -2675,14 +2686,138 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     setCurrentIndex((i) => i + 1);
   }
 
+  function enterDotConnectMode() {
+    setDotCharData(null);
+    setDotStrokeIndex(0);
+    setCompletedDotStrokes([]);
+    setDotFeedback(null);
+    setStatus("dots");
+  }
+
   function enterRecallMode() {
     recallStrokesRef.current = [];
     setRevealOn(false);
     setStatus("recall");
   }
 
-  function getRecallPoint(nativeEvent) {
-    const canvas = recallCanvasRef.current;
+  // Loads the raw stroke data (medians = each stroke's start/end/path
+  // points) for the dot-connecting step. Uses HanziWriter's own loader,
+  // same data source as everything else -- no new dependency, no cost.
+  useEffect(() => {
+    if (status !== "dots" || !current) return;
+    let cancelled = false;
+    HanziWriter.loadCharacterData(current.char)
+      .then((data) => {
+        if (!cancelled) setDotCharData(data);
+      })
+      .catch((e) => {
+        console.error("Could not load stroke data for dot practice:", e);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, current]);
+
+  // The exact same coordinate transform HanziWriter itself uses to turn
+  // raw stroke data into on-screen pixels -- reused here (not
+  // reimplemented) so the dots line up with where the real stroke
+  // actually is.
+  const dotTransform = useMemo(() => {
+    if (!dotCharData) return null;
+    const { transform } = HanziWriter.getScalingTransform(280, 280, 12);
+    const match = transform.match(/matrix\(([^)]+)\)/);
+    if (!match) return null;
+    const nums = match[1].split(/[\s,]+/).map(Number);
+    const [a, b, c, d, e, f] = nums;
+    return (pt) => ({ x: a * pt[0] + c * pt[1] + e, y: b * pt[0] + d * pt[1] + f });
+  }, [dotCharData]);
+
+  const dotTotalStrokes = dotCharData && dotCharData.medians ? dotCharData.medians.length : 0;
+  const dotCurrentMedian = dotCharData && dotCharData.medians ? dotCharData.medians[dotStrokeIndex] : null;
+  const dotStartPoint = dotCurrentMedian && dotTransform ? dotTransform(dotCurrentMedian[0]) : null;
+  const dotEndPoint = dotCurrentMedian && dotTransform ? dotTransform(dotCurrentMedian[dotCurrentMedian.length - 1]) : null;
+
+  function redrawDotsCanvas(completedList) {
+    const canvas = dotsCanvasRef.current;
+    if (!canvas || !dotCharData || !dotTransform) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = COLORS.bamboo;
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    completedList.forEach((idx) => {
+      const median = dotCharData.medians[idx];
+      if (!median) return;
+      const s = dotTransform(median[0]);
+      const e = dotTransform(median[median.length - 1]);
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(e.x, e.y);
+      ctx.stroke();
+    });
+  }
+
+  useEffect(() => {
+    redrawDotsCanvas(completedDotStrokes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dotCharData, dotStrokeIndex]);
+
+  function startDotDrawing(e) {
+    e.preventDefault();
+    isDrawingRef.current = true;
+    dotDrawStartRef.current = getPointForCanvas(dotsCanvasRef, e.nativeEvent);
+  }
+
+  function continueDotDrawing(e) {
+    if (!isDrawingRef.current || !dotDrawStartRef.current) return;
+    e.preventDefault();
+    const pt = getPointForCanvas(dotsCanvasRef, e.nativeEvent);
+    redrawDotsCanvas(completedDotStrokes);
+    const canvas = dotsCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.strokeStyle = RECALL_INK_COLOR;
+    ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(dotDrawStartRef.current.x, dotDrawStartRef.current.y);
+    ctx.lineTo(pt.x, pt.y);
+    ctx.stroke();
+  }
+
+  function endDotDrawing(e) {
+    if (!isDrawingRef.current) return;
+    isDrawingRef.current = false;
+    const startPt = dotDrawStartRef.current;
+    dotDrawStartRef.current = null;
+    if (!startPt || !dotStartPoint || !dotEndPoint) return;
+    const endPt = getPointForCanvas(dotsCanvasRef, e.nativeEvent);
+
+    const THRESHOLD = 30; // pixels -- generous enough for finger/mouse imprecision
+    const distToStart = Math.hypot(startPt.x - dotStartPoint.x, startPt.y - dotStartPoint.y);
+    const distToEnd = Math.hypot(endPt.x - dotEndPoint.x, endPt.y - dotEndPoint.y);
+
+    if (distToStart <= THRESHOLD && distToEnd <= THRESHOLD) {
+      setDotFeedback("correct");
+      const nextCompleted = [...completedDotStrokes, dotStrokeIndex];
+      setCompletedDotStrokes(nextCompleted);
+      setTimeout(() => {
+        setDotFeedback(null);
+        if (dotStrokeIndex + 1 >= dotTotalStrokes) {
+          enterRecallMode();
+        } else {
+          setDotStrokeIndex((i) => i + 1);
+        }
+      }, 400);
+    } else {
+      setDotFeedback("wrong");
+      redrawDotsCanvas(completedDotStrokes);
+      setTimeout(() => setDotFeedback(null), 500);
+    }
+  }
+
+  function getPointForCanvas(canvasRef, nativeEvent) {
+    const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
@@ -2690,6 +2825,10 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       x: (nativeEvent.clientX - rect.left) * scaleX,
       y: (nativeEvent.clientY - rect.top) * scaleY,
     };
+  }
+
+  function getRecallPoint(nativeEvent) {
+    return getPointForCanvas(recallCanvasRef, nativeEvent);
   }
 
   function drawStrokeSegment(stroke) {
@@ -2914,18 +3053,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
           )}
 
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-            {status !== "recall" ? (
-              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
-                <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
-                  <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
-                  <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
-                  <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
-                  <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
-                  <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
-                </svg>
-                <div ref={targetRef} style={{ position: "absolute", inset: 0, touchAction: "none" }} />
-              </div>
-            ) : (
+            {status === "recall" ? (
               <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
                 <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
                   <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
@@ -2968,8 +3096,102 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                   onPointerLeave={endRecallDrawing}
                 />
               </div>
+            ) : status === "dots" ? (
+              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
+                <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
+                  <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
+                  <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                  <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                  <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                  <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                </svg>
+                <canvas
+                  ref={dotsCanvasRef}
+                  width={gridSize}
+                  height={gridSize}
+                  style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "crosshair" }}
+                  onPointerDown={startDotDrawing}
+                  onPointerMove={continueDotDrawing}
+                  onPointerUp={endDotDrawing}
+                  onPointerLeave={endDotDrawing}
+                />
+                {dotStartPoint && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: dotStartPoint.x - 8,
+                      top: dotStartPoint.y - 8,
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: "#2E8B57",
+                      border: "2px solid white",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
+                {dotEndPoint && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: dotEndPoint.x - 8,
+                      top: dotEndPoint.y - 8,
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      background: "#C0392B",
+                      border: "2px solid white",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
+                {!dotCharData && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12.5,
+                      color: COLORS.inkSoft,
+                    }}
+                  >
+                    Đang tải…
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
+                <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
+                  <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
+                  <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                  <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                  <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                  <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                </svg>
+                <div ref={targetRef} style={{ position: "absolute", inset: 0, touchAction: "none" }} />
+              </div>
             )}
           </div>
+
+          {status === "dots" && dotCharData && (
+            <div style={{ textAlign: "center", marginBottom: 12 }}>
+              <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 4 }}>
+                Nét {dotStrokeIndex + 1} / {dotTotalStrokes} — nối điểm{" "}
+                <span style={{ color: "#2E8B57", fontWeight: 700 }}>xanh</span> (bắt đầu) tới điểm{" "}
+                <span style={{ color: "#C0392B", fontWeight: 700 }}>đỏ</span> (kết thúc)
+              </div>
+              {dotFeedback === "correct" && (
+                <div style={{ color: COLORS.bamboo, fontWeight: 700, fontSize: 13.5 }}>✓ Đúng!</div>
+              )}
+              {dotFeedback === "wrong" && (
+                <div style={{ color: COLORS.error, fontWeight: 700, fontSize: 13.5 }}>Chưa đúng, thử lại</div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 16 }}>
             <span style={{ fontSize: 11, color: COLORS.inkSoft }}>Cỡ bút:</span>
@@ -3038,6 +3260,12 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 ✍️ Bắt đầu viết
               </button>
             </div>
+          ) : status === "dots" ? (
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+              <button type="button" onClick={enterRecallMode} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                Bỏ qua bước này →
+              </button>
+            </div>
           ) : status === "recall" ? (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
@@ -3052,8 +3280,8 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
               <button type="button" onClick={retryChar} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
                 ↻ Tô lại
               </button>
-              <button type="button" onClick={enterRecallMode} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                ✏️ Viết từ trí nhớ →
+              <button type="button" onClick={enterDotConnectMode} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                🔵 Nối điểm →
               </button>
             </div>
           )}
