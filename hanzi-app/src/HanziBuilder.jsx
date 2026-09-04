@@ -2702,6 +2702,19 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     setStatus("recall");
   }
 
+  // Explicitly wipes the actual canvas pixels on entering recall mode.
+  // recallStrokesRef being reset (above) only clears the stroke-history
+  // data -- if the browser happens to reuse the same underlying <canvas>
+  // element that the dot-connecting step was just drawing on (React can
+  // do this since both sit in the same layout position), the old pixels
+  // physically remain until something explicitly clears them.
+  useEffect(() => {
+    if (status !== "recall") return;
+    const canvas = recallCanvasRef.current;
+    if (!canvas) return;
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+  }, [status, current]);
+
   // Loads the raw stroke data (medians = each stroke's start/end/path
   // points) for the dot-connecting step. Uses HanziWriter's own loader,
   // same data source as everything else -- no new dependency, no cost.
