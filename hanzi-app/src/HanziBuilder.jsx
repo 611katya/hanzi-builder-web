@@ -2757,7 +2757,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = COLORS.bamboo;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
     ctx.lineCap = "round";
     completedList.forEach((idx) => {
       const median = dotCharData.medians[idx];
@@ -2774,7 +2774,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   useEffect(() => {
     redrawDotsCanvas(completedDotStrokes);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dotCharData, dotStrokeIndex]);
+  }, [dotCharData, dotStrokeIndex, brushSize]);
 
   function startDotDrawing(e) {
     e.preventDefault();
@@ -2815,14 +2815,17 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       setDotFeedback("correct");
       const nextCompleted = [...completedDotStrokes, dotStrokeIndex];
       setCompletedDotStrokes(nextCompleted);
-      setTimeout(() => {
-        setDotFeedback(null);
-        if (dotStrokeIndex + 1 >= dotTotalStrokes) {
-          enterRecallMode();
-        } else {
+      if (dotStrokeIndex + 1 >= dotTotalStrokes) {
+        // All strokes connected -- stop here and let the person look at
+        // the finished character before moving on; they advance manually
+        // via the "Viết từ trí nhớ" button below.
+        setTimeout(() => setDotFeedback(null), 400);
+      } else {
+        setTimeout(() => {
+          setDotFeedback(null);
           setDotStrokeIndex((i) => i + 1);
-        }
-      }, 400);
+        }, 400);
+      }
     } else {
       setDotFeedback("wrong");
       redrawDotsCanvas(completedDotStrokes);
@@ -3193,16 +3196,24 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
           {status === "dots" && dotCharData && (
             <div style={{ textAlign: "center", marginBottom: 12 }}>
-              <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 4 }}>
-                Nét {dotStrokeIndex + 1} / {dotTotalStrokes} — nối điểm{" "}
-                <span style={{ color: "#2E8B57", fontWeight: 700 }}>xanh</span> (bắt đầu) tới điểm{" "}
-                <span style={{ color: "#C0392B", fontWeight: 700 }}>đỏ</span> (kết thúc)
-              </div>
-              {dotFeedback === "correct" && (
-                <div style={{ color: COLORS.bamboo, fontWeight: 700, fontSize: 13.5 }}>✓ Đúng!</div>
-              )}
-              {dotFeedback === "wrong" && (
-                <div style={{ color: COLORS.error, fontWeight: 700, fontSize: 13.5 }}>Chưa đúng, thử lại</div>
+              {completedDotStrokes.length >= dotTotalStrokes ? (
+                <div style={{ color: COLORS.bamboo, fontWeight: 700, fontSize: 14 }}>
+                  ✓ Đã nối xong tất cả {dotTotalStrokes} nét!
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 4 }}>
+                    Nét {dotStrokeIndex + 1} / {dotTotalStrokes} — nối điểm{" "}
+                    <span style={{ color: "#2E8B57", fontWeight: 700 }}>xanh</span> (bắt đầu) tới điểm{" "}
+                    <span style={{ color: "#C0392B", fontWeight: 700 }}>đỏ</span> (kết thúc)
+                  </div>
+                  {dotFeedback === "correct" && (
+                    <div style={{ color: COLORS.bamboo, fontWeight: 700, fontSize: 13.5 }}>✓ Đúng!</div>
+                  )}
+                  {dotFeedback === "wrong" && (
+                    <div style={{ color: COLORS.error, fontWeight: 700, fontSize: 13.5 }}>Chưa đúng, thử lại</div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -3282,9 +3293,15 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             </div>
           ) : status === "dots" ? (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
-              <button type="button" onClick={enterRecallMode} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                Bỏ qua bước này →
-              </button>
+              {completedDotStrokes.length >= dotTotalStrokes && dotTotalStrokes > 0 ? (
+                <button type="button" onClick={enterRecallMode} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                  ✏️ Viết từ trí nhớ →
+                </button>
+              ) : (
+                <button type="button" onClick={enterRecallMode} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                  Bỏ qua bước này →
+                </button>
+              )}
             </div>
           ) : status === "recall" ? (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
