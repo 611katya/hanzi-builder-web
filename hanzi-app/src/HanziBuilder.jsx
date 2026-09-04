@@ -1788,13 +1788,13 @@ function MeaningDisplayToggle({ value, onChange }) {
 
 function Tabs({ tab, setTab, isAdmin }) {
   const items = [
-    { id: "play", label: "Học · 学习" },
-    { id: "flashcards", label: "🗂 Ôn tập" },
+    { id: "play", label: "Ghép bộ thủ" },
+    { id: "flashcards", label: "Flashcard" },
     { id: "writing", label: "✍️ Luyện viết" },
-    { id: "add", label: "Thêm chữ · 添加" },
-    { id: "radicals", label: "Bộ thủ · 部首" },
-    { id: "hanzi", label: "Hán tự · 汉字" },
-    { id: "vocab", label: "Từ vựng · 生词" },
+    { id: "add", label: "Thêm chữ" },
+    { id: "radicals", label: "Bộ thủ" },
+    { id: "hanzi", label: "Hán tự" },
+    { id: "vocab", label: "Từ vựng" },
     { id: "premium", label: "★ Thành viên" },
   ];
   if (isAdmin) items.push({ id: "admin", label: "⚙ Quản trị" });
@@ -2447,7 +2447,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
 
           <div style={{ textAlign: "center", marginTop: 16 }}>
             <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 16px", fontSize: 12 }}>
-              Kết thúc phiên
+              Kết thúc
             </button>
           </div>
         </div>
@@ -3109,15 +3109,32 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             </select>
           </div>
 
-          <div style={{ marginBottom: 10 }}>
-            <MeaningBoxes meaning={current.meaning} meaningVi={current.meaning_vi} meaningDisplay={meaningDisplay} />
-          </div>
-          <div style={{ textAlign: "center", fontSize: 13, color: COLORS.sealDark, marginBottom: 2 }}>{current.pinyin}</div>
-          {meaningDisplay !== "en" && (
-            <div style={{ textAlign: "center", fontSize: 12.5, color: COLORS.bamboo, fontWeight: 600, marginBottom: 14 }}>
-              HV: {current.sv}
+          <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
+            {meaningDisplay !== "vi" && (
+              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `1px solid ${COLORS.grid}`, textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>EN</div>
+                <div style={{ fontSize: 11.5, color: COLORS.ink }}>{current.meaning || "—"}</div>
+              </div>
+            )}
+            {meaningDisplay !== "en" && (
+              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `1px solid ${COLORS.grid}`, textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>VI</div>
+                <div style={{ fontSize: 11.5, color: current.meaning_vi ? COLORS.ink : COLORS.inkSoft, fontStyle: current.meaning_vi ? "normal" : "italic" }}>
+                  {current.meaning_vi || "(chưa dịch)"}
+                </div>
+              </div>
+            )}
+            <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `1px solid ${COLORS.grid}`, textAlign: "center" }}>
+              <div style={{ fontSize: 9, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Pinyin</div>
+              <div style={{ fontSize: 11.5, color: COLORS.sealDark }}>{current.pinyin}</div>
             </div>
-          )}
+            {meaningDisplay !== "en" && (
+              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `1px solid ${COLORS.grid}`, textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Hán Việt</div>
+                <div style={{ fontSize: 11.5, color: COLORS.bamboo }}>{current.sv}</div>
+              </div>
+            )}
+          </div>
 
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
             {status === "recall" ? (
@@ -3298,7 +3315,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 className="ghost-btn"
                 style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5, opacity: completedDotStrokes.length === 0 ? 0.4 : 1 }}
               >
-                ↩ Hoàn tác nét trước
+                ↩ Xóa nét trước
               </button>
             </div>
           )}
@@ -3410,7 +3427,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
           <div style={{ textAlign: "center" }}>
             <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 16px", fontSize: 12 }}>
-              Kết thúc phiên
+              Kết thúc
             </button>
           </div>
         </div>
