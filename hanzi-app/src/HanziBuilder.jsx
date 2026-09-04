@@ -2555,6 +2555,8 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     setSelectedList(next);
     const items = characterList.filter((c) => next === "Tất cả" || getLists(c).some((l) => l.trim() === next));
     if (items.length === 0) return;
+    setStatus("loading");
+    setRevealOn(false);
     setQueue(shuffle(items));
     setCurrentIndex(0);
   }
@@ -2564,6 +2566,8 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       (c) => selectedList === "Tất cả" || getLists(c).some((l) => l.trim() === selectedList)
     );
     if (items.length === 0) return;
+    setStatus("loading");
+    setRevealOn(false);
     setQueue(shuffle(items));
     setCurrentIndex(0);
     setSessionActive(true);
@@ -2574,6 +2578,8 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     // currently selected list (shuffled) -- so "Chữ tiếp theo" has
     // somewhere to go instead of ending the session immediately.
     const rest = shuffle(previewChars.filter((x) => x.char !== c.char));
+    setStatus("loading");
+    setRevealOn(false);
     setQueue([c, ...rest]);
     setCurrentIndex(0);
     setSessionActive(true);
@@ -2582,6 +2588,8 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
   function endSession() {
     setSessionActive(false);
+    setStatus("idle");
+    setRevealOn(false);
     setQueue([]);
     setCurrentIndex(0);
   }
@@ -2656,6 +2664,14 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       endSession();
       return;
     }
+    // Explicitly step out of "recall" status (and its reveal toggle) here,
+    // in the same update as the index change -- otherwise the writing
+    // canvas and the HanziWriter container, which are mutually exclusive
+    // in the layout based on status, briefly (or permanently) disagree
+    // about which one should exist, and the new character's demo never
+    // gets a real container to initialize into.
+    setStatus("loading");
+    setRevealOn(false);
     setCurrentIndex((i) => i + 1);
   }
 
