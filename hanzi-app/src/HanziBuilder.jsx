@@ -2505,6 +2505,13 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
   const RECALL_INK_COLOR = "#2456A6";
   const BRUSH_WIDTHS = { thin: 12, normal: 20, thick: 32 };
+  // HanziWriter's drawingWidth is specified in its own internal SVG
+  // coordinate space and gets scaled down to fit the display size, so the
+  // same raw number looks much thinner there than it would as a plain
+  // canvas lineWidth (which is 1 unit = 1 actual pixel, no scaling). This
+  // is the recall canvas's own scale, tuned to visually match the guided
+  // tracing pen at the same "Cỡ bút" selection.
+  const RECALL_BRUSH_WIDTHS = { thin: 3, normal: 5, thick: 8 };
   const PREVIEW_PER_PAGE = 24; // ~8 columns x 3 rows at this layout's width
 
   const allLists = useMemo(() => {
@@ -2657,7 +2664,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     const p1 = stroke[stroke.length - 2];
     const p2 = stroke[stroke.length - 1];
     ctx.strokeStyle = RECALL_INK_COLOR;
-    ctx.lineWidth = BRUSH_WIDTHS[brushSize];
+    ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
@@ -2672,7 +2679,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = RECALL_INK_COLOR;
-    ctx.lineWidth = BRUSH_WIDTHS[brushSize];
+    ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     recallStrokesRef.current.forEach((stroke) => {
@@ -2990,7 +2997,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
           ) : (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={retryChar} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                ↻ Viết lại
+                ↻ Tô lại
               </button>
               <button type="button" onClick={enterRecallMode} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
                 ✏️ Viết từ trí nhớ →
