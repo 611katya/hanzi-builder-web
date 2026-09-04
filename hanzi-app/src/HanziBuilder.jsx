@@ -2487,11 +2487,13 @@ const ratingBtnStyle = {
 function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPremium, meaningDisplay }) {
   const [selectedList, setSelectedList] = useState("Tất cả");
   const [lockedListName, setLockedListName] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [queue, setQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
   const [mistakes, setMistakes] = useState(0);
-  const [status, setStatus] = useState("idle"); // idle | loading | practicing | done-char | error
+  // "loading" | "demo" | "practicing" | "done-char" | "error"
+  const [status, setStatus] = useState("idle");
   const targetRef = useRef(null);
   const writerRef = useRef(null);
 
@@ -2500,6 +2502,14 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
   }, [characterList]);
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return characterList
+      .filter((c) => c.char.includes(q) || c.pinyin.toLowerCase().includes(q) || c.meaning.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [searchQuery, characterList]);
 
   function handleListChange(next) {
     if (!isAdmin && next !== "Tất cả" && checkListAccess && !checkListAccess(next)) {
@@ -2519,6 +2529,13 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     setSessionActive(true);
   }
 
+  function startSingleChar(c) {
+    setQueue([c]);
+    setCurrentIndex(0);
+    setSessionActive(true);
+    setSearchQuery("");
+  }
+
   function endSession() {
     setSessionActive(false);
     setQueue([]);
@@ -2526,6 +2543,11 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   }
 
   const current = sessionActive ? queue[currentIndex] : null;
+
+  function playDemo(writer) {
+    setStatus("demo");
+    writer.animateCharacter();
+  }
 
   function runQuiz(writer) {
     setMistakes(0);
@@ -2557,7 +2579,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
         onLoadCharDataSuccess: () => {
           if (cancelled) return;
           writerRef.current = writer;
-          runQuiz(writer);
+          playDemo(writer);
         },
         onLoadCharDataError: () => {
           if (!cancelled) setStatus("error");
@@ -2573,6 +2595,14 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive, currentIndex, current]);
 
+  function replayDemo() {
+    if (writerRef.current) playDemo(writerRef.current);
+  }
+
+  function beginWriting() {
+    if (writerRef.current) runQuiz(writerRef.current);
+  }
+
   function retryChar() {
     if (writerRef.current) runQuiz(writerRef.current);
   }
@@ -2585,6 +2615,11 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     setCurrentIndex((i) => i + 1);
   }
 
+  const gridSize = 280;
+  const mid = gridSize / 2;
+  const inset = gridSize * 0.024;
+  const far = gridSize - inset;
+
   return (
     <div style={{ maxWidth: 420, margin: "0 auto" }}>
       {lockedListName && (
@@ -2596,6 +2631,42 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
           <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
             Luyện viết theo nét
           </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm một chữ cụ thể để luyện…"
+              style={{ ...inputStyle, width: 260, textAlign: "center" }}
+            />
+            {searchResults.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginTop: 10 }}>
+                {searchResults.map((c) => (
+                  <button
+                    key={c.char}
+                    type="button"
+                    onClick={() => startSingleChar(c)}
+                    title={`${c.pinyin} · ${c.meaning}`}
+                    style={{
+                      fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                      fontSize: 22,
+                      width: 44,
+                      height: 44,
+                      border: `1px solid ${COLORS.grid}`,
+                      borderRadius: 6,
+                      background: COLORS.card,
+                      color: COLORS.ink,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {c.char}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>— hoặc luyện theo danh sách —</div>
 
           <select
             value={selectedList}
@@ -2611,8 +2682,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
           </select>
 
           <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 20, lineHeight: 1.5 }}>
-            Viết theo nét đã tô sẵn, dùng chuột (máy tính) hoặc ngón tay (màn hình cảm ứng). Ứng dụng sẽ kiểm tra
-            từng nét khi bạn viết.
+            Xem thứ tự nét trước, sau đó tự viết theo, dùng chuột (máy tính) hoặc ngón tay (màn hình cảm ứng).
           </div>
 
           <button type="button" onClick={startSession} className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }}>
@@ -2623,26 +2693,30 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
         <div>
           <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center", marginBottom: 10 }}>
             {currentIndex + 1} / {queue.length}
-            {mistakes > 0 && ` · ${mistakes} lỗi`}
+            {status === "practicing" || status === "done-char" ? ` · ${mistakes} lỗi` : ""}
           </div>
 
           <div style={{ marginBottom: 10 }}>
             <MeaningBoxes meaning={current.meaning} meaningVi={current.meaning_vi} meaningDisplay={meaningDisplay} />
           </div>
-          <div style={{ textAlign: "center", fontSize: 13, color: COLORS.sealDark, marginBottom: 14 }}>{current.pinyin}</div>
+          <div style={{ textAlign: "center", fontSize: 13, color: COLORS.sealDark, marginBottom: 2 }}>{current.pinyin}</div>
+          {meaningDisplay !== "en" && (
+            <div style={{ textAlign: "center", fontSize: 12.5, color: COLORS.bamboo, fontWeight: 600, marginBottom: 14 }}>
+              HV: {current.sv}
+            </div>
+          )}
 
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-            <div
-              ref={targetRef}
-              style={{
-                width: 280,
-                height: 280,
-                border: `2px solid ${COLORS.grid}`,
-                borderRadius: 10,
-                background: COLORS.card,
-                touchAction: "none",
-              }}
-            />
+            <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
+              <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.55 }}>
+                <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
+                <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="4 4" />
+                <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="4 4" />
+                <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="3 5" />
+                <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="3 5" />
+              </svg>
+              <div ref={targetRef} style={{ position: "absolute", inset: 0, touchAction: "none" }} />
+            </div>
           </div>
 
           {status === "error" && (
@@ -2657,14 +2731,25 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
-            <button type="button" onClick={retryChar} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-              ↻ Viết lại
-            </button>
-            <button type="button" onClick={nextChar} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-              Chữ tiếp theo →
-            </button>
-          </div>
+          {status === "demo" ? (
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+              <button type="button" onClick={replayDemo} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                ↻ Xem lại
+              </button>
+              <button type="button" onClick={beginWriting} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                ✍️ Bắt đầu viết
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+              <button type="button" onClick={retryChar} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                ↻ Viết lại
+              </button>
+              <button type="button" onClick={nextChar} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                Chữ tiếp theo →
+              </button>
+            </div>
+          )}
 
           <div style={{ textAlign: "center" }}>
             <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 16px", fontSize: 12 }}>
@@ -2676,6 +2761,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     </div>
   );
 }
+
 
 /* ================= ADD TAB ================= */
 function AddTab({
