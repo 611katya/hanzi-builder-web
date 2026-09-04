@@ -2754,20 +2754,19 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
   function redrawDotsCanvas(completedList) {
     const canvas = dotsCanvasRef.current;
-    if (!canvas || !dotCharData || !dotTransform) return;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = COLORS.bamboo;
     ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
     ctx.lineCap = "round";
-    completedList.forEach((idx) => {
-      const median = dotCharData.medians[idx];
-      if (!median) return;
-      const s = dotTransform(median[0]);
-      const e = dotTransform(median[median.length - 1]);
+    ctx.lineJoin = "round";
+    completedList.forEach((entry) => {
+      const path = entry.path;
+      if (!path || path.length < 2) return;
       ctx.beginPath();
-      ctx.moveTo(s.x, s.y);
-      ctx.lineTo(e.x, e.y);
+      ctx.moveTo(path[0].x, path[0].y);
+      path.slice(1).forEach((pt) => ctx.lineTo(pt.x, pt.y));
       ctx.stroke();
     });
   }
@@ -2829,7 +2828,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
     if (distToStart <= THRESHOLD && distToEnd <= THRESHOLD) {
       setDotFeedback("correct");
-      const nextCompleted = [...completedDotStrokes, dotStrokeIndex];
+      const nextCompleted = [...completedDotStrokes, { strokeIndex: dotStrokeIndex, path }];
       setCompletedDotStrokes(nextCompleted);
       if (dotStrokeIndex + 1 >= dotTotalStrokes) {
         // All strokes connected -- stop here and let the person look at
