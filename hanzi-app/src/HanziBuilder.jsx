@@ -2214,7 +2214,6 @@ function updateSM2(progress, rating) {
 function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAccess, onRequireAuth, onViewPremium, meaningDisplay }) {
   const [selectedList, setSelectedList] = useState("Tất cả");
   const [lockedListName, setLockedListName] = useState(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [progressMap, setProgressMap] = useState(null); // null = loading
   const [queue, setQueue] = useState([]);
   const [current, setCurrent] = useState(null);
@@ -2275,10 +2274,6 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
   }
 
   function startSession() {
-    if (!userId) {
-      setShowAuthModal(true);
-      return;
-    }
     const todayStr = new Date().toISOString().slice(0, 10);
     const cards = [];
     characterList.forEach((c) => {
@@ -2317,12 +2312,16 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
       next.set(`${current.type}:${current.key}`, row);
       return next;
     });
-    supabase
-      .from("flashcard_progress")
-      .upsert(row, { onConflict: "user_id,card_key,card_type" })
-      .then(({ error }) => {
-        if (error) console.error("Could not save flashcard progress:", error);
-      });
+    if (userId) {
+      supabase
+        .from("flashcard_progress")
+        .upsert(row, { onConflict: "user_id,card_key,card_type" })
+        .then(({ error }) => {
+          if (error) console.error("Could not save flashcard progress:", error);
+        });
+    }
+    // Guests: progress only lives in progressMap for this session -- there's
+    // no account to persist it to, same as the rest of the app's guest mode.
 
     setSessionStats((prev) => ({ reviewed: prev.reviewed + 1, again: prev.again + (rating === "again" ? 1 : 0) }));
     const rest = queue;
@@ -2343,7 +2342,6 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
 
   return (
     <div style={{ maxWidth: 420, margin: "0 auto" }}>
-      {showAuthModal && <AuthRequiredModal onClose={() => setShowAuthModal(false)} onSignIn={onRequireAuth} />}
       {lockedListName && (
         <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
       )}
@@ -2368,15 +2366,15 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
           </select>
 
           <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20 }}>
-            {userId ? `${dueCount} thẻ cần ôn hôm nay` : "Đăng nhập để bắt đầu ôn tập"}
+            {dueCount} thẻ cần ôn hôm nay
           </div>
 
           <button
             type="button"
             onClick={startSession}
-            disabled={userId && dueCount === 0}
+            disabled={dueCount === 0}
             className="seal-btn"
-            style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14, opacity: userId && dueCount === 0 ? 0.5 : 1 }}
+            style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14, opacity: dueCount === 0 ? 0.5 : 1 }}
           >
             Bắt đầu
           </button>
