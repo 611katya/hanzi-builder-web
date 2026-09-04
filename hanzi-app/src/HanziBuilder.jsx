@@ -1848,7 +1848,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
   const usedRef = useRef(new Set());
 
   const DIFFICULTY_LEVELS = [
-    { id: "de", label: "Dễ", paletteSize: 8 },
+    { id: "de", label: "Đơn giản", paletteSize: 8 },
     { id: "trung-binh", label: "Trung bình", paletteSize: 12 },
     { id: "kho", label: "Khó", paletteSize: 25 },
     { id: "sieu-kho", label: "Siêu khó", paletteSize: 36 },
@@ -3701,6 +3701,45 @@ function AddTab({
           onViewPremium={onViewPremium}
         />
       )}
+
+      <div
+        style={{
+          background: COLORS.card,
+          border: `1px solid ${COLORS.grid}`,
+          borderRadius: 10,
+          padding: "16px 18px",
+          marginBottom: 20,
+          fontSize: 13,
+          color: COLORS.inkSoft,
+          lineHeight: 1.7,
+        }}
+      >
+        <p style={{ margin: 0, marginBottom: 10 }}>
+          Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu
+          của người học.
+        </p>
+        <p style={{ margin: 0, marginBottom: 10 }}>
+          Ví dụ: 超 sẽ được công cụ tách thành 走 và 召. Tuy nhiên, người học cũng có thể tách chữ này thành 3 bộ 走,
+          刀, 口, hoặc 走 và 召, tùy theo nguyện vọng cá nhân.
+        </p>
+        <p style={{ margin: 0, marginBottom: 10 }}>
+          Người học sẽ phải nhập thủ công các bộ thành phần trong trường hợp người học muốn tách bộ thành phần
+          theo cách khác với mặc định của thanh công cụ.
+        </p>
+        <p style={{ margin: 0, marginBottom: 10 }}>
+          Ngoài ra, thanh công cụ đôi lúc vẫn có thể tách sai bộ thành phần. Người học cần tra soát lại với các hệ
+          thống từ điển và nhập lại thủ công nếu phát hiện sai sót. Các từ điển tham khảo:
+        </p>
+        <p style={{ margin: 0 }}>
+          <a href="https://hvdic.thivien.net/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.sealDark }}>
+            hvdic.thivien.net
+          </a>
+          {" · "}
+          <a href="https://zdic.net/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.sealDark }}>
+            zdic.net
+          </a>
+        </p>
+      </div>
 
       <BulkImportPanel
         characterList={characterList}
