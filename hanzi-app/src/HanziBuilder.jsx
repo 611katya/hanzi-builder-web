@@ -2544,6 +2544,21 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     setPreviewPage(0);
   }
 
+  // Same access check as handleListChange, but usable mid-session: swaps
+  // in a fresh shuffled queue from the new list without returning to the
+  // start screen.
+  function switchListMidSession(next) {
+    if (!isAdmin && next !== "Tất cả" && checkListAccess && !checkListAccess(next)) {
+      setLockedListName(next);
+      return;
+    }
+    setSelectedList(next);
+    const items = characterList.filter((c) => next === "Tất cả" || getLists(c).some((l) => l.trim() === next));
+    if (items.length === 0) return;
+    setQueue(shuffle(items));
+    setCurrentIndex(0);
+  }
+
   function startSession() {
     const items = characterList.filter(
       (c) => selectedList === "Tất cả" || getLists(c).some((l) => l.trim() === selectedList)
@@ -2555,7 +2570,11 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   }
 
   function startSingleChar(c) {
-    setQueue([c]);
+    // Start with this character, then continue through the rest of the
+    // currently selected list (shuffled) -- so "Chữ tiếp theo" has
+    // somewhere to go instead of ending the session immediately.
+    const rest = shuffle(previewChars.filter((x) => x.char !== c.char));
+    setQueue([c, ...rest]);
     setCurrentIndex(0);
     setSessionActive(true);
     setSearchQuery("");
@@ -2853,6 +2872,21 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             {status === "practicing" || status === "done-char" ? ` · ${mistakes} lỗi` : ""}
           </div>
 
+          <div style={{ textAlign: "center", marginBottom: 12 }}>
+            <select
+              value={selectedList}
+              onChange={(e) => switchListMidSession(e.target.value)}
+              style={{ ...selectStyle, width: 220, textAlign: "center", display: "inline-block", fontSize: 12 }}
+            >
+              <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+              {allLists.map((l) => (
+                <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div style={{ marginBottom: 10 }}>
             <MeaningBoxes meaning={current.meaning} meaningVi={current.meaning_vi} meaningDisplay={meaningDisplay} />
           </div>
@@ -2990,6 +3024,9 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             </div>
           ) : status === "recall" ? (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+              <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                🔍 Chọn chữ khác
+              </button>
               <button type="button" onClick={nextChar} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
                 Chữ tiếp theo →
               </button>
