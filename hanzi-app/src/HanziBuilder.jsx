@@ -2748,6 +2748,17 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     });
   }, [dotCharData]);
 
+  // Same transform as dotTransform above, expressed as an SVG matrix so
+  // the real stroke shapes (not a font rendering of the character) can be
+  // drawn as the reveal reference -- guaranteed to align exactly with the
+  // dots since both come from the same source data and the same math.
+  const dotSvgMatrix = useMemo(() => {
+    if (!dotCharData) return null;
+    const padding = 12;
+    const scale = (280 - padding * 2) / 1024;
+    return `matrix(${scale},0,0,${-scale},${padding},${padding + 900 * scale})`;
+  }, [dotCharData]);
+
   const dotTotalStrokes = dotCharData && dotCharData.medians ? dotCharData.medians.length : 0;
   const dotCurrentMedian = dotCharData && dotCharData.medians ? dotCharData.medians[dotStrokeIndex] : null;
   const dotStartPoint = dotCurrentMedian && dotTransform ? dotTransform(dotCurrentMedian[0]) : null;
@@ -3148,28 +3159,18 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                   <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
                   <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
                 </svg>
-                {revealOn && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      pointerEvents: "none",
-                    }}
+                {revealOn && dotCharData && dotSvgMatrix && (
+                  <svg
+                    width={gridSize}
+                    height={gridSize}
+                    style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.3 }}
                   >
-                    <div
-                      style={{
-                        fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
-                        fontSize: gridSize * 0.72,
-                        color: COLORS.ink,
-                        opacity: 0.3,
-                      }}
-                    >
-                      {current.char}
-                    </div>
-                  </div>
+                    <g transform={dotSvgMatrix}>
+                      {dotCharData.strokes.map((d, i) => (
+                        <path key={i} d={d} fill={COLORS.ink} />
+                      ))}
+                    </g>
+                  </svg>
                 )}
                 <canvas
                   ref={dotsCanvasRef}
