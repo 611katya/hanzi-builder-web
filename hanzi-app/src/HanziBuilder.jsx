@@ -2488,6 +2488,8 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const [selectedList, setSelectedList] = useState("Tất cả");
   const [lockedListName, setLockedListName] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [previewPage, setPreviewPage] = useState(0);
+  const [brushSize, setBrushSize] = useState("normal"); // thin | normal | thick
   const [queue, setQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
@@ -2497,11 +2499,21 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const targetRef = useRef(null);
   const writerRef = useRef(null);
 
+  const BRUSH_WIDTHS = { thin: 3, normal: 5, thick: 8 };
+  const PREVIEW_PER_PAGE = 24; // ~8 columns x 3 rows at this layout's width
+
   const allLists = useMemo(() => {
     const set = new Set();
     characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
   }, [characterList]);
+
+  const previewChars = useMemo(() => {
+    return characterList.filter((c) => selectedList === "Tất cả" || getLists(c).some((l) => l.trim() === selectedList));
+  }, [characterList, selectedList]);
+
+  const previewTotalPages = Math.max(1, Math.ceil(previewChars.length / PREVIEW_PER_PAGE));
+  const previewPageItems = previewChars.slice(previewPage * PREVIEW_PER_PAGE, (previewPage + 1) * PREVIEW_PER_PAGE);
 
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -2517,6 +2529,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       return;
     }
     setSelectedList(next);
+    setPreviewPage(0);
   }
 
   function startSession() {
@@ -2575,7 +2588,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
         highlightCompleteColor: COLORS.bamboo,
         strokeColor: COLORS.ink,
         outlineColor: COLORS.grid,
-        drawingWidth: 5,
+        drawingWidth: BRUSH_WIDTHS[brushSize],
         onLoadCharDataSuccess: () => {
           if (cancelled) return;
           writerRef.current = writer;
@@ -2593,7 +2606,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionActive, currentIndex, current]);
+  }, [sessionActive, currentIndex, current, brushSize]);
 
   function replayDemo() {
     if (writerRef.current) playDemo(writerRef.current);
@@ -2681,6 +2694,59 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             ))}
           </select>
 
+          {previewChars.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+                {previewPageItems.map((c) => (
+                  <button
+                    key={c.char}
+                    type="button"
+                    onClick={() => startSingleChar(c)}
+                    title={`${c.pinyin} · ${c.meaning}`}
+                    style={{
+                      fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                      fontSize: 20,
+                      width: 38,
+                      height: 38,
+                      border: `1px solid ${COLORS.grid}`,
+                      borderRadius: 6,
+                      background: COLORS.card,
+                      color: COLORS.ink,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {c.char}
+                  </button>
+                ))}
+              </div>
+              {previewTotalPages > 1 && (
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
+                    disabled={previewPage === 0}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, opacity: previewPage === 0 ? 0.4 : 1 }}
+                  >
+                    ← Trang trước
+                  </button>
+                  <span style={{ fontSize: 11.5, color: COLORS.inkSoft }}>
+                    {previewPage + 1} / {previewTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewPage((p) => Math.min(previewTotalPages - 1, p + 1))}
+                    disabled={previewPage >= previewTotalPages - 1}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, opacity: previewPage >= previewTotalPages - 1 ? 0.4 : 1 }}
+                  >
+                    Trang sau →
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 20, lineHeight: 1.5 }}>
             Xem thứ tự nét trước, sau đó tự viết theo, dùng chuột (máy tính) hoặc ngón tay (màn hình cảm ứng).
           </div>
@@ -2708,15 +2774,42 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
             <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
-              <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.55 }}>
+              <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
                 <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
-                <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="4 4" />
-                <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="4 4" />
-                <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="3 5" />
-                <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.grid} strokeWidth="1" strokeDasharray="3 5" />
+                <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
               </svg>
               <div ref={targetRef} style={{ position: "absolute", inset: 0, touchAction: "none" }} />
             </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <span style={{ fontSize: 11, color: COLORS.inkSoft }}>Cỡ bút:</span>
+            {[
+              { id: "thin", label: "Mảnh" },
+              { id: "normal", label: "Vừa" },
+              { id: "thick", label: "Đậm" },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setBrushSize(opt.id)}
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  border: `1px solid ${brushSize === opt.id ? COLORS.seal : COLORS.grid}`,
+                  background: brushSize === opt.id ? "rgba(85,107,47,0.08)" : "transparent",
+                  color: brushSize === opt.id ? COLORS.seal : COLORS.inkSoft,
+                  cursor: "pointer",
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
 
           {status === "error" && (
