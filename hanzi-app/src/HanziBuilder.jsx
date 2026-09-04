@@ -2513,6 +2513,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const [dotFeedback, setDotFeedback] = useState(null); // null | "correct" | "wrong"
   const dotsCanvasRef = useRef(null);
   const dotDrawStartRef = useRef(null);
+  const dotCurrentPathRef = useRef([]);
 
   const RECALL_INK_COLOR = "#2456A6";
   const BRUSH_WIDTHS = { thin: 12, normal: 20, thick: 32 };
@@ -2779,34 +2780,49 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   function startDotDrawing(e) {
     e.preventDefault();
     isDrawingRef.current = true;
-    dotDrawStartRef.current = getPointForCanvas(dotsCanvasRef, e.nativeEvent);
+    const pt = getPointForCanvas(dotsCanvasRef, e.nativeEvent);
+    dotDrawStartRef.current = pt;
+    dotCurrentPathRef.current = [pt];
   }
 
   function continueDotDrawing(e) {
-    if (!isDrawingRef.current || !dotDrawStartRef.current) return;
+    if (!isDrawingRef.current) return;
     e.preventDefault();
     const pt = getPointForCanvas(dotsCanvasRef, e.nativeEvent);
-    redrawDotsCanvas(completedDotStrokes);
+    const path = dotCurrentPathRef.current;
+    path.push(pt);
+    if (path.length < 2) return;
+    // Draw just the newest segment, incrementally -- lets the line follow
+    // whatever shape the person actually draws (curves, zigzags, etc.)
+    // instead of forcing a straight line from the start point.
     const canvas = dotsCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+    const p1 = path[path.length - 2];
+    const p2 = path[path.length - 1];
     ctx.strokeStyle = RECALL_INK_COLOR;
     ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
     ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.beginPath();
-    ctx.moveTo(dotDrawStartRef.current.x, dotDrawStartRef.current.y);
-    ctx.lineTo(pt.x, pt.y);
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
     ctx.stroke();
   }
 
-  function endDotDrawing(e) {
+  function endDotDrawing() {
     if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
-    const startPt = dotDrawStartRef.current;
+    const path = dotCurrentPathRef.current;
+    dotCurrentPathRef.current = [];
     dotDrawStartRef.current = null;
-    if (!startPt || !dotStartPoint || !dotEndPoint) return;
-    const endPt = getPointForCanvas(dotsCanvasRef, e.nativeEvent);
+    if (path.length < 2 || !dotStartPoint || !dotEndPoint) return;
+    const startPt = path[0];
+    const endPt = path[path.length - 1];
 
+    // Only the actual start and end of what was drawn matter here -- the
+    // path in between can be any shape (straight, curved, zigzagged), it
+    // isn't checked at all.
     const THRESHOLD = 30; // pixels -- generous enough for finger/mouse imprecision
     const distToStart = Math.hypot(startPt.x - dotStartPoint.x, startPt.y - dotStartPoint.y);
     const distToEnd = Math.hypot(endPt.x - dotEndPoint.x, endPt.y - dotEndPoint.y);
