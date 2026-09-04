@@ -1560,10 +1560,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <Header />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-          {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
-          <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
-        </div>
+        {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
+        <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
         <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} />
 
         {!loaded ? (
@@ -1595,6 +1593,14 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             isAdmin={isAdmin}
             checkListAccess={checkListAccess}
             onRequireAuth={onRequireAuth}
+            onViewPremium={() => setTab("premium")}
+            meaningDisplay={meaningDisplay}
+          />
+        ) : tab === "writing" ? (
+          <WritingPracticeTab
+            characterList={characterList}
+            isAdmin={isAdmin}
+            checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
           />
@@ -1713,24 +1719,26 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
   const accentColor = isOut ? COLORS.error : isLow ? COLORS.gold : COLORS.seal;
   const bg = isOut ? "rgba(166,67,46,0.08)" : isLow ? "rgba(89,89,0,0.08)" : "rgba(85,107,47,0.07)";
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "10px 22px",
-        borderRadius: 999,
-        border: `2px solid ${accentColor}`,
-        background: bg,
-      }}
-    >
-      <span style={{ fontSize: 17, fontWeight: 800, color: accentColor, letterSpacing: 0.4, textTransform: "uppercase" }}>
-        {isAdmin ? "Admin" : tier}
-      </span>
-      <span style={{ width: 1, height: 20, background: accentColor, opacity: 0.35 }} />
-      <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.ink }}>
-        {isAdmin ? `${count} lượt đã dùng · không giới hạn` : `${remaining}/${limit} lượt tra cứu còn lại`}
-      </span>
+    <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 22px",
+          borderRadius: 999,
+          border: `2px solid ${accentColor}`,
+          background: bg,
+        }}
+      >
+        <span style={{ fontSize: 17, fontWeight: 800, color: accentColor, letterSpacing: 0.4, textTransform: "uppercase" }}>
+          {isAdmin ? "Admin" : tier}
+        </span>
+        <span style={{ width: 1, height: 20, background: accentColor, opacity: 0.35 }} />
+        <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.ink }}>
+          {isAdmin ? `${count} lượt đã dùng · không giới hạn` : `${remaining}/${limit} lượt tra cứu còn lại`}
+        </span>
+      </div>
     </div>
   );
 }
@@ -1745,33 +1753,34 @@ function MeaningDisplayToggle({ value, onChange }) {
     { id: "vi", label: "VI" },
   ];
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        borderRadius: 999,
-        border: `2px solid ${COLORS.seal}`,
-        overflow: "hidden",
-      }}
-    >
-      {options.map((opt) => (
-        <button
-          key={opt.id}
-          type="button"
-          onClick={() => onChange(opt.id)}
-          style={{
-            padding: "10px 20px",
-            fontSize: 15,
-            fontWeight: 800,
-            letterSpacing: 0.3,
-            border: "none",
-            cursor: "pointer",
-            background: value === opt.id ? COLORS.seal : "transparent",
-            color: value === opt.id ? "#FBF9EF" : COLORS.seal,
-          }}
-        >
-          {opt.label}
-        </button>
-      ))}
+    <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "inline-flex",
+          borderRadius: 999,
+          border: `1px solid ${COLORS.grid}`,
+          overflow: "hidden",
+        }}
+      >
+        {options.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            style={{
+              padding: "5px 14px",
+              fontSize: 11.5,
+              fontWeight: 700,
+              border: "none",
+              cursor: "pointer",
+              background: value === opt.id ? COLORS.seal : "transparent",
+              color: value === opt.id ? "#FBF9EF" : COLORS.inkSoft,
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1781,6 +1790,7 @@ function Tabs({ tab, setTab, isAdmin }) {
   const items = [
     { id: "play", label: "Học · 学习" },
     { id: "flashcards", label: "🗂 Ôn tập" },
+    { id: "writing", label: "✍️ Luyện viết" },
     { id: "add", label: "Thêm chữ · 添加" },
     { id: "radicals", label: "Bộ thủ · 部首" },
     { id: "hanzi", label: "Hán tự · 汉字" },
@@ -2041,7 +2051,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 8, fontSize: 14.5, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{target.pinyin}</strong></span>
-          {target.sv && meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>}
+          {target.sv && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>}
         </div>
       </div>
 
@@ -2096,7 +2106,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
         {status === "revealed" && (
           <span style={{ color: COLORS.gold }}>
             💡 Đáp án: {answerBreakdown} ({target.pinyin}) — {formatMeaningInline(target.meaning, target.meaningVi, meaningDisplay)}
-            {target.sv && meaningDisplay !== "en" ? `, Hán Việt: ${target.sv}` : ""}
+            {target.sv ? `, Hán Việt: ${target.sv}` : ""}
           </span>
         )}
       </div>
@@ -2407,9 +2417,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
                 <div style={{ marginBottom: 4 }}>
                   <MeaningBoxes meaning={current.data.meaning} meaningVi={current.data.meaning_vi} meaningDisplay={meaningDisplay} large />
                 </div>
-                {current.data.sv && meaningDisplay !== "en" && (
-                  <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>
-                )}
+                {current.data.sv && <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>}
               </div>
             )}
           </div>
@@ -2467,6 +2475,207 @@ const ratingBtnStyle = {
   fontWeight: 700,
   cursor: "pointer",
 };
+
+/* ================= WRITING PRACTICE TAB =================
+   Guided stroke tracing using HanziWriter's built-in quiz() mode — it
+   already handles both mouse and touch input identically, and already
+   judges each stroke against the real reference data (the same data the
+   stroke-order animation uses), so there's no recognition logic to build
+   here. No login required and no API cost: this never calls our lookup
+   functions, HanziWriter fetches character stroke data from its own
+   public source. ---------- */
+function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPremium, meaningDisplay }) {
+  const [selectedList, setSelectedList] = useState("Tất cả");
+  const [lockedListName, setLockedListName] = useState(null);
+  const [queue, setQueue] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [sessionActive, setSessionActive] = useState(false);
+  const [mistakes, setMistakes] = useState(0);
+  const [status, setStatus] = useState("idle"); // idle | loading | practicing | done-char | error
+  const targetRef = useRef(null);
+  const writerRef = useRef(null);
+
+  const allLists = useMemo(() => {
+    const set = new Set();
+    characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [characterList]);
+
+  function handleListChange(next) {
+    if (!isAdmin && next !== "Tất cả" && checkListAccess && !checkListAccess(next)) {
+      setLockedListName(next);
+      return;
+    }
+    setSelectedList(next);
+  }
+
+  function startSession() {
+    const items = characterList.filter(
+      (c) => selectedList === "Tất cả" || getLists(c).some((l) => l.trim() === selectedList)
+    );
+    if (items.length === 0) return;
+    setQueue(shuffle(items));
+    setCurrentIndex(0);
+    setSessionActive(true);
+  }
+
+  function endSession() {
+    setSessionActive(false);
+    setQueue([]);
+    setCurrentIndex(0);
+  }
+
+  const current = sessionActive ? queue[currentIndex] : null;
+
+  function runQuiz(writer) {
+    setMistakes(0);
+    setStatus("practicing");
+    writer.quiz({
+      showHintAfterMisses: 3,
+      onMistake: () => setMistakes((m) => m + 1),
+      onComplete: () => setStatus("done-char"),
+    });
+  }
+
+  useEffect(() => {
+    if (!sessionActive || !current || !targetRef.current) return;
+    let cancelled = false;
+    setStatus("loading");
+    targetRef.current.innerHTML = "";
+    try {
+      const writer = HanziWriter.create(targetRef.current, current.char, {
+        width: 280,
+        height: 280,
+        padding: 12,
+        showOutline: true,
+        showCharacter: false,
+        highlightOnComplete: true,
+        highlightCompleteColor: COLORS.bamboo,
+        strokeColor: COLORS.ink,
+        outlineColor: COLORS.grid,
+        drawingWidth: 5,
+        onLoadCharDataSuccess: () => {
+          if (cancelled) return;
+          writerRef.current = writer;
+          runQuiz(writer);
+        },
+        onLoadCharDataError: () => {
+          if (!cancelled) setStatus("error");
+        },
+      });
+    } catch (e) {
+      console.error("Writing practice failed to load:", e);
+      setStatus("error");
+    }
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionActive, currentIndex, current]);
+
+  function retryChar() {
+    if (writerRef.current) runQuiz(writerRef.current);
+  }
+
+  function nextChar() {
+    if (currentIndex + 1 >= queue.length) {
+      endSession();
+      return;
+    }
+    setCurrentIndex((i) => i + 1);
+  }
+
+  return (
+    <div style={{ maxWidth: 420, margin: "0 auto" }}>
+      {lockedListName && (
+        <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
+      )}
+
+      {!sessionActive ? (
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            Luyện viết theo nét
+          </div>
+
+          <select
+            value={selectedList}
+            onChange={(e) => handleListChange(e.target.value)}
+            style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
+          >
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+            {allLists.map((l) => (
+              <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+              </option>
+            ))}
+          </select>
+
+          <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 20, lineHeight: 1.5 }}>
+            Viết theo nét đã tô sẵn, dùng chuột (máy tính) hoặc ngón tay (màn hình cảm ứng). Ứng dụng sẽ kiểm tra
+            từng nét khi bạn viết.
+          </div>
+
+          <button type="button" onClick={startSession} className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }}>
+            Bắt đầu
+          </button>
+        </div>
+      ) : current ? (
+        <div>
+          <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center", marginBottom: 10 }}>
+            {currentIndex + 1} / {queue.length}
+            {mistakes > 0 && ` · ${mistakes} lỗi`}
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <MeaningBoxes meaning={current.meaning} meaningVi={current.meaning_vi} meaningDisplay={meaningDisplay} />
+          </div>
+          <div style={{ textAlign: "center", fontSize: 13, color: COLORS.sealDark, marginBottom: 14 }}>{current.pinyin}</div>
+
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+            <div
+              ref={targetRef}
+              style={{
+                width: 280,
+                height: 280,
+                border: `2px solid ${COLORS.grid}`,
+                borderRadius: 10,
+                background: COLORS.card,
+                touchAction: "none",
+              }}
+            />
+          </div>
+
+          {status === "error" && (
+            <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, marginBottom: 16 }}>
+              Chưa có dữ liệu nét bút cho chữ "{current.char}" — bấm "Chữ tiếp theo" để bỏ qua.
+            </div>
+          )}
+
+          {status === "done-char" && (
+            <div style={{ textAlign: "center", color: COLORS.bamboo, fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
+              ✓ Hoàn thành! {mistakes === 0 ? "Không có lỗi nào." : `${mistakes} lỗi.`}
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+            <button type="button" onClick={retryChar} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+              ↻ Viết lại
+            </button>
+            <button type="button" onClick={nextChar} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+              Chữ tiếp theo →
+            </button>
+          </div>
+
+          <div style={{ textAlign: "center" }}>
+            <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 16px", fontSize: 12 }}>
+              Kết thúc phiên
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 /* ================= ADD TAB ================= */
 function AddTab({
@@ -5159,9 +5368,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
       <div style={{ marginTop: 4 }}>
         <MeaningBoxes meaning={w.meaning} meaningVi={w.meaning_vi} meaningDisplay={meaningDisplay} />
       </div>
-      {w.sv && meaningDisplay !== "en" && (
-        <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 4, fontWeight: 600 }}>HV: {w.sv}</div>
-      )}
+      {w.sv && <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 4, fontWeight: 600 }}>HV: {w.sv}</div>}
       {isAdmin && (
         <button
           type="button"
@@ -5307,7 +5514,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 18, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{w.pinyin}</strong></span>
-          {w.sv && meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{w.sv}</strong></span>}
+          {w.sv && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{w.sv}</strong></span>}
         </div>
 
         {characterList && (
@@ -5904,9 +6111,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <div style={{ marginTop: 4 }}>
             <MeaningBoxes meaning={c.meaning} meaningVi={c.meaning_vi} meaningDisplay={meaningDisplay} />
           </div>
-          {meaningDisplay !== "en" && (
-            <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 4, fontWeight: 600 }}>HV: {c.sv}</div>
-          )}
+          <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 4, fontWeight: 600 }}>HV: {c.sv}</div>
           {isAdmin && (
             <button
               type="button"
@@ -6106,7 +6311,7 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 12, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{c.pinyin}</strong></span>
-          {meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{c.sv}</strong></span>}
+          <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{c.sv}</strong></span>
         </div>
 
         <div style={{ marginBottom: 18 }}>
