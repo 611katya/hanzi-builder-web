@@ -1848,10 +1848,10 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
   const usedRef = useRef(new Set());
 
   const DIFFICULTY_LEVELS = [
-    { id: "de", label: "Đơn giản", paletteSize: 8 },
-    { id: "trung-binh", label: "Trung bình", paletteSize: 12 },
-    { id: "kho", label: "Khó", paletteSize: 25 },
-    { id: "sieu-kho", label: "Siêu khó", paletteSize: 36 },
+    { id: "de", label: "★", paletteSize: 8 },
+    { id: "trung-binh", label: "★★", paletteSize: 12 },
+    { id: "kho", label: "★★★", paletteSize: 25 },
+    { id: "sieu-kho", label: "★★★★", paletteSize: 36 },
   ];
 
   // Every playable "thing" - single characters and multi-character words -
@@ -3489,6 +3489,7 @@ function AddTab({
   const [pinyin, setPinyin] = useState("");
   const [sv, setSv] = useState("");
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showNote, setShowNote] = useState(false);
   const [limitInfo, setLimitInfo] = useState(null); // { count, limit, tier } | null
   const [selectedLists, setSelectedLists] = useState([]); // a word can belong to more than one list
   const [listTypeahead, setListTypeahead] = useState("");
@@ -3702,80 +3703,57 @@ function AddTab({
         />
       )}
 
-      <div
-        style={{
-          background: COLORS.card,
-          border: `1px solid ${COLORS.grid}`,
-          borderRadius: 10,
-          padding: "16px 18px",
-          marginBottom: 20,
-          fontSize: 13,
-          color: COLORS.inkSoft,
-          lineHeight: 1.7,
-        }}
-      >
-        <p style={{ margin: 0, marginBottom: 10 }}>
-          Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu
-          của người học.
-        </p>
-        <p style={{ margin: 0, marginBottom: 10 }}>
-          Ví dụ: 超 sẽ được công cụ tách thành 走 và 召. Tuy nhiên, người học cũng có thể tách chữ này thành 3 bộ 走,
-          刀, 口, hoặc 走 và 召, tùy theo nguyện vọng cá nhân.
-        </p>
-        <p style={{ margin: 0, marginBottom: 10 }}>
-          Người học sẽ phải nhập thủ công các bộ thành phần trong trường hợp người học muốn tách bộ thành phần
-          theo cách khác với mặc định của thanh công cụ.
-        </p>
-        <p style={{ margin: 0, marginBottom: 10 }}>
-          Ngoài ra, thanh công cụ đôi lúc vẫn có thể tách sai bộ thành phần. Người học cần tra soát lại với các hệ
-          thống từ điển và nhập lại thủ công nếu phát hiện sai sót. Các từ điển tham khảo:
-        </p>
-        <p style={{ margin: 0 }}>
-          <a href="https://hvdic.thivien.net/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.sealDark }}>
-            hvdic.thivien.net
-          </a>
-          {" · "}
-          <a href="https://zdic.net/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.sealDark }}>
-            zdic.net
-          </a>
-        </p>
+      <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <button
+          type="button"
+          onClick={() => setShowNote((s) => !s)}
+          className={showNote ? "seal-btn" : "ghost-btn"}
+          style={{ ...(showNote ? sealBtnStyle : ghostBtnStyle), padding: "8px 18px", fontSize: 13 }}
+        >
+          ⚠️ Lưu ý
+        </button>
+        {showNote && (
+          <div
+            style={{
+              background: COLORS.card,
+              border: `1px solid ${COLORS.grid}`,
+              borderRadius: 10,
+              padding: "16px 18px",
+              marginTop: 12,
+              fontSize: 13,
+              color: COLORS.inkSoft,
+              lineHeight: 1.7,
+              textAlign: "left",
+            }}
+          >
+            <p style={{ margin: 0, marginBottom: 10 }}>
+              Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu
+              của người học.
+            </p>
+            <p style={{ margin: 0, marginBottom: 10 }}>
+              Ví dụ: 超 sẽ được công cụ tách thành 走 và 召. Tuy nhiên, người học cũng có thể tách chữ này thành 3 bộ 走,
+              刀, 口, hoặc 走 và 召, tùy theo nguyện vọng cá nhân.
+            </p>
+            <p style={{ margin: 0, marginBottom: 10 }}>
+              Người học sẽ phải nhập thủ công các bộ thành phần trong trường hợp người học muốn tách bộ thành phần
+              theo cách khác với mặc định của thanh công cụ.
+            </p>
+            <p style={{ margin: 0, marginBottom: 10 }}>
+              Ngoài ra, thanh công cụ đôi lúc vẫn có thể tách sai bộ thành phần. Người học cần tra soát lại với các hệ
+              thống từ điển và nhập lại thủ công nếu phát hiện sai sót. Các từ điển tham khảo:
+            </p>
+            <p style={{ margin: 0 }}>
+              <a href="https://hvdic.thivien.net/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.sealDark }}>
+                hvdic.thivien.net
+              </a>
+              {" · "}
+              <a href="https://zdic.net/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.sealDark }}>
+                zdic.net
+              </a>
+            </p>
+          </div>
+        )}
       </div>
-
-      <BulkImportPanel
-        characterList={characterList}
-        wordList={wordList}
-        bushouList={bushouList}
-        onAddCharacter={onAddCharacter}
-        onAddBushou={onAddBushou}
-        onUpdateCharacter={onUpdateCharacter}
-        onAddWord={onAddWord}
-        userId={userId}
-        onRequireAuth={onRequireAuth}
-        onViewPremium={onViewPremium}
-        onQuotaUpdate={onQuotaUpdate}
-      />
-
-      <AddWordPanel
-        characterList={characterList}
-        wordList={wordList}
-        customWords={customWords}
-        bushouList={bushouList}
-        onAddCharacter={onAddCharacter}
-        onAddBushou={onAddBushou}
-        onAddWord={onAddWord}
-        onDeleteWord={onDeleteWord}
-        userId={userId}
-        onRequireAuth={onRequireAuth}
-        onViewPremium={onViewPremium}
-        onQuotaUpdate={onQuotaUpdate}
-      />
-
-      <RenameListPanel
-        characterList={characterList}
-        wordList={wordList}
-        onUpdateCharacter={onUpdateCharacter}
-        onAddWord={onAddWord}
-      />
 
       <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 18, textAlign: "center" }}>
         Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, âm Hán Việt, và xếp vào một danh sách (list) tuỳ chọn.
@@ -4012,6 +3990,42 @@ function AddTab({
           </button>
         </div>
       </div>
+
+      <BulkImportPanel
+        characterList={characterList}
+        wordList={wordList}
+        bushouList={bushouList}
+        onAddCharacter={onAddCharacter}
+        onAddBushou={onAddBushou}
+        onUpdateCharacter={onUpdateCharacter}
+        onAddWord={onAddWord}
+        userId={userId}
+        onRequireAuth={onRequireAuth}
+        onViewPremium={onViewPremium}
+        onQuotaUpdate={onQuotaUpdate}
+      />
+
+      <AddWordPanel
+        characterList={characterList}
+        wordList={wordList}
+        customWords={customWords}
+        bushouList={bushouList}
+        onAddCharacter={onAddCharacter}
+        onAddBushou={onAddBushou}
+        onAddWord={onAddWord}
+        onDeleteWord={onDeleteWord}
+        userId={userId}
+        onRequireAuth={onRequireAuth}
+        onViewPremium={onViewPremium}
+        onQuotaUpdate={onQuotaUpdate}
+      />
+
+      <RenameListPanel
+        characterList={characterList}
+        wordList={wordList}
+        onUpdateCharacter={onUpdateCharacter}
+        onAddWord={onAddWord}
+      />
     </div>
   );
 }
@@ -7301,7 +7315,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
         />
       </div>
       <div style={{ fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 20 }}>
-        {filtered.length} / {bushouList.length} bộ thủ · sắp xếp theo số nét · bấm ✎ để sửa
+        {filtered.length} / {bushouList.length} bộ thủ và bộ thành phần · sắp xếp theo số nét · bấm ✎ để sửa
       </div>
 
       {groups.map(([strokeCount, items]) => (
