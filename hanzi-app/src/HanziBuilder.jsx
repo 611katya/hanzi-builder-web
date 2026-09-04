@@ -2494,11 +2494,16 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
   const [mistakes, setMistakes] = useState(0);
-  // "loading" | "demo" | "practicing" | "done-char" | "error"
+  // "loading" | "demo" | "practicing" | "done-char" | "recall" | "error"
   const [status, setStatus] = useState("idle");
+  const [revealOn, setRevealOn] = useState(false);
   const targetRef = useRef(null);
   const writerRef = useRef(null);
+  const recallCanvasRef = useRef(null);
+  const recallStrokesRef = useRef([]); // array of strokes, each a list of {x,y} points
+  const isDrawingRef = useRef(false);
 
+  const RECALL_INK_COLOR = "#2456A6";
   const BRUSH_WIDTHS = { thin: 12, normal: 20, thick: 32 };
   const PREVIEW_PER_PAGE = 24; // ~8 columns x 3 rows at this layout's width
 
@@ -2626,6 +2631,85 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       return;
     }
     setCurrentIndex((i) => i + 1);
+  }
+
+  function enterRecallMode() {
+    recallStrokesRef.current = [];
+    setRevealOn(false);
+    setStatus("recall");
+  }
+
+  function getRecallPoint(nativeEvent) {
+    const canvas = recallCanvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (nativeEvent.clientX - rect.left) * scaleX,
+      y: (nativeEvent.clientY - rect.top) * scaleY,
+    };
+  }
+
+  function drawStrokeSegment(stroke) {
+    const canvas = recallCanvasRef.current;
+    if (!canvas || stroke.length < 2) return;
+    const ctx = canvas.getContext("2d");
+    const p1 = stroke[stroke.length - 2];
+    const p2 = stroke[stroke.length - 1];
+    ctx.strokeStyle = RECALL_INK_COLOR;
+    ctx.lineWidth = BRUSH_WIDTHS[brushSize];
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+  }
+
+  function redrawRecallCanvas() {
+    const canvas = recallCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = RECALL_INK_COLOR;
+    ctx.lineWidth = BRUSH_WIDTHS[brushSize];
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    recallStrokesRef.current.forEach((stroke) => {
+      if (stroke.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x, stroke[0].y);
+      stroke.slice(1).forEach((pt) => ctx.lineTo(pt.x, pt.y));
+      ctx.stroke();
+    });
+  }
+
+  function startRecallDrawing(e) {
+    e.preventDefault();
+    isDrawingRef.current = true;
+    recallStrokesRef.current.push([getRecallPoint(e.nativeEvent)]);
+  }
+
+  function continueRecallDrawing(e) {
+    if (!isDrawingRef.current) return;
+    e.preventDefault();
+    const strokes = recallStrokesRef.current;
+    strokes[strokes.length - 1].push(getRecallPoint(e.nativeEvent));
+    drawStrokeSegment(strokes[strokes.length - 1]);
+  }
+
+  function endRecallDrawing() {
+    isDrawingRef.current = false;
+  }
+
+  function undoLastStroke() {
+    recallStrokesRef.current.pop();
+    redrawRecallCanvas();
+  }
+
+  function clearRecallCanvas() {
+    recallStrokesRef.current = [];
+    redrawRecallCanvas();
   }
 
   const gridSize = 280;
@@ -2773,16 +2857,61 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
           )}
 
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-            <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
-              <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
-                <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
-                <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
-                <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
-                <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
-                <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
-              </svg>
-              <div ref={targetRef} style={{ position: "absolute", inset: 0, touchAction: "none" }} />
-            </div>
+            {status !== "recall" ? (
+              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
+                <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
+                  <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
+                  <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                  <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                  <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                  <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                </svg>
+                <div ref={targetRef} style={{ position: "absolute", inset: 0, touchAction: "none" }} />
+              </div>
+            ) : (
+              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
+                <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
+                  <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
+                  <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                  <line x1={inset} y1={mid} x2={far} y2={mid} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
+                  <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                  <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
+                </svg>
+                {revealOn && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                        fontSize: gridSize * 0.72,
+                        color: COLORS.ink,
+                        opacity: 0.3,
+                      }}
+                    >
+                      {current.char}
+                    </div>
+                  </div>
+                )}
+                <canvas
+                  ref={recallCanvasRef}
+                  width={gridSize}
+                  height={gridSize}
+                  style={{ position: "absolute", inset: 0, touchAction: "none", cursor: "crosshair" }}
+                  onPointerDown={startRecallDrawing}
+                  onPointerMove={continueRecallDrawing}
+                  onPointerUp={endRecallDrawing}
+                  onPointerLeave={endRecallDrawing}
+                />
+              </div>
+            )}
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -2824,6 +2953,25 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             </div>
           )}
 
+          {status === "recall" && (
+            <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              <button
+                type="button"
+                onClick={() => setRevealOn((r) => !r)}
+                className={revealOn ? "seal-btn" : "ghost-btn"}
+                style={{ ...(revealOn ? sealBtnStyle : ghostBtnStyle), padding: "8px 14px", fontSize: 12.5 }}
+              >
+                Hiện chữ đúng
+              </button>
+              <button type="button" onClick={undoLastStroke} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5 }}>
+                ↩ Tẩy nét cuối
+              </button>
+              <button type="button" onClick={clearRecallCanvas} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5 }}>
+                🗑 Xóa hết, viết lại
+              </button>
+            </div>
+          )}
+
           {status === "demo" ? (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={replayDemo} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
@@ -2833,13 +2981,19 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 ✍️ Bắt đầu viết
               </button>
             </div>
+          ) : status === "recall" ? (
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
+              <button type="button" onClick={nextChar} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                Chữ tiếp theo →
+              </button>
+            </div>
           ) : (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={retryChar} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
                 ↻ Viết lại
               </button>
-              <button type="button" onClick={nextChar} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                Chữ tiếp theo →
+              <button type="button" onClick={enterRecallMode} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
+                ✏️ Viết từ trí nhớ →
               </button>
             </div>
           )}
