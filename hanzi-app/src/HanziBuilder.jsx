@@ -2692,6 +2692,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     setDotStrokeIndex(0);
     setCompletedDotStrokes([]);
     setDotFeedback(null);
+    setRevealOn(false);
     setStatus("dots");
   }
 
@@ -2846,6 +2847,16 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       redrawDotsCanvas(completedDotStrokes);
       setTimeout(() => setDotFeedback(null), 500);
     }
+  }
+
+  function undoLastDotStroke() {
+    if (completedDotStrokes.length === 0) return;
+    const last = completedDotStrokes[completedDotStrokes.length - 1];
+    const remaining = completedDotStrokes.slice(0, -1);
+    setCompletedDotStrokes(remaining);
+    setDotStrokeIndex(last.strokeIndex);
+    setDotFeedback(null);
+    redrawDotsCanvas(remaining);
   }
 
   function getPointForCanvas(canvasRef, nativeEvent) {
@@ -3137,6 +3148,29 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                   <line x1={inset} y1={inset} x2={far} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
                   <line x1={far} y1={inset} x2={inset} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="3 5" />
                 </svg>
+                {revealOn && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                        fontSize: gridSize * 0.72,
+                        color: COLORS.ink,
+                        opacity: 0.3,
+                      }}
+                    >
+                      {current.char}
+                    </div>
+                  </div>
+                )}
                 <canvas
                   ref={dotsCanvasRef}
                   width={gridSize}
@@ -3230,6 +3264,28 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                   )}
                 </>
               )}
+            </div>
+          )}
+
+          {status === "dots" && dotCharData && (
+            <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              <button
+                type="button"
+                onClick={() => setRevealOn((r) => !r)}
+                className={revealOn ? "seal-btn" : "ghost-btn"}
+                style={{ ...(revealOn ? sealBtnStyle : ghostBtnStyle), padding: "8px 14px", fontSize: 12.5 }}
+              >
+                Hiện chữ đúng
+              </button>
+              <button
+                type="button"
+                onClick={undoLastDotStroke}
+                disabled={completedDotStrokes.length === 0}
+                className="ghost-btn"
+                style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5, opacity: completedDotStrokes.length === 0 ? 0.4 : 1 }}
+              >
+                ↩ Hoàn tác nét trước
+              </button>
             </div>
           )}
 
