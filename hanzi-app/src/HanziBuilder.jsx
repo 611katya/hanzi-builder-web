@@ -2499,7 +2499,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const targetRef = useRef(null);
   const writerRef = useRef(null);
 
-  const BRUSH_WIDTHS = { thin: 3, normal: 5, thick: 8 };
+  const BRUSH_WIDTHS = { thin: 6, normal: 10, thick: 16 };
   const PREVIEW_PER_PAGE = 24; // ~8 columns x 3 rows at this layout's width
 
   const allLists = useMemo(() => {
