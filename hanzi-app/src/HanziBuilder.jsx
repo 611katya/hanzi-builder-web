@@ -1844,7 +1844,15 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
   const [streak, setStreak] = useState(0);
   const [selectedList, setSelectedList] = useState("Tất cả");
   const [lockedListName, setLockedListName] = useState(null);
+  const [difficulty, setDifficulty] = useState("sieu-kho"); // de | trung-binh | kho | sieu-kho
   const usedRef = useRef(new Set());
+
+  const DIFFICULTY_LEVELS = [
+    { id: "de", label: "Dễ", paletteSize: 8 },
+    { id: "trung-binh", label: "Trung bình", paletteSize: 12 },
+    { id: "kho", label: "Khó", paletteSize: 25 },
+    { id: "sieu-kho", label: "Siêu khó", paletteSize: 36 },
+  ];
 
   // Every playable "thing" - single characters and multi-character words -
   // normalized into one shape: { key, display, pinyin, meaning, sv, lists,
@@ -1905,7 +1913,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
     const neededComponents = target.charGroups.flatMap((g) => g.components);
     const correctChips = neededComponents.map((ch) => ({ id: uid(), char: ch, correct: true }));
 
-    const PALETTE_SIZE = 36;
+    const PALETTE_SIZE = (DIFFICULTY_LEVELS.find((d) => d.id === difficulty) || DIFFICULTY_LEVELS[3]).paletteSize;
     const neededSet = new Set(neededComponents);
     const distractPool = shuffle(bushouList.filter((b) => !neededSet.has(b.char)));
     const distractCount = Math.min(distractPool.length, Math.max(0, PALETTE_SIZE - neededComponents.length));
@@ -1914,13 +1922,13 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
     setRound({ target, palette: shuffle([...correctChips, ...distractChips]) });
     setSelected([]);
     setStatus("playing");
-  }, [playable, bushouList]);
+  }, [playable, bushouList, difficulty]);
 
   useEffect(() => {
     usedRef.current = new Set();
     buildRound();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedList, characterList.length]);
+  }, [selectedList, characterList.length, difficulty]);
 
   const listPicker = (
     <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -1947,6 +1955,29 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
       {lockedListName && (
         <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
       )}
+
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 11, color: COLORS.inkSoft }}>Độ khó:</span>
+        {DIFFICULTY_LEVELS.map((lvl) => (
+          <button
+            key={lvl.id}
+            type="button"
+            onClick={() => setDifficulty(lvl.id)}
+            style={{
+              fontSize: 11.5,
+              fontWeight: 700,
+              padding: "4px 10px",
+              borderRadius: 999,
+              border: `1px solid ${difficulty === lvl.id ? COLORS.seal : COLORS.grid}`,
+              background: difficulty === lvl.id ? "rgba(85,107,47,0.08)" : "transparent",
+              color: difficulty === lvl.id ? COLORS.seal : COLORS.inkSoft,
+              cursor: "pointer",
+            }}
+          >
+            {lvl.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 
