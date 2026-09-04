@@ -1956,21 +1956,21 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
         <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
       )}
 
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, color: COLORS.inkSoft }}>Độ khó:</span>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.ink }}>Độ khó:</span>
         {DIFFICULTY_LEVELS.map((lvl) => (
           <button
             key={lvl.id}
             type="button"
             onClick={() => setDifficulty(lvl.id)}
             style={{
-              fontSize: 11.5,
-              fontWeight: 700,
-              padding: "4px 10px",
+              fontSize: 14,
+              fontWeight: 800,
+              padding: "8px 18px",
               borderRadius: 999,
-              border: `1px solid ${difficulty === lvl.id ? COLORS.seal : COLORS.grid}`,
-              background: difficulty === lvl.id ? "rgba(85,107,47,0.08)" : "transparent",
-              color: difficulty === lvl.id ? COLORS.seal : COLORS.inkSoft,
+              border: `2px solid ${difficulty === lvl.id ? COLORS.seal : COLORS.grid}`,
+              background: difficulty === lvl.id ? COLORS.seal : "transparent",
+              color: difficulty === lvl.id ? "#FBF9EF" : COLORS.inkSoft,
               cursor: "pointer",
             }}
           >
@@ -3969,7 +3969,7 @@ function AddTab({
 
         <div style={{ marginTop: 18, textAlign: "center" }}>
           <button type="button" onClick={handleSubmit} className="seal-btn" style={sealBtnStyle}>
-            Save
+            Lưu lại
           </button>
         </div>
       </div>
@@ -7226,6 +7226,33 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
 
   return (
     <div>
+      <div
+        style={{
+          background: COLORS.card,
+          border: `1px solid ${COLORS.grid}`,
+          borderRadius: 10,
+          padding: "16px 18px",
+          marginBottom: 20,
+          fontSize: 13,
+          color: COLORS.inkSoft,
+          lineHeight: 1.7,
+        }}
+      >
+        <p style={{ margin: 0, marginBottom: 10 }}>
+          Kho lưu trữ bao gồm các bộ thủ chính và các bộ thành phần cấu tạo chữ Hán. Các bộ thành phần này sẽ bao
+          gồm các bộ thủ chính. Người học có thể tùy ý chỉnh sửa cấu tạo thành phần của mỗi chữ Hán tùy theo thói
+          quen học của mỗi cá nhân.
+        </p>
+        <p style={{ margin: 0, marginBottom: 10 }}>
+          Ví dụ: 语 có thể tách thành 讠 và 吾, hoặc có thể tách 讠, 五, 口 tùy lựa chọn của người học.
+        </p>
+        <p style={{ margin: 0, fontStyle: "italic" }}>
+          Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu
+          của người học (như ví dụ phía trên). Người học cần tra soát lại với các hệ thống từ điển và nhập lại thủ
+          công nếu phát hiện sai sót.
+        </p>
+      </div>
+
       <div style={{ textAlign: "center", marginBottom: 16 }}>
         <input
           value={query}
