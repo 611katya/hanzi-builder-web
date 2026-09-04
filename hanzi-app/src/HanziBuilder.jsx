@@ -2708,28 +2708,42 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     let cancelled = false;
     HanziWriter.loadCharacterData(current.char)
       .then((data) => {
-        if (!cancelled) setDotCharData(data);
+        if (cancelled) return;
+        if (!data || !Array.isArray(data.medians) || data.medians.length === 0) {
+          console.error("Stroke data for dot practice is missing medians:", current.char, data);
+          setDotFeedback("load-error");
+          return;
+        }
+        setDotCharData(data);
       })
       .catch((e) => {
-        console.error("Could not load stroke data for dot practice:", e);
+        if (!cancelled) {
+          console.error("Could not load stroke data for dot practice:", e);
+          setDotFeedback("load-error");
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [status, current]);
 
-  // The exact same coordinate transform HanziWriter itself uses to turn
-  // raw stroke data into on-screen pixels -- reused here (not
-  // reimplemented) so the dots line up with where the real stroke
-  // actually is.
+  // This data format lays every character's raw stroke coordinates out on
+  // a fixed 1024x1024 grid where, unusually, the origin is offset and the
+  // y-axis runs the opposite way from normal screen coordinates: (0, 900)
+  // is the top-left corner and (1024, -124) is the bottom-right. This is a
+  // documented constant of the data format itself (same for every
+  // character), not something to detect per-character -- so rather than
+  // parse a transform string of uncertain exact format, compute the
+  // conversion directly from these known values.
   const dotTransform = useMemo(() => {
     if (!dotCharData) return null;
-    const { transform } = HanziWriter.getScalingTransform(280, 280, 12);
-    const match = transform.match(/matrix\(([^)]+)\)/);
-    if (!match) return null;
-    const nums = match[1].split(/[\s,]+/).map(Number);
-    const [a, b, c, d, e, f] = nums;
-    return (pt) => ({ x: a * pt[0] + c * pt[1] + e, y: b * pt[0] + d * pt[1] + f });
+    const padding = 12;
+    const viewSize = 1024;
+    const scale = (280 - padding * 2) / viewSize;
+    return (pt) => ({
+      x: padding + pt[0] * scale,
+      y: padding + (900 - pt[1]) * scale,
+    });
   }, [dotCharData]);
 
   const dotTotalStrokes = dotCharData && dotCharData.medians ? dotCharData.medians.length : 0;
@@ -3190,6 +3204,12 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
               {dotFeedback === "wrong" && (
                 <div style={{ color: COLORS.error, fontWeight: 700, fontSize: 13.5 }}>Chưa đúng, thử lại</div>
               )}
+            </div>
+          )}
+
+          {status === "dots" && !dotCharData && dotFeedback === "load-error" && (
+            <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, marginBottom: 12 }}>
+              Không tải được dữ liệu nét cho chữ "{current.char}" — bấm "Bỏ qua bước này" để tiếp tục.
             </div>
           )}
 
