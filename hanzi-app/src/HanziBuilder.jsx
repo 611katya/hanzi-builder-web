@@ -563,6 +563,35 @@ const UI_TEXT = {
     vi: `${filtered} / ${total} bộ thủ và bộ thành phần · sắp xếp theo số nét · bấm ✎ để sửa`,
     en: `${filtered} / ${total} radicals and components · sorted by stroke count · click ✎ to edit`,
   }),
+
+  // Hán tự (Character list panel)
+  hanzi_panel_title: { vi: "Danh sách Hán tự trong kho dữ liệu", en: "Character List in Storage" },
+  hanzi_search_placeholder: {
+    vi: "Tìm chữ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…",
+    en: "Search by character, pinyin, meaning, or Sino-Vietnamese…",
+  },
+  hanzi_all_status: { vi: "Tất cả trạng thái", en: "All statuses" },
+  hanzi_is_official: { vi: "★ Đang là mặc định", en: "★ Currently default" },
+  hanzi_is_pending: { vi: "⭐ Đặt làm mặc định", en: "⭐ Pending publish" },
+  hanzi_export_excel: { vi: "⬇ Xuất Excel", en: "⬇ Export Excel" },
+  hanzi_export_none: { vi: "Không có chữ nào để xuất.", en: "No characters to export." },
+  hanzi_export_success: (n) => ({ vi: `Đã xuất ${n} chữ ra file Excel.`, en: `Exported ${n} characters to Excel.` }),
+  hanzi_export_fail: { vi: "Xuất Excel thất bại. Vui lòng thử lại.", en: "Excel export failed. Please try again." },
+  hanzi_count: (filtered, total) => ({ vi: `${filtered} / ${total} chữ`, en: `${filtered} / ${total} characters` }),
+
+  // Từ vựng (Word list panel)
+  vocab_panel_title: { vi: "Danh sách từ vựng trong kho dữ liệu", en: "Vocabulary List in Storage" },
+  vocab_empty: {
+    vi: 'Bạn chưa có từ nào. Hãy thêm từ ở tab "Tạo thẻ từ mới".',
+    en: 'You have no words yet. Add some in the "Create New Card" tab.',
+  },
+  vocab_search_placeholder: {
+    vi: "Tìm từ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…",
+    en: "Search by character, pinyin, meaning, or Sino-Vietnamese…",
+  },
+  vocab_export_none: { vi: "Không có từ nào để xuất.", en: "No words to export." },
+  vocab_export_success: (n) => ({ vi: `Đã xuất ${n} từ ra file Excel.`, en: `Exported ${n} words to Excel.` }),
+  vocab_count: (filtered, total) => ({ vi: `${filtered} / ${total} từ`, en: `${filtered} / ${total} words` }),
 };
 
 function t(key, meaningDisplay, ...args) {
@@ -6027,7 +6056,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
     setExportMessage(null);
     try {
       if (filtered.length === 0) {
-        setExportMessage({ type: "error", text: "Không có từ nào để xuất." });
+        setExportMessage({ type: "error", text: t("vocab_export_none", meaningDisplay) });
         return;
       }
       const rows = filtered.map((w) => ({
@@ -6054,22 +6083,22 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
       const dateStr = new Date().toISOString().slice(0, 10);
       const suffix = listFilter !== "Tất cả" ? `-${listFilter}` : "";
       XLSX.writeFile(workbook, `tu-vung${suffix}-${dateStr}.xlsx`);
-      setExportMessage({ type: "success", text: `Đã xuất ${filtered.length} từ ra file Excel.` });
+      setExportMessage({ type: "success", text: t("vocab_export_success", meaningDisplay, filtered.length) });
     } catch (err) {
       console.error("Export to Excel failed:", err);
-      setExportMessage({ type: "error", text: "Xuất Excel thất bại. Vui lòng thử lại." });
+      setExportMessage({ type: "error", text: t("hanzi_export_fail", meaningDisplay) });
     }
   }
 
   return (
     <div>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
-        Danh sách từ vựng trong kho dữ liệu
+        {t("vocab_panel_title", meaningDisplay)}
       </div>
 
       {(!wordList || wordList.length === 0) ? (
         <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, padding: 30 }}>
-          Bạn chưa có từ nào. Hãy thêm từ ở tab "Tạo thẻ từ mới".
+          {t("vocab_empty", meaningDisplay)}
         </div>
       ) : (
         <>
@@ -6077,7 +6106,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tìm từ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…"
+              placeholder={t("vocab_search_placeholder", meaningDisplay)}
               style={{ ...inputStyle, width: 260, textAlign: "center" }}
             />
             <select
@@ -6092,7 +6121,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
               }}
               style={{ ...selectStyle, width: 190, flex: "none" }}
             >
-              <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+              <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                   {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
@@ -6104,9 +6133,9 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
             )}
             {isAdmin && (
               <select value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)} style={{ ...selectStyle, width: 190, flex: "none" }}>
-                <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả trạng thái</option>
-                <option value="official" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>★ Đang là mặc định</option>
-                <option value="pending" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>⭐ Đặt làm mặc định</option>
+                <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("hanzi_all_status", meaningDisplay)}</option>
+                <option value="official" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("hanzi_is_official", meaningDisplay)}</option>
+                <option value="pending" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("hanzi_is_pending", meaningDisplay)}</option>
               </select>
             )}
             <button
@@ -6115,7 +6144,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
               className="seal-btn"
               style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13, flex: "none" }}
             >
-              ⬇ Xuất Excel
+              {t("hanzi_export_excel", meaningDisplay)}
             </button>
           </div>
           {exportMessage && (
@@ -6132,7 +6161,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
             </div>
           )}
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16 }}>
-            {filtered.length} / {wordList.length} từ
+            {t("vocab_count", meaningDisplay, filtered.length, wordList.length)}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 10 }}>
@@ -6683,7 +6712,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
     setExportMessage(null);
     try {
       if (filtered.length === 0) {
-        setExportMessage({ type: "error", text: "Không có chữ nào để xuất." });
+        setExportMessage({ type: "error", text: t("hanzi_export_none", meaningDisplay) });
         return;
       }
       const rows = filtered.map((c) => ({
@@ -6710,24 +6739,24 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
       const dateStr = new Date().toISOString().slice(0, 10);
       const suffix = listFilter !== "Tất cả" ? `-${listFilter}` : "";
       XLSX.writeFile(workbook, `kho-du-lieu-chu-han${suffix}-${dateStr}.xlsx`);
-      setExportMessage({ type: "success", text: `Đã xuất ${filtered.length} chữ ra file Excel.` });
+      setExportMessage({ type: "success", text: t("hanzi_export_success", meaningDisplay, filtered.length) });
     } catch (err) {
       console.error("Export to Excel failed:", err);
-      setExportMessage({ type: "error", text: "Xuất Excel thất bại. Vui lòng thử lại." });
+      setExportMessage({ type: "error", text: t("hanzi_export_fail", meaningDisplay) });
     }
   }
 
   return (
     <div>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
-        Danh sách Hán tự trong kho dữ liệu
+        {t("hanzi_panel_title", meaningDisplay)}
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Tìm chữ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…"
+          placeholder={t("hanzi_search_placeholder", meaningDisplay)}
             style={{ ...inputStyle, width: 300, textAlign: "center" }}
           />
           <select
@@ -6742,7 +6771,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
             }}
             style={{ ...selectStyle, width: 170, flex: "none" }}
           >
-            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
             {allLists.map((l) => (
               <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                 {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
@@ -6754,9 +6783,9 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
           )}
           {isAdmin && (
             <select value={defaultFilter} onChange={(e) => setDefaultFilter(e.target.value)} style={{ ...selectStyle, width: 190, flex: "none" }}>
-              <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả trạng thái</option>
-              <option value="official" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>★ Đang là mặc định</option>
-              <option value="pending" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>⭐ Đặt làm mặc định</option>
+              <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("hanzi_all_status", meaningDisplay)}</option>
+              <option value="official" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("hanzi_is_official", meaningDisplay)}</option>
+              <option value="pending" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("hanzi_is_pending", meaningDisplay)}</option>
             </select>
           )}
           <button
@@ -6765,7 +6794,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
             className="seal-btn"
             style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13, flex: "none" }}
           >
-            ⬇ Xuất Excel
+            {t("hanzi_export_excel", meaningDisplay)}
           </button>
         </div>
         {exportMessage && (
@@ -6782,7 +6811,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
           </div>
         )}
         <div style={{ fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16 }}>
-          {filtered.length} / {characterList.length} chữ
+          {t("hanzi_count", meaningDisplay, filtered.length, characterList.length)}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 12 }}>
