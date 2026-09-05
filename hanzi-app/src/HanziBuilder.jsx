@@ -1791,7 +1791,7 @@ function Tabs({ tab, setTab, isAdmin }) {
     { id: "play", label: "Ghép bộ thủ" },
     { id: "flashcards", label: "Flashcard" },
     { id: "writing", label: "✍️ Luyện viết" },
-    { id: "add", label: "Thêm chữ" },
+    { id: "add", label: "Tạo thẻ từ mới" },
     { id: "radicals", label: "Bộ thủ" },
     { id: "hanzi", label: "Hán tự" },
     { id: "vocab", label: "Từ vựng" },
@@ -1989,8 +1989,8 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           {selectedList === REVIEW_LIST_VALUE
             ? "Danh sách ôn lại đang trống — nó chỉ chứa những chữ bạn đã dùng nút \"Xem đáp án\". Trả lời đúng một chữ sẽ tự động xóa nó khỏi danh sách này."
             : playable.length === 0
-            ? 'Danh sách này chưa có chữ nào chơi được — có thể vì các chữ trong đó chưa có bộ thủ cấu thành. Ở tab "Thêm chữ", hãy dùng nút "🔍 Tự động điền" trước khi lưu để hệ thống tự nhận diện bộ thủ.'
-            : 'Chưa có chữ nào trong kho dữ liệu. Hãy thêm chữ ở tab "Thêm chữ".'}
+            ? 'Danh sách này chưa có chữ nào chơi được — có thể vì các chữ trong đó chưa có bộ thủ cấu thành. Ở tab "Tạo thẻ từ mới", hãy dùng nút "🔍 Tự động điền" trước khi lưu để hệ thống tự nhận diện bộ thủ.'
+            : 'Chưa có chữ nào trong kho dữ liệu. Hãy thêm chữ ở tab "Tạo thẻ từ mới".'}
         </div>
       </div>
     );
@@ -5855,7 +5855,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
 
       {(!wordList || wordList.length === 0) ? (
         <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, padding: 30 }}>
-          Bạn chưa có từ nào. Hãy thêm từ ở tab "Thêm chữ".
+          Bạn chưa có từ nào. Hãy thêm từ ở tab "Tạo thẻ từ mới".
         </div>
       ) : (
         <>
