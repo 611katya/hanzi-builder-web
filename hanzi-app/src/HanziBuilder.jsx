@@ -3202,17 +3202,12 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = COLORS.bamboo;
-    ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    const baseWidth = RECALL_BRUSH_WIDTHS[brushSize];
     completedList.forEach((entry) => {
       const path = entry.path;
       if (!path || path.length < 2) return;
-      ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
-      path.slice(1).forEach((pt) => ctx.lineTo(pt.x, pt.y));
-      ctx.stroke();
+      const widths = computeInkWidths(path, baseWidth);
+      drawVariableWidthPath(ctx, path, widths, COLORS.bamboo);
     });
   }
 
@@ -3236,22 +3231,16 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     const path = dotCurrentPathRef.current;
     path.push(pt);
     if (path.length < 2) return;
-    // Draw just the newest segment, incrementally -- lets the line follow
-    // whatever shape the person actually draws (curves, zigzags, etc.)
-    // instead of forcing a straight line from the start point.
+    // Redraw completed strokes, then the current in-progress path on top --
+    // needed (rather than drawing just the newest segment) so the brush's
+    // speed-based width can respond smoothly along the whole stroke.
     const canvas = dotsCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    const p1 = path[path.length - 2];
-    const p2 = path[path.length - 1];
-    ctx.strokeStyle = RECALL_INK_COLOR;
-    ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.stroke();
+    redrawDotsCanvas(completedDotStrokes);
+    const baseWidth = RECALL_BRUSH_WIDTHS[brushSize];
+    const widths = computeInkWidths(path, baseWidth, { taperEnd: false });
+    drawVariableWidthPath(ctx, path, widths, RECALL_INK_COLOR);
   }
 
   function endDotDrawing() {
@@ -3311,27 +3300,63 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     return {
       x: (nativeEvent.clientX - rect.left) * scaleX,
       y: (nativeEvent.clientY - rect.top) * scaleY,
+      t: nativeEvent.timeStamp || performance.now(),
+      pressure: nativeEvent.pressure,
+      pointerType: nativeEvent.pointerType,
     };
+  }
+
+  // Subtle "natural ink" brush: width varies gently with drawing speed
+  // (slower = a bit thicker, faster = a bit thinner), uses real pressure
+  // instead when a stylus reports it, and tapers thin at the very start
+  // (and, once a stroke is finalized, the very end) of each stroke --
+  // approximating the tapered, speed-responsive feel of a natural ink
+  // brush rather than a flat, uniform marker line.
+  function computeInkWidths(path, baseWidth, { taperEnd = true } = {}) {
+    const n = path.length;
+    if (n === 0) return [];
+    const speeds = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) {
+      const dist = Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+      const dt = Math.max(1, (path[i].t || 0) - (path[i - 1].t || 0));
+      speeds[i] = dist / dt;
+    }
+    const maxSpeed = Math.max(0.02, ...speeds);
+    const taperLen = Math.min(5, Math.floor(n / 2));
+    const widths = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const pt = path[i];
+      let factor;
+      if (pt.pointerType === "pen" && typeof pt.pressure === "number" && pt.pressure > 0) {
+        factor = 0.75 + pt.pressure * 0.5; // real stylus pressure -> subtle 0.75x-1.25x
+      } else {
+        const speedNorm = speeds[i] / maxSpeed;
+        factor = 1.12 - speedNorm * 0.3; // simulated from speed -> subtle 0.82x-1.12x
+      }
+      let taper = 1;
+      if (i < taperLen) taper = 0.55 + 0.45 * (i / taperLen);
+      else if (taperEnd && i > n - 1 - taperLen) taper = 0.55 + 0.45 * ((n - 1 - i) / taperLen);
+      widths[i] = baseWidth * factor * taper;
+    }
+    return widths;
+  }
+
+  function drawVariableWidthPath(ctx, path, widths, color) {
+    if (path.length < 2) return;
+    ctx.strokeStyle = color;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (let i = 1; i < path.length; i++) {
+      ctx.lineWidth = (widths[i - 1] + widths[i]) / 2;
+      ctx.beginPath();
+      ctx.moveTo(path[i - 1].x, path[i - 1].y);
+      ctx.lineTo(path[i].x, path[i].y);
+      ctx.stroke();
+    }
   }
 
   function getRecallPoint(nativeEvent) {
     return getPointForCanvas(recallCanvasRef, nativeEvent);
-  }
-
-  function drawStrokeSegment(stroke) {
-    const canvas = recallCanvasRef.current;
-    if (!canvas || stroke.length < 2) return;
-    const ctx = canvas.getContext("2d");
-    const p1 = stroke[stroke.length - 2];
-    const p2 = stroke[stroke.length - 1];
-    ctx.strokeStyle = RECALL_INK_COLOR;
-    ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.stroke();
   }
 
   function redrawRecallCanvas() {
@@ -3339,16 +3364,11 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = RECALL_INK_COLOR;
-    ctx.lineWidth = RECALL_BRUSH_WIDTHS[brushSize];
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    const baseWidth = RECALL_BRUSH_WIDTHS[brushSize];
     recallStrokesRef.current.forEach((stroke) => {
       if (stroke.length < 2) return;
-      ctx.beginPath();
-      ctx.moveTo(stroke[0].x, stroke[0].y);
-      stroke.slice(1).forEach((pt) => ctx.lineTo(pt.x, pt.y));
-      ctx.stroke();
+      const widths = computeInkWidths(stroke, baseWidth);
+      drawVariableWidthPath(ctx, stroke, widths, RECALL_INK_COLOR);
     });
   }
 
@@ -3363,7 +3383,9 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
     e.preventDefault();
     const strokes = recallStrokesRef.current;
     strokes[strokes.length - 1].push(getRecallPoint(e.nativeEvent));
-    drawStrokeSegment(strokes[strokes.length - 1]);
+    // Full redraw (rather than just the newest segment) so the brush's
+    // speed-based width responds smoothly along the whole stroke.
+    redrawRecallCanvas();
   }
 
   function endRecallDrawing() {
