@@ -3322,21 +3322,23 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       speeds[i] = dist / dt;
     }
     const maxSpeed = Math.max(0.02, ...speeds);
-    const taperLen = Math.min(5, Math.floor(n / 2));
+    const taperLen = Math.min(6, Math.floor(n / 2));
     const widths = new Array(n);
     for (let i = 0; i < n; i++) {
       const pt = path[i];
       let factor;
       if (pt.pointerType === "pen" && typeof pt.pressure === "number" && pt.pressure > 0) {
-        factor = 0.75 + pt.pressure * 0.5; // real stylus pressure -> subtle 0.75x-1.25x
+        factor = 0.6 + pt.pressure * 0.8; // real stylus pressure -> 0.6x-1.4x
       } else {
         const speedNorm = speeds[i] / maxSpeed;
-        factor = 1.12 - speedNorm * 0.3; // simulated from speed -> subtle 0.82x-1.12x
+        factor = 1.35 - speedNorm * 0.7; // simulated from speed -> 0.65x-1.35x
       }
       let taper = 1;
-      if (i < taperLen) taper = 0.55 + 0.45 * (i / taperLen);
-      else if (taperEnd && i > n - 1 - taperLen) taper = 0.55 + 0.45 * ((n - 1 - i) / taperLen);
-      widths[i] = baseWidth * factor * taper;
+      if (i < taperLen) taper = 0.35 + 0.65 * (i / taperLen);
+      else if (taperEnd && i > n - 1 - taperLen) taper = 0.35 + 0.65 * ((n - 1 - i) / taperLen);
+      // A flat minimum width keeps thin-brush strokes from vanishing to a
+      // sliver at the taper's thinnest point, while still tapering visibly.
+      widths[i] = Math.max(1.2, baseWidth * factor * taper);
     }
     return widths;
   }
