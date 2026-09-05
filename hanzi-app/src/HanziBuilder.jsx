@@ -1696,15 +1696,32 @@ function Header() {
       <div
         style={{
           fontFamily: "Calibri, 'Segoe UI', sans-serif",
-          fontSize: 20,
+          fontSize: 17,
+          fontWeight: 600,
           color: COLORS.sealDark,
-          marginTop: 2,
+          marginTop: 6,
+          maxWidth: 480,
+          marginLeft: "auto",
+          marginRight: "auto",
+          lineHeight: 1.4,
         }}
       >
-        Ghép Bộ Thủ Thành Chữ Hán
+        Học chữ Hán qua cách phân tích các bộ thành phần và luyện viết tay trên máy
       </div>
-      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginTop: 6, letterSpacing: 0.3 }}>
-        Build complete characters from their 部首 (bushou) components
+      <div
+        style={{
+          fontSize: 12,
+          color: COLORS.inkSoft,
+          marginTop: 6,
+          letterSpacing: 0.2,
+          fontStyle: "italic",
+          maxWidth: 460,
+          marginLeft: "auto",
+          marginRight: "auto",
+          lineHeight: 1.5,
+        }}
+      >
+        Study Chinese characters through understanding radical components and practicing handwriting on smart device
       </div>
     </div>
   );
