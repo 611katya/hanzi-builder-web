@@ -394,6 +394,139 @@ const COLORS = {
   error: "#A6432E",
 };
 
+/* ============================================================
+   UI TEXT TRANSLATION — covers the highest-traffic screens
+   (tab bar, header, Ghép bộ thủ, Flashcard, Luyện viết). This is a
+   first pass, not full coverage: deeper/rarer text (admin panel
+   internals, some less common messages) is still Vietnamese-only
+   for now and can be added incrementally the same way. Values can be
+   a plain string or a function for sentences with dynamic parts
+   (e.g. counts). Falls back to the Vietnamese string if an "en" key
+   is missing, so nothing ever renders blank.
+   ============================================================ */
+const UI_TEXT = {
+  // Tab bar
+  tab_play: { vi: "Ghép bộ thủ", en: "Assemble Radicals" },
+  tab_flashcards: { vi: "Flashcard", en: "Flashcard" },
+  tab_writing: { vi: "✍️ Luyện viết", en: "✍️ Writing Practice" },
+  tab_add: { vi: "Tạo thẻ từ mới", en: "Create New Card" },
+  tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
+  tab_hanzi: { vi: "Hán tự", en: "Characters" },
+  tab_vocab: { vi: "Từ vựng", en: "Vocabulary" },
+  tab_premium: { vi: "★ Thành viên", en: "★ Membership" },
+  tab_admin: { vi: "⚙ Quản trị", en: "⚙ Admin" },
+
+  // Header
+  header_subtitle: {
+    vi: "Học chữ Hán qua cách phân tích các bộ thành phần và luyện viết tay trên máy",
+    en: "Study Chinese characters through understanding radical components and practicing handwriting on smart device",
+  },
+
+  // Ghép bộ thủ (Play tab)
+  play_all_lists: { vi: "Tất cả danh sách", en: "All lists" },
+  play_review_list: (n) => ({ vi: `🔁 Cần ôn lại (${n})`, en: `🔁 Needs Review (${n})` }),
+  play_difficulty_label: { vi: "Độ khó:", en: "Difficulty:" },
+  play_start: { vi: "Bắt đầu", en: "Start" },
+  play_pinyin: { vi: "Pinyin:", en: "Pinyin:" },
+  play_han_viet: { vi: "Hán Việt:", en: "Sino-Vietnamese:" },
+  play_wrong_answer: { vi: "✗ Chưa đúng. Đáp án đúng:", en: "✗ Not quite. Correct answer:" },
+  play_answer_reveal: { vi: "💡 Đáp án:", en: "💡 Answer:" },
+  play_correct_prefix: { vi: "✓ Chính xác!", en: "✓ Correct!" },
+  play_undo: { vi: "Undo - Chọn lại", en: "Undo - Reselect" },
+  play_show_answer: { vi: "💡 Xem đáp án", en: "💡 Show Answer" },
+  play_next_char: { vi: "Chữ tiếp theo →", en: "Next Character →" },
+  play_no_playable_review: {
+    vi: 'Danh sách ôn lại đang trống — nó chỉ chứa những chữ bạn đã dùng nút "Xem đáp án". Trả lời đúng một chữ sẽ tự động xóa nó khỏi danh sách này.',
+    en: 'Your review list is empty — it only holds characters you\'ve used "Show Answer" on. Answering one correctly automatically removes it from this list.',
+  },
+  play_no_playable_list: {
+    vi: 'Danh sách này chưa có chữ nào chơi được — có thể vì các chữ trong đó chưa có bộ thủ cấu thành. Ở tab "Tạo thẻ từ mới", hãy dùng nút "🔍 Tự động điền" trước khi lưu để hệ thống tự nhận diện bộ thủ.',
+    en: 'This list has no playable characters yet — likely because they don\'t have components assigned. In "Create New Card", use the "🔍 Auto-fill" button before saving so the system can detect the components.',
+  },
+  play_no_data: {
+    vi: 'Chưa có chữ nào trong kho dữ liệu. Hãy thêm chữ ở tab "Tạo thẻ từ mới".',
+    en: 'No characters in storage yet. Add some in the "Create New Card" tab.',
+  },
+
+  // Flashcard
+  fc_title: { vi: "Ôn tập bằng thẻ ghi nhớ", en: "Review with Flashcards" },
+  fc_all_lists: { vi: "Tất cả danh sách", en: "All lists" },
+  fc_due_today: (n) => ({ vi: `${n} thẻ cần ôn hôm nay`, en: `${n} cards due today` }),
+  fc_start: { vi: "Bắt đầu", en: "Start" },
+  fc_progress: (reviewed, remaining) => ({
+    vi: `Còn ${remaining} thẻ · đã ôn ${reviewed}`,
+    en: `${remaining} cards left · ${reviewed} reviewed`,
+  }),
+  fc_flip: { vi: "Lật thẻ", en: "Flip card" },
+  fc_again: { vi: "Chưa nhớ", en: "Again" },
+  fc_hard: { vi: "Khó", en: "Hard" },
+  fc_good: { vi: "Bình thường", en: "Good" },
+  fc_easy: { vi: "Dễ", en: "Easy" },
+  fc_end: { vi: "Kết thúc", en: "End session" },
+  fc_complete_title: { vi: "Hoàn thành! 🎉", en: "Complete! 🎉" },
+  fc_complete_summary: (reviewed, again) => ({
+    vi: `Đã ôn ${reviewed} thẻ, ${again} thẻ cần ôn lại sớm.`,
+    en: `Reviewed ${reviewed} cards, ${again} need review again soon.`,
+  }),
+  fc_done: { vi: "Xong", en: "Done" },
+
+  // Luyện viết (Writing practice)
+  wp_title: { vi: "Luyện viết theo nét", en: "Guided Writing Practice" },
+  wp_search_placeholder: { vi: "Tìm một chữ cụ thể để luyện…", en: "Search for a character to practice…" },
+  wp_or_by_list: { vi: "— hoặc luyện theo danh sách —", en: "— or practice by list —" },
+  wp_all_lists: { vi: "Tất cả danh sách", en: "All lists" },
+  wp_description: {
+    vi: "Xem thứ tự nét trước, sau đó tự viết theo, dùng chuột (máy tính) hoặc ngón tay (màn hình cảm ứng).",
+    en: "Watch the stroke order first, then write it yourself, using a mouse (computer) or your finger (touchscreen).",
+  },
+  wp_start: { vi: "Bắt đầu", en: "Start" },
+  wp_replay: { vi: "↻ Xem lại", en: "↻ Replay" },
+  wp_begin_writing: { vi: "✍️ Bắt đầu viết", en: "✍️ Start Writing" },
+  wp_retrace: { vi: "↻ Tô lại", en: "↻ Trace Again" },
+  wp_connect_dots: { vi: "🔵 Nối điểm →", en: "🔵 Connect the Dots →" },
+  wp_skip_step: { vi: "Bỏ qua bước này →", en: "Skip this step →" },
+  wp_choose_another: { vi: "🔍 Chọn chữ khác", en: "🔍 Choose Another" },
+  wp_next_char: { vi: "Chữ tiếp theo →", en: "Next Character →" },
+  wp_write_from_memory: { vi: "✏️ Viết từ trí nhớ →", en: "✏️ Write From Memory →" },
+  wp_end: { vi: "Kết thúc", en: "End" },
+  wp_reveal: { vi: "Hiện chữ đúng", en: "Reveal Correct Character" },
+  wp_undo_stroke: { vi: "↩ Xóa nét trước", en: "↩ Undo Last Stroke" },
+  wp_recall_erase: { vi: "↩ Tẩy nét cuối", en: "↩ Erase Last Stroke" },
+  wp_clear_all: { vi: "🗑 Xóa hết, viết lại", en: "🗑 Clear All, Start Over" },
+  wp_brush_size: { vi: "Cỡ bút:", en: "Brush size:" },
+  wp_brush_thin: { vi: "Mảnh", en: "Thin" },
+  wp_brush_normal: { vi: "Vừa", en: "Normal" },
+  wp_brush_thick: { vi: "Đậm", en: "Thick" },
+  wp_no_stroke_data: (char) => ({
+    vi: `Chưa có dữ liệu nét bút cho chữ "${char}" — bấm "Chữ tiếp theo" để bỏ qua.`,
+    en: `No stroke data available for "${char}" — click "Next Character" to skip.`,
+  }),
+  wp_complete_no_mistakes: { vi: "✓ Hoàn thành! Không có lỗi nào.", en: "✓ Complete! No mistakes." },
+  wp_complete_with_mistakes: (n) => ({ vi: `✓ Hoàn thành! ${n} lỗi.`, en: `✓ Complete! ${n} mistake(s).` }),
+  wp_dots_connect_prefix: { vi: "nối điểm", en: "connect the" },
+  wp_dots_green: { vi: "xanh", en: "green" },
+  wp_dots_start_label: { vi: "(bắt đầu)", en: "(start)" },
+  wp_dots_to: { vi: "tới điểm", en: "dot to the" },
+  wp_dots_red: { vi: "đỏ", en: "red" },
+  wp_dots_end_label: { vi: "(kết thúc)", en: "(end) dot" },
+  wp_dots_stroke_progress: (i, total) => ({ vi: `Nét ${i} / ${total} —`, en: `Stroke ${i} / ${total} —` }),
+  wp_dots_correct: { vi: "✓ Đúng!", en: "✓ Correct!" },
+  wp_dots_wrong: { vi: "Chưa đúng, thử lại", en: "Not quite, try again" },
+  wp_dots_all_done: (n) => ({ vi: `✓ Đã nối xong tất cả ${n} nét!`, en: `✓ Connected all ${n} strokes!` }),
+  wp_dots_load_error: (char) => ({
+    vi: `Không tải được dữ liệu nét cho chữ "${char}" — bấm "Bỏ qua bước này" để tiếp tục.`,
+    en: `Could not load stroke data for "${char}" — click "Skip this step" to continue.`,
+  }),
+};
+
+function t(key, meaningDisplay, ...args) {
+  const entry = UI_TEXT[key];
+  if (!entry) return key;
+  const resolved = typeof entry === "function" ? entry(...args) : entry;
+  const val = meaningDisplay === "en" ? resolved.en ?? resolved.vi : resolved.vi;
+  return val;
+}
+
 function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -1559,10 +1692,10 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       `}</style>
 
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <Header />
+        <Header meaningDisplay={meaningDisplay} />
         {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
         <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
-        <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} />
+        <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />
 
         {!loaded ? (
           <div style={{ textAlign: "center", padding: 60, color: COLORS.inkSoft }}>Đang tải…</div>
@@ -1679,7 +1812,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 }
 
 /* ---------- Header ---------- */
-function Header() {
+function Header({ meaningDisplay }) {
   return (
     <div style={{ textAlign: "center", marginBottom: 22 }}>
       <div
@@ -1693,36 +1826,42 @@ function Header() {
       >
         学部首学汉字
       </div>
-      <div
-        style={{
-          fontFamily: "Calibri, 'Segoe UI', sans-serif",
-          fontSize: 17,
-          fontWeight: 600,
-          color: COLORS.sealDark,
-          marginTop: 6,
-          maxWidth: 480,
-          marginLeft: "auto",
-          marginRight: "auto",
-          lineHeight: 1.4,
-        }}
-      >
-        Học chữ Hán qua cách phân tích các bộ thành phần và luyện viết tay trên máy
-      </div>
-      <div
-        style={{
-          fontSize: 12,
-          color: COLORS.inkSoft,
-          marginTop: 6,
-          letterSpacing: 0.2,
-          fontStyle: "italic",
-          maxWidth: 460,
-          marginLeft: "auto",
-          marginRight: "auto",
-          lineHeight: 1.5,
-        }}
-      >
-        Study Chinese characters through understanding radical components and practicing handwriting on smart device
-      </div>
+      {meaningDisplay !== "en" && (
+        <div
+          style={{
+            fontFamily: "Calibri, 'Segoe UI', sans-serif",
+            fontSize: 17,
+            fontWeight: 600,
+            color: COLORS.sealDark,
+            marginTop: 6,
+            maxWidth: 480,
+            marginLeft: "auto",
+            marginRight: "auto",
+            lineHeight: 1.4,
+          }}
+        >
+          {UI_TEXT.header_subtitle.vi}
+        </div>
+      )}
+      {meaningDisplay !== "vi" && (
+        <div
+          style={{
+            fontFamily: meaningDisplay === "en" ? "Calibri, 'Segoe UI', sans-serif" : undefined,
+            fontSize: meaningDisplay === "en" ? 17 : 12,
+            fontWeight: meaningDisplay === "en" ? 600 : 400,
+            color: meaningDisplay === "en" ? COLORS.sealDark : COLORS.inkSoft,
+            marginTop: 6,
+            letterSpacing: meaningDisplay === "en" ? undefined : 0.2,
+            fontStyle: meaningDisplay === "en" ? "normal" : "italic",
+            maxWidth: meaningDisplay === "en" ? 480 : 460,
+            marginLeft: "auto",
+            marginRight: "auto",
+            lineHeight: meaningDisplay === "en" ? 1.4 : 1.5,
+          }}
+        >
+          {UI_TEXT.header_subtitle.en}
+        </div>
+      )}
     </div>
   );
 }
@@ -1803,18 +1942,18 @@ function MeaningDisplayToggle({ value, onChange }) {
 }
 
 
-function Tabs({ tab, setTab, isAdmin }) {
+function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
   const items = [
-    { id: "play", label: "Ghép bộ thủ" },
-    { id: "flashcards", label: "Flashcard" },
-    { id: "writing", label: "✍️ Luyện viết" },
-    { id: "add", label: "Tạo thẻ từ mới" },
-    { id: "radicals", label: "Bộ thủ" },
-    { id: "hanzi", label: "Hán tự" },
-    { id: "vocab", label: "Từ vựng" },
-    { id: "premium", label: "★ Thành viên" },
+    { id: "play", label: t("tab_play", meaningDisplay) },
+    { id: "flashcards", label: t("tab_flashcards", meaningDisplay) },
+    { id: "writing", label: t("tab_writing", meaningDisplay) },
+    { id: "add", label: t("tab_add", meaningDisplay) },
+    { id: "radicals", label: t("tab_radicals", meaningDisplay) },
+    { id: "hanzi", label: t("tab_hanzi", meaningDisplay) },
+    { id: "vocab", label: t("tab_vocab", meaningDisplay) },
+    { id: "premium", label: t("tab_premium", meaningDisplay) },
   ];
-  if (isAdmin) items.push({ id: "admin", label: "⚙ Quản trị" });
+  if (isAdmin) items.push({ id: "admin", label: t("tab_admin", meaningDisplay) });
   return (
     <div
       style={{
@@ -1961,8 +2100,8 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
         }}
         style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block" }}
       >
-        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
-        <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>🔁 Cần ôn lại ({needsReview.length})</option>
+        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
+        <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_review_list", meaningDisplay, needsReview.length)}</option>
         {allLists.map((l) => (
           <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
             {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
@@ -1974,7 +2113,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
       )}
 
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.ink }}>Độ khó:</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.ink }}>{t("play_difficulty_label", meaningDisplay)}</span>
         {DIFFICULTY_LEVELS.map((lvl) => (
           <button
             key={lvl.id}
@@ -2004,10 +2143,10 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
         {listPicker}
         <div style={{ textAlign: "center", padding: 50, color: COLORS.inkSoft }}>
           {selectedList === REVIEW_LIST_VALUE
-            ? "Danh sách ôn lại đang trống — nó chỉ chứa những chữ bạn đã dùng nút \"Xem đáp án\". Trả lời đúng một chữ sẽ tự động xóa nó khỏi danh sách này."
+            ? t("play_no_playable_review", meaningDisplay)
             : playable.length === 0
-            ? 'Danh sách này chưa có chữ nào chơi được — có thể vì các chữ trong đó chưa có bộ thủ cấu thành. Ở tab "Tạo thẻ từ mới", hãy dùng nút "🔍 Tự động điền" trước khi lưu để hệ thống tự nhận diện bộ thủ.'
-            : 'Chưa có chữ nào trong kho dữ liệu. Hãy thêm chữ ở tab "Tạo thẻ từ mới".'}
+            ? t("play_no_playable_list", meaningDisplay)
+            : t("play_no_data", meaningDisplay)}
         </div>
       </div>
     );
@@ -2098,8 +2237,8 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           <MeaningBoxes meaning={target.meaning} meaningVi={target.meaningVi} meaningDisplay={meaningDisplay} large />
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginTop: 8, fontSize: 14.5, flexWrap: "wrap" }}>
-          <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{target.pinyin}</strong></span>
-          {target.sv && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{target.sv}</strong></span>}
+          <span style={{ color: COLORS.sealDark }}>{t("play_pinyin", meaningDisplay)} <strong>{target.pinyin}</strong></span>
+          {target.sv && meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>{t("play_han_viet", meaningDisplay)} <strong>{target.sv}</strong></span>}
         </div>
       </div>
 
@@ -2123,7 +2262,13 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
                 </div>
               ) : charsInBox.length === 0 ? (
                 i === 0 ? (
-                  <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>chọn<br />bộ thủ bên dưới</div>
+                  <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center" }}>
+                    {meaningDisplay === "en" ? (
+                      <>select<br />radical below</>
+                    ) : (
+                      <>chọn<br />bộ thủ bên dưới</>
+                    )}
+                  </div>
                 ) : null
               ) : (
                 charsInBox.map((ch, ci) => (
@@ -2147,14 +2292,14 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
       <div style={{ textAlign: "center", minHeight: 22, marginBottom: 14, fontSize: 13.5, fontWeight: 600 }}>
         {status === "correct" && (
           <span style={{ color: COLORS.gold }}>
-            ✓ Chính xác! {target.display} ({target.pinyin}) — {formatMeaningInline(target.meaning, target.meaningVi, meaningDisplay)}
+            {t("play_correct_prefix", meaningDisplay)} {target.display} ({target.pinyin}) — {formatMeaningInline(target.meaning, target.meaningVi, meaningDisplay)}
           </span>
         )}
-        {status === "wrong" && <span style={{ color: COLORS.error }}>✗ Chưa đúng. Đáp án đúng: {answerBreakdown}</span>}
+        {status === "wrong" && <span style={{ color: COLORS.error }}>{t("play_wrong_answer", meaningDisplay)} {answerBreakdown}</span>}
         {status === "revealed" && (
           <span style={{ color: COLORS.gold }}>
-            💡 Đáp án: {answerBreakdown} ({target.pinyin}) — {formatMeaningInline(target.meaning, target.meaningVi, meaningDisplay)}
-            {target.sv ? `, Hán Việt: ${target.sv}` : ""}
+            {t("play_answer_reveal", meaningDisplay)} {answerBreakdown} ({target.pinyin}) — {formatMeaningInline(target.meaning, target.meaningVi, meaningDisplay)}
+            {target.sv && meaningDisplay !== "en" ? `, ${t("play_han_viet", meaningDisplay)} ${target.sv}` : ""}
           </span>
         )}
       </div>
@@ -2174,7 +2319,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
       <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
         {status === "playing" && (
           <button onClick={handleReset} className="ghost-btn" style={ghostBtnStyle}>
-            Undo - Chọn lại
+            {t("play_undo", meaningDisplay)}
           </button>
         )}
         {status === "playing" && (
@@ -2183,12 +2328,12 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
             className="ghost-btn"
             style={{ ...ghostBtnStyle, borderColor: COLORS.gold, color: COLORS.gold }}
           >
-            💡 Xem đáp án
+            {t("play_show_answer", meaningDisplay)}
           </button>
         )}
         {status !== "playing" && (
           <button onClick={buildRound} className="seal-btn" style={sealBtnStyle}>
-            Chữ tiếp theo →
+            {t("play_next_char", meaningDisplay)}
           </button>
         )}
       </div>
@@ -2397,7 +2542,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
       {!sessionActive ? (
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Ôn tập bằng thẻ ghi nhớ
+            {t("fc_title", meaningDisplay)}
           </div>
 
           <select
@@ -2405,7 +2550,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
             onChange={(e) => handleListChange(e.target.value)}
             style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
           >
-            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("fc_all_lists", meaningDisplay)}</option>
             {allLists.map((l) => (
               <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                 {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
@@ -2414,7 +2559,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
           </select>
 
           <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20 }}>
-            {dueCount} thẻ cần ôn hôm nay
+            {t("fc_due_today", meaningDisplay, dueCount)}
           </div>
 
           <button
@@ -2424,13 +2569,13 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
             className="seal-btn"
             style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14, opacity: dueCount === 0 ? 0.5 : 1 }}
           >
-            Bắt đầu
+            {t("fc_start", meaningDisplay)}
           </button>
         </div>
       ) : current ? (
         <div>
           <div style={{ fontSize: 12, color: COLORS.inkSoft, textAlign: "center", marginBottom: 14 }}>
-            Còn {queue.length + 1} thẻ · đã ôn {sessionStats.reviewed}
+            {t("fc_progress", meaningDisplay, sessionStats.reviewed, queue.length + 1)}
           </div>
 
           <div
@@ -2463,7 +2608,9 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
                 <div style={{ marginBottom: 4 }}>
                   <MeaningBoxes meaning={current.data.meaning} meaningVi={current.data.meaning_vi} meaningDisplay={meaningDisplay} large />
                 </div>
-                {current.data.sv && <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>}
+                {current.data.sv && meaningDisplay !== "en" && (
+                  <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>
+                )}
               </div>
             )}
           </div>
@@ -2471,40 +2618,40 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
           {!flipped ? (
             <div style={{ textAlign: "center" }}>
               <button type="button" onClick={() => setFlipped(true)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 22px", fontSize: 13 }}>
-                Lật thẻ
+                {t("fc_flip", meaningDisplay)}
               </button>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
               <button type="button" onClick={() => rate("again")} style={{ ...ratingBtnStyle, borderColor: COLORS.error, color: COLORS.error }}>
-                Chưa nhớ
+                {t("fc_again", meaningDisplay)}
               </button>
               <button type="button" onClick={() => rate("hard")} style={{ ...ratingBtnStyle, borderColor: COLORS.gold, color: COLORS.gold }}>
-                Khó
+                {t("fc_hard", meaningDisplay)}
               </button>
               <button type="button" onClick={() => rate("good")} style={{ ...ratingBtnStyle, borderColor: COLORS.seal, color: COLORS.seal }}>
-                Bình thường
+                {t("fc_good", meaningDisplay)}
               </button>
               <button type="button" onClick={() => rate("easy")} style={{ ...ratingBtnStyle, borderColor: COLORS.bamboo, color: COLORS.bamboo }}>
-                Dễ
+                {t("fc_easy", meaningDisplay)}
               </button>
             </div>
           )}
 
           <div style={{ textAlign: "center", marginTop: 16 }}>
             <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 16px", fontSize: 12 }}>
-              Kết thúc
+              {t("fc_end", meaningDisplay)}
             </button>
           </div>
         </div>
       ) : (
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.bamboo, marginBottom: 8 }}>Hoàn thành! 🎉</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: COLORS.bamboo, marginBottom: 8 }}>{t("fc_complete_title", meaningDisplay)}</div>
           <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20 }}>
-            Đã ôn {sessionStats.reviewed} thẻ, {sessionStats.again} thẻ cần ôn lại sớm.
+            {t("fc_complete_summary", meaningDisplay, sessionStats.reviewed, sessionStats.again)}
           </div>
           <button type="button" onClick={endSession} className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }}>
-            Xong
+            {t("fc_done", meaningDisplay)}
           </button>
         </div>
       )}
@@ -3020,14 +3167,14 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       {!sessionActive ? (
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Luyện viết theo nét
+            {t("wp_title", meaningDisplay)}
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm một chữ cụ thể để luyện…"
+              placeholder={t("wp_search_placeholder", meaningDisplay)}
               style={{ ...inputStyle, width: 260, textAlign: "center" }}
             />
             {searchResults.length > 0 && (
@@ -3057,14 +3204,14 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             )}
           </div>
 
-          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>— hoặc luyện theo danh sách —</div>
+          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>{t("wp_or_by_list", meaningDisplay)}</div>
 
           <select
             value={selectedList}
             onChange={(e) => handleListChange(e.target.value)}
             style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
           >
-            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("wp_all_lists", meaningDisplay)}</option>
             {allLists.map((l) => (
               <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                 {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
@@ -3126,11 +3273,11 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
           )}
 
           <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 20, lineHeight: 1.5 }}>
-            Xem thứ tự nét trước, sau đó tự viết theo, dùng chuột (máy tính) hoặc ngón tay (màn hình cảm ứng).
+            {t("wp_description", meaningDisplay)}
           </div>
 
           <button type="button" onClick={startSession} className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }}>
-            Bắt đầu
+            {t("wp_start", meaningDisplay)}
           </button>
         </div>
       ) : current ? (
@@ -3324,20 +3471,21 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             <div style={{ textAlign: "center", marginBottom: 12 }}>
               {completedDotStrokes.length >= dotTotalStrokes ? (
                 <div style={{ color: COLORS.bamboo, fontWeight: 700, fontSize: 14 }}>
-                  ✓ Đã nối xong tất cả {dotTotalStrokes} nét!
+                  {t("wp_dots_all_done", meaningDisplay, dotTotalStrokes)}
                 </div>
               ) : (
                 <>
                   <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 4 }}>
-                    Nét {dotStrokeIndex + 1} / {dotTotalStrokes} — nối điểm{" "}
-                    <span style={{ color: "#2E8B57", fontWeight: 700 }}>xanh</span> (bắt đầu) tới điểm{" "}
-                    <span style={{ color: "#C0392B", fontWeight: 700 }}>đỏ</span> (kết thúc)
+                    {t("wp_dots_stroke_progress", meaningDisplay, dotStrokeIndex + 1, dotTotalStrokes)} {t("wp_dots_connect_prefix", meaningDisplay)}{" "}
+                    <span style={{ color: "#2E8B57", fontWeight: 700 }}>{t("wp_dots_green", meaningDisplay)}</span> {t("wp_dots_start_label", meaningDisplay)}{" "}
+                    {t("wp_dots_to", meaningDisplay)}{" "}
+                    <span style={{ color: "#C0392B", fontWeight: 700 }}>{t("wp_dots_red", meaningDisplay)}</span> {t("wp_dots_end_label", meaningDisplay)}
                   </div>
                   {dotFeedback === "correct" && (
-                    <div style={{ color: COLORS.bamboo, fontWeight: 700, fontSize: 13.5 }}>✓ Đúng!</div>
+                    <div style={{ color: COLORS.bamboo, fontWeight: 700, fontSize: 13.5 }}>{t("wp_dots_correct", meaningDisplay)}</div>
                   )}
                   {dotFeedback === "wrong" && (
-                    <div style={{ color: COLORS.error, fontWeight: 700, fontSize: 13.5 }}>Chưa đúng, thử lại</div>
+                    <div style={{ color: COLORS.error, fontWeight: 700, fontSize: 13.5 }}>{t("wp_dots_wrong", meaningDisplay)}</div>
                   )}
                 </>
               )}
@@ -3368,16 +3516,16 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
           {status === "dots" && !dotCharData && dotFeedback === "load-error" && (
             <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, marginBottom: 12 }}>
-              Không tải được dữ liệu nét cho chữ "{current.char}" — bấm "Bỏ qua bước này" để tiếp tục.
+              {t("wp_dots_load_error", meaningDisplay, current.char)}
             </div>
           )}
 
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: 11, color: COLORS.inkSoft }}>Cỡ bút:</span>
+            <span style={{ fontSize: 11, color: COLORS.inkSoft }}>{t("wp_brush_size", meaningDisplay)}</span>
             {[
-              { id: "thin", label: "Mảnh" },
-              { id: "normal", label: "Vừa" },
-              { id: "thick", label: "Đậm" },
+              { id: "thin", label: t("wp_brush_thin", meaningDisplay) },
+              { id: "normal", label: t("wp_brush_normal", meaningDisplay) },
+              { id: "thick", label: t("wp_brush_thick", meaningDisplay) },
             ].map((opt) => (
               <button
                 key={opt.id}
@@ -3401,13 +3549,13 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
           {status === "error" && (
             <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13, marginBottom: 16 }}>
-              Chưa có dữ liệu nét bút cho chữ "{current.char}" — bấm "Chữ tiếp theo" để bỏ qua.
+              {t("wp_no_stroke_data", meaningDisplay, current.char)}
             </div>
           )}
 
           {status === "done-char" && (
             <div style={{ textAlign: "center", color: COLORS.bamboo, fontSize: 14, fontWeight: 700, marginBottom: 16 }}>
-              ✓ Hoàn thành! {mistakes === 0 ? "Không có lỗi nào." : `${mistakes} lỗi.`}
+              {mistakes === 0 ? t("wp_complete_no_mistakes", meaningDisplay) : t("wp_complete_with_mistakes", meaningDisplay, mistakes)}
             </div>
           )}
 
@@ -3419,13 +3567,13 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 className={revealOn ? "seal-btn" : "ghost-btn"}
                 style={{ ...(revealOn ? sealBtnStyle : ghostBtnStyle), padding: "8px 14px", fontSize: 12.5 }}
               >
-                Hiện chữ đúng
+                {t("wp_reveal", meaningDisplay)}
               </button>
               <button type="button" onClick={undoLastStroke} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5 }}>
-                ↩ Tẩy nét cuối
+                {t("wp_recall_erase", meaningDisplay)}
               </button>
               <button type="button" onClick={clearRecallCanvas} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5 }}>
-                🗑 Xóa hết, viết lại
+                {t("wp_clear_all", meaningDisplay)}
               </button>
             </div>
           )}
@@ -3433,47 +3581,47 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
           {status === "demo" ? (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={replayDemo} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                ↻ Xem lại
+                {t("wp_replay", meaningDisplay)}
               </button>
               <button type="button" onClick={beginWriting} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                ✍️ Bắt đầu viết
+                {t("wp_begin_writing", meaningDisplay)}
               </button>
             </div>
           ) : status === "dots" ? (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               {completedDotStrokes.length >= dotTotalStrokes && dotTotalStrokes > 0 ? (
                 <button type="button" onClick={enterRecallMode} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                  ✏️ Viết từ trí nhớ →
+                  {t("wp_write_from_memory", meaningDisplay)}
                 </button>
               ) : (
                 <button type="button" onClick={enterRecallMode} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                  Bỏ qua bước này →
+                  {t("wp_skip_step", meaningDisplay)}
                 </button>
               )}
             </div>
           ) : status === "recall" ? (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                🔍 Chọn chữ khác
+                {t("wp_choose_another", meaningDisplay)}
               </button>
               <button type="button" onClick={nextChar} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                Chữ tiếp theo →
+                {t("wp_next_char", meaningDisplay)}
               </button>
             </div>
           ) : (
             <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={retryChar} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                ↻ Tô lại
+                {t("wp_retrace", meaningDisplay)}
               </button>
               <button type="button" onClick={enterDotConnectMode} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 12.5 }}>
-                🔵 Nối điểm →
+                {t("wp_connect_dots", meaningDisplay)}
               </button>
             </div>
           )}
 
           <div style={{ textAlign: "center" }}>
             <button type="button" onClick={endSession} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 16px", fontSize: 12 }}>
-              Kết thúc
+              {t("wp_end", meaningDisplay)}
             </button>
           </div>
         </div>
