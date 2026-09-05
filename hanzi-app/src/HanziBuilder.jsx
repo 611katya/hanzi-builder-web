@@ -517,6 +517,52 @@ const UI_TEXT = {
     vi: `Không tải được dữ liệu nét cho chữ "${char}" — bấm "Bỏ qua bước này" để tiếp tục.`,
     en: `Could not load stroke data for "${char}" — click "Skip this step" to continue.`,
   }),
+
+  // Tạo thẻ từ mới (Add tab)
+  add_intro: {
+    vi: "Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, âm Hán Việt, và xếp vào một danh sách (list) tuỳ chọn.",
+    en: "Enter a complete Chinese character along with its meaning, pinyin, Sino-Vietnamese reading, and an optional list.",
+  },
+  add_char_label: { vi: "Chữ Hán hoàn chỉnh", en: "Complete Chinese Character" },
+  add_meaning_en_label: { vi: "Nghĩa (English)", en: "Meaning (English)" },
+  add_meaning_vi_label: { vi: "Nghĩa (Tiếng Việt)", en: "Meaning (Vietnamese)" },
+  add_pinyin_label: { vi: "Pinyin", en: "Pinyin" },
+  add_hanviet_label: { vi: "Âm Hán Việt (Sino-Vietnamese)", en: "Sino-Vietnamese Reading" },
+  add_lists_label: { vi: "Danh sách (Lists)", en: "Lists" },
+  add_autofill: { vi: "🔍 Tự động điền", en: "🔍 Auto-fill" },
+  add_looking_up: { vi: "Đang tra…", en: "Looking up…" },
+  add_save: { vi: "Lưu lại", en: "Save" },
+  add_note_button: { vi: "⚠️ Lưu ý", en: "⚠️ Note" },
+  add_fill_required: {
+    vi: "Vui lòng điền đầy đủ: chữ Hán, nghĩa, pinyin, âm Hán Việt.",
+    en: "Please fill in all fields: character, meaning, pinyin, Sino-Vietnamese reading.",
+  },
+  add_char_exists: (char) => ({
+    vi: `Chữ "${char}" đã có trong kho dữ liệu.`,
+    en: `Character "${char}" already exists in storage.`,
+  }),
+
+  // Bộ thủ (Radicals tab)
+  radicals_header_p1: {
+    vi: "Kho lưu trữ bao gồm các bộ thủ chính và các bộ thành phần cấu tạo chữ Hán. Các bộ thành phần này sẽ bao gồm các bộ thủ chính. Người học có thể tùy ý chỉnh sửa cấu tạo thành phần của mỗi chữ Hán tùy theo thói quen học của mỗi cá nhân.",
+    en: "This library includes the main radicals as well as the component parts that make up Chinese characters. These components in turn include the main radicals. Learners can freely edit how each character's components are structured to match their own study habits.",
+  },
+  radicals_header_p2: {
+    vi: "Ví dụ: 语 có thể tách thành 讠 và 吾, hoặc có thể tách 讠, 五, 口 tùy lựa chọn của người học.",
+    en: "Example: 语 can be split into 讠 and 吾, or into 讠, 五, 口 — whichever the learner prefers.",
+  },
+  radicals_header_p3: {
+    vi: "Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu của người học (như ví dụ phía trên). Người học cần tra soát lại với các hệ thống từ điển và nhập lại thủ công nếu phát hiện sai sót.",
+    en: "Note: the lookup tool sometimes splits a character's components imprecisely or differently than a learner would want (as in the example above). Double-check against a dictionary and re-enter manually if you spot an error.",
+  },
+  radicals_search_placeholder: {
+    vi: "Tìm bộ thủ theo chữ, pinyin, nghĩa, hoặc Hán Việt…",
+    en: "Search radicals by character, pinyin, meaning, or Sino-Vietnamese…",
+  },
+  radicals_count: (filtered, total) => ({
+    vi: `${filtered} / ${total} bộ thủ và bộ thành phần · sắp xếp theo số nét · bấm ✎ để sửa`,
+    en: `${filtered} / ${total} radicals and components · sorted by stroke count · click ✎ to edit`,
+  }),
 };
 
 function t(key, meaningDisplay, ...args) {
@@ -1756,6 +1802,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
               setLookupCount(count);
               if (typeof limit === "number") setLookupLimit(limit);
             }}
+            meaningDisplay={meaningDisplay}
           />
         ) : tab === "radicals" ? (
           <RadicalsTab
@@ -1766,6 +1813,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             overrideBushouKeys={overrideBushouKeys}
             onPromoteBushou={promoteBushouToDefault}
             onWithdrawBushou={withdrawBushouFromDefault}
+            meaningDisplay={meaningDisplay}
           />
         ) : tab === "hanzi" ? (
           <CharacterListPanel
@@ -3647,6 +3695,7 @@ function AddTab({
   onRequireAuth,
   onViewPremium,
   onQuotaUpdate,
+  meaningDisplay,
 }) {
   const [charInput, setCharInput] = useState("");
   const [meaning, setMeaning] = useState("");
@@ -3824,11 +3873,11 @@ function AddTab({
     setMessage(null);
     try {
       if (!charInput.trim() || !meaning.trim() || !pinyin.trim() || !sv.trim()) {
-        setMessage({ type: "error", text: "Vui lòng điền đầy đủ: chữ Hán, nghĩa, pinyin, âm Hán Việt." });
+        setMessage({ type: "error", text: t("add_fill_required", meaningDisplay) });
         return;
       }
       if (characterList.some((c) => c.char === charInput.trim())) {
-        setMessage({ type: "error", text: `Chữ "${charInput.trim()}" đã có trong kho dữ liệu.` });
+        setMessage({ type: "error", text: t("add_char_exists", meaningDisplay, charInput.trim()) });
         return;
       }
       const listsToSave = selectedLists.length > 0 ? selectedLists : ["Chưa phân loại"];
@@ -3875,7 +3924,7 @@ function AddTab({
           className={showNote ? "seal-btn" : "ghost-btn"}
           style={{ ...(showNote ? sealBtnStyle : ghostBtnStyle), padding: "8px 18px", fontSize: 13 }}
         >
-          ⚠️ Lưu ý
+          {t("add_note_button", meaningDisplay)}
         </button>
         {showNote && (
           <div
@@ -3921,11 +3970,11 @@ function AddTab({
       </div>
 
       <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: 18, textAlign: "center" }}>
-        Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, âm Hán Việt, và xếp vào một danh sách (list) tuỳ chọn.
+        {t("add_intro", meaningDisplay)}
       </div>
 
       <div style={formCardStyle}>
-        <FieldRow label="Chữ Hán hoàn chỉnh">
+        <FieldRow label={t("add_char_label", meaningDisplay)}>
           <input
             value={charInput}
             onChange={(e) => {
@@ -3950,7 +3999,7 @@ function AddTab({
             className="ghost-btn"
             style={{ ...ghostBtnStyle, padding: "8px 12px", fontSize: 12.5, opacity: !charInput.trim() ? 0.4 : 1 }}
           >
-            {lookupStatus === "loading" ? "Đang tra…" : "🔍 Tự động điền"}
+            {lookupStatus === "loading" ? t("add_looking_up", meaningDisplay) : t("add_autofill", meaningDisplay)}
           </button>
         </FieldRow>
         <div style={{ fontSize: 11, color: COLORS.inkSoft, marginTop: -6, marginBottom: 14, paddingLeft: 204 }} className="autofill-hint">
@@ -4019,7 +4068,7 @@ function AddTab({
           )}
         </div>
 
-        <FieldRow label="Nghĩa (English)">
+        <FieldRow label={t("add_meaning_en_label", meaningDisplay)}>
           <input
             value={meaning}
             onChange={(e) => setMeaning(e.target.value)}
@@ -4029,7 +4078,7 @@ function AddTab({
           />
         </FieldRow>
 
-        <FieldRow label="Nghĩa (Tiếng Việt)">
+        <FieldRow label={t("add_meaning_vi_label", meaningDisplay)}>
           <input
             value={meaningVi}
             onChange={(e) => setMeaningVi(e.target.value)}
@@ -4039,7 +4088,7 @@ function AddTab({
           />
         </FieldRow>
 
-        <FieldRow label="Pinyin">
+        <FieldRow label={t("add_pinyin_label", meaningDisplay)}>
           <input
             value={pinyin}
             onChange={(e) => setPinyin(e.target.value)}
@@ -4049,7 +4098,7 @@ function AddTab({
           />
         </FieldRow>
 
-        <FieldRow label="Âm Hán Việt (Sino-Vietnamese)">
+        <FieldRow label={t("add_hanviet_label", meaningDisplay)}>
           <input
             value={sv}
             onChange={(e) => setSv(e.target.value)}
@@ -4059,7 +4108,7 @@ function AddTab({
           />
         </FieldRow>
 
-        <FieldRow label="Danh sách (Lists)">
+        <FieldRow label={t("add_lists_label", meaningDisplay)}>
           <div style={{ flex: 1 }}>
             {selectedLists.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
@@ -4151,7 +4200,7 @@ function AddTab({
 
         <div style={{ marginTop: 18, textAlign: "center" }}>
           <button type="button" onClick={handleSubmit} className="seal-btn" style={sealBtnStyle}>
-            Lưu lại
+            {t("add_save", meaningDisplay)}
           </button>
         </div>
       </div>
@@ -7408,7 +7457,7 @@ const smallXStyle = {
 };
 
 /* ================= RADICALS TAB ================= */
-function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou }) {
+function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou, meaningDisplay }) {
   const [query, setQuery] = useState("");
   const filtered = bushouList.filter((b) => {
     const q = query.trim().toLowerCase();
@@ -7457,17 +7506,13 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
         }}
       >
         <p style={{ margin: 0, marginBottom: 10 }}>
-          Kho lưu trữ bao gồm các bộ thủ chính và các bộ thành phần cấu tạo chữ Hán. Các bộ thành phần này sẽ bao
-          gồm các bộ thủ chính. Người học có thể tùy ý chỉnh sửa cấu tạo thành phần của mỗi chữ Hán tùy theo thói
-          quen học của mỗi cá nhân.
+          {t("radicals_header_p1", meaningDisplay)}
         </p>
         <p style={{ margin: 0, marginBottom: 10 }}>
-          Ví dụ: 语 có thể tách thành 讠 và 吾, hoặc có thể tách 讠, 五, 口 tùy lựa chọn của người học.
+          {t("radicals_header_p2", meaningDisplay)}
         </p>
         <p style={{ margin: 0, fontStyle: "italic" }}>
-          Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu
-          của người học (như ví dụ phía trên). Người học cần tra soát lại với các hệ thống từ điển và nhập lại thủ
-          công nếu phát hiện sai sót.
+          {t("radicals_header_p3", meaningDisplay)}
         </p>
       </div>
 
@@ -7475,12 +7520,12 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Tìm bộ thủ theo chữ, pinyin, nghĩa, hoặc Hán Việt…"
+          placeholder={t("radicals_search_placeholder", meaningDisplay)}
           style={{ ...inputStyle, width: 340, textAlign: "center" }}
         />
       </div>
       <div style={{ fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 20 }}>
-        {filtered.length} / {bushouList.length} bộ thủ và bộ thành phần · sắp xếp theo số nét · bấm ✎ để sửa
+        {t("radicals_count", meaningDisplay, filtered.length, bushouList.length)}
       </div>
 
       {groups.map(([strokeCount, items]) => (
