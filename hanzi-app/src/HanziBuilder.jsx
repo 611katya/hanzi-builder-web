@@ -2936,14 +2936,14 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const dotCurrentPathRef = useRef([]);
 
   const RECALL_INK_COLOR = "#2456A6";
-  const BRUSH_WIDTHS = { thin: 12, normal: 20, thick: 32 };
+  const BRUSH_WIDTHS = { thin: 18, normal: 30, thick: 48 };
   // HanziWriter's drawingWidth is specified in its own internal SVG
   // coordinate space and gets scaled down to fit the display size, so the
   // same raw number looks much thinner there than it would as a plain
   // canvas lineWidth (which is 1 unit = 1 actual pixel, no scaling). This
   // is the recall canvas's own scale, tuned to visually match the guided
   // tracing pen at the same "Cỡ bút" selection.
-  const RECALL_BRUSH_WIDTHS = { thin: 3, normal: 5, thick: 8 };
+  const RECALL_BRUSH_WIDTHS = { thin: 4.5, normal: 7.5, thick: 12 };
   const PREVIEW_PER_PAGE = 24; // ~8 columns x 3 rows at this layout's width
 
   const allLists = useMemo(() => {
