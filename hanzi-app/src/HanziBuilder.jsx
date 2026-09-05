@@ -618,6 +618,56 @@ const UI_TEXT = {
   word_exists: (word) => ({ vi: `Từ "${word}" đã có trong kho dữ liệu.`, en: `Word "${word}" already exists in storage.` }),
   word_added_success: (word) => ({ vi: `Đã thêm từ "${word}"!`, en: `Added word "${word}"!` }),
 
+  // Rename-list panel
+  rename_toggle: { vi: "Đổi tên danh sách", en: "Rename List" },
+  rename_description: {
+    vi: "Đổi tên áp dụng cho mọi chữ và từ đang mang tên danh sách này — cả chữ/từ có sẵn lẫn chữ/từ của bạn.",
+    en: "Renaming applies to every character and word currently tagged with this list — both built-in and your own.",
+  },
+  rename_choose_list: { vi: "— Chọn danh sách —", en: "— Choose a list —" },
+  rename_new_name_placeholder: { vi: "Tên mới", en: "New name" },
+  rename_renaming: { vi: "Đang đổi…", en: "Renaming…" },
+  rename_button: { vi: "Đổi tên", en: "Rename" },
+  rename_need_old: { vi: "Vui lòng chọn danh sách cần đổi tên.", en: "Please choose a list to rename." },
+  rename_need_new: { vi: "Vui lòng nhập tên mới.", en: "Please enter a new name." },
+  rename_same_name: { vi: "Tên mới trùng với tên cũ.", en: "The new name is the same as the old one." },
+  rename_none_found: (name) => ({
+    vi: `Không có chữ hoặc từ nào thuộc danh sách "${name}".`,
+    en: `No characters or words belong to the list "${name}".`,
+  }),
+  rename_success: (oldName, newName, total) => ({
+    vi: `Đã đổi tên "${oldName}" thành "${newName}" cho ${total} mục.`,
+    en: `Renamed "${oldName}" to "${newName}" for ${total} item(s).`,
+  }),
+
+  // Additional Create New Card descriptions
+  add_char_field_description: {
+    vi: "Gõ chữ Hán rồi rời khỏi ô để tự động điền pinyin, nghĩa, Hán Việt, và bộ thủ cấu thành — bạn vẫn có thể sửa lại thủ công.",
+    en: "Type a Chinese character then leave the field to auto-fill pinyin, meaning, Sino-Vietnamese, and components — you can still edit everything manually afterward.",
+  },
+  add_components_label: { vi: "Bộ thủ cấu thành (theo thứ tự)", en: "Components (in order)" },
+  add_components_description: {
+    vi: "Tự động điền ở trên sẽ gợi ý sẵn, hoặc bạn có thể thêm / xóa bộ thủ thủ công bên dưới. Cần bộ thủ để chữ này xuất hiện được ở chế độ Chơi.",
+    en: "Auto-fill above suggests these automatically, or you can add / remove components manually below. Components are required for this character to appear in Play mode.",
+  },
+  add_component_input_placeholder: { vi: "gõ 1 bộ thủ, vd: 女", en: "type a component, e.g. 女" },
+  add_component_add_button: { vi: "+ Thêm bộ thủ", en: "+ Add Component" },
+  add_new_component_before: { vi: "Bộ thủ", en: "Component" },
+  add_new_component_after: { vi: "chưa có trong kho — hãy điền thông tin:", en: "isn't in storage yet — please fill in its details:" },
+  add_new_comp_pinyin: { vi: "pinyin", en: "pinyin" },
+  add_new_comp_meaning: { vi: "meaning", en: "meaning" },
+  add_new_comp_sv: { vi: "âm Hán Việt", en: "Sino-Vietnamese reading" },
+  add_new_comp_strokes: { vi: "số nét (tùy chọn)", en: "stroke count (optional)" },
+  add_confirm: { vi: "Xác nhận", en: "Confirm" },
+  add_lists_description: {
+    vi: 'Một chữ có thể thuộc nhiều danh sách cùng lúc — gõ tên rồi nhấn Enter hoặc "+ Thêm" để thêm từng danh sách.',
+    en: 'A character can belong to multiple lists at once — type a name and press Enter or "+ Add" to add each list.',
+  },
+  add_autofill_failed: {
+    vi: "Tra cứu tự động thất bại. Vui lòng nhập pinyin / nghĩa / Hán Việt thủ công.",
+    en: "Auto-lookup failed. Please enter pinyin / meaning / Sino-Vietnamese manually.",
+  },
+
   // Bộ thủ (Radicals tab)
   radicals_header_p1: {
     vi: "Kho lưu trữ bao gồm các bộ thủ chính và các bộ thành phần cấu tạo chữ Hán. Các bộ thành phần này sẽ bao gồm các bộ thủ chính. Người học có thể tùy ý chỉnh sửa cấu tạo thành phần của mỗi chữ Hán tùy theo thói quen học của mỗi cá nhân.",
@@ -3969,7 +4019,7 @@ function AddTab({
     } catch (err) {
       console.error("Auto-fill lookup failed:", err);
       setLookupStatus("error");
-      setMessage({ type: "error", text: "Tra cứu tự động thất bại. Vui lòng nhập pinyin / nghĩa / Hán Việt thủ công." });
+      setMessage({ type: "error", text: t("add_autofill_failed", meaningDisplay) });
     }
   }
 
@@ -4108,15 +4158,15 @@ function AddTab({
           </button>
         </FieldRow>
         <div style={{ fontSize: 11, color: COLORS.inkSoft, marginTop: -6, marginBottom: 14, paddingLeft: 204 }} className="autofill-hint">
-          Gõ chữ Hán rồi rời khỏi ô để tự động điền pinyin, nghĩa, Hán Việt, và bộ thủ cấu thành — bạn vẫn có thể sửa lại thủ công.
+          {t("add_char_field_description", meaningDisplay)}
         </div>
 
         <div style={{ borderTop: `1px dashed ${COLORS.grid}`, marginTop: 6, paddingTop: 14 }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
-            Bộ thủ cấu thành (theo thứ tự)
+            {t("add_components_label", meaningDisplay)}
           </div>
           <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 10 }}>
-            Tự động điền ở trên sẽ gợi ý sẵn, hoặc bạn có thể thêm / xóa bộ thủ thủ công bên dưới. Cần bộ thủ để chữ này xuất hiện được ở chế độ Chơi.
+            {t("add_components_description", meaningDisplay)}
           </div>
 
           {components.length > 0 && (
@@ -4136,7 +4186,7 @@ function AddTab({
             <input
               value={compInput}
               onChange={(e) => setCompInput(e.target.value)}
-              placeholder="gõ 1 bộ thủ, vd: 女"
+              placeholder={t("add_component_input_placeholder", meaningDisplay)}
               style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", width: 140 }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -4146,27 +4196,29 @@ function AddTab({
               }}
             />
             <button type="button" onClick={addComponentManually} className="ghost-btn" style={ghostBtnStyle}>
-              + Thêm bộ thủ
+              {t("add_component_add_button", meaningDisplay)}
             </button>
           </div>
 
           {newCompDraft && (
             <div style={{ marginTop: 12, padding: 12, background: "rgba(169,130,47,0.08)", borderRadius: 8, border: `1px dashed ${COLORS.gold}` }}>
               <div style={{ fontSize: 12.5, marginBottom: 8 }}>
-                Bộ thủ <strong style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18 }}>{newCompDraft.char}</strong> chưa có trong kho — hãy điền thông tin:
+                {t("add_new_component_before", meaningDisplay)}{" "}
+                <strong style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18 }}>{newCompDraft.char}</strong>{" "}
+                {t("add_new_component_after", meaningDisplay)}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <input value={ncPinyin} onChange={(e) => setNcPinyin(e.target.value)} placeholder="pinyin" style={{ ...inputStyle, width: 100 }} />
-                <input value={ncMeaning} onChange={(e) => setNcMeaning(e.target.value)} placeholder="meaning" style={{ ...inputStyle, width: 140 }} />
-                <input value={ncSv} onChange={(e) => setNcSv(e.target.value)} placeholder="âm Hán Việt" style={{ ...inputStyle, width: 120 }} />
+                <input value={ncPinyin} onChange={(e) => setNcPinyin(e.target.value)} placeholder={t("add_new_comp_pinyin", meaningDisplay)} style={{ ...inputStyle, width: 100 }} />
+                <input value={ncMeaning} onChange={(e) => setNcMeaning(e.target.value)} placeholder={t("add_new_comp_meaning", meaningDisplay)} style={{ ...inputStyle, width: 140 }} />
+                <input value={ncSv} onChange={(e) => setNcSv(e.target.value)} placeholder={t("add_new_comp_sv", meaningDisplay)} style={{ ...inputStyle, width: 120 }} />
                 <input
                   value={ncStrokes}
                   onChange={(e) => setNcStrokes(e.target.value.replace(/[^0-9]/g, ""))}
-                  placeholder="số nét (tùy chọn)"
+                  placeholder={t("add_new_comp_strokes", meaningDisplay)}
                   style={{ ...inputStyle, width: 130 }}
                 />
                 <button type="button" onClick={confirmNewComponent} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 14px", fontSize: 13 }}>
-                  Xác nhận
+                  {t("add_confirm", meaningDisplay)}
                 </button>
               </div>
             </div>
@@ -4270,7 +4322,7 @@ function AddTab({
           </div>
         </FieldRow>
         <div style={{ fontSize: 10.5, color: COLORS.inkSoft, marginTop: -6, marginBottom: 6, paddingLeft: 204 }} className="autofill-hint">
-          Một chữ có thể thuộc nhiều danh sách cùng lúc — gõ tên rồi nhấn Enter hoặc "+ Thêm" để thêm từng danh sách.
+          {t("add_lists_description", meaningDisplay)}
         </div>
 
         {existingLists.length > 0 && (
@@ -4346,6 +4398,7 @@ function AddTab({
         wordList={wordList}
         onUpdateCharacter={onUpdateCharacter}
         onAddWord={onAddWord}
+        meaningDisplay={meaningDisplay}
       />
     </div>
   );
@@ -4818,7 +4871,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
    characters and words. Editing a seed-sourced item creates a personal
    override the same way any other edit does, so this touches every
    character/word carrying the old name, not just custom ones. ---------- */
-function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord }) {
+function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord, meaningDisplay }) {
   const [expanded, setExpanded] = useState(false);
   const [oldName, setOldName] = useState("");
   const [newName, setNewName] = useState("");
@@ -4838,15 +4891,15 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
     const trimmedOld = oldName.trim();
     const trimmedNew = newName.trim();
     if (!trimmedOld) {
-      setMessage({ type: "error", text: "Vui lòng chọn danh sách cần đổi tên." });
+      setMessage({ type: "error", text: t("rename_need_old", meaningDisplay) });
       return;
     }
     if (!trimmedNew) {
-      setMessage({ type: "error", text: "Vui lòng nhập tên mới." });
+      setMessage({ type: "error", text: t("rename_need_new", meaningDisplay) });
       return;
     }
     if (trimmedOld === trimmedNew) {
-      setMessage({ type: "error", text: "Tên mới trùng với tên cũ." });
+      setMessage({ type: "error", text: t("rename_same_name", meaningDisplay) });
       return;
     }
 
@@ -4855,7 +4908,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
     const total = affectedChars.length + affectedWords.length;
 
     if (total === 0) {
-      setMessage({ type: "error", text: `Không có chữ hoặc từ nào thuộc danh sách "${trimmedOld}".` });
+      setMessage({ type: "error", text: t("rename_none_found", meaningDisplay, trimmedOld) });
       return;
     }
 
@@ -4877,7 +4930,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
     }
 
     setStatus("done");
-    setMessage({ type: "success", text: `Đã đổi tên "${trimmedOld}" thành "${trimmedNew}" cho ${total} mục.` });
+    setMessage({ type: "success", text: t("rename_success", meaningDisplay, trimmedOld, trimmedNew, total) });
     setOldName("");
     setNewName("");
   }
@@ -4908,13 +4961,13 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
           textAlign: "center",
         }}
       >
-        {expanded ? "▲" : "▼"} Đổi tên danh sách
+        {expanded ? "▲" : "▼"} {t("rename_toggle", meaningDisplay)}
       </button>
 
       {expanded && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>
-            Đổi tên áp dụng cho mọi chữ và từ đang mang tên danh sách này — cả chữ/từ có sẵn lẫn chữ/từ của bạn.
+            {t("rename_description", meaningDisplay)}
           </div>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
@@ -4924,7 +4977,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
               disabled={status === "running"}
               style={{ ...selectStyle, width: 180 }}
             >
-              <option value="" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>— Chọn danh sách —</option>
+              <option value="" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("rename_choose_list", meaningDisplay)}</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                   {l}
@@ -4936,7 +4989,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               disabled={status === "running"}
-              placeholder="Tên mới"
+              placeholder={t("rename_new_name_placeholder", meaningDisplay)}
               style={{ ...inputStyle, maxWidth: 180 }}
             />
             <button
@@ -4946,7 +4999,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
               className="seal-btn"
               style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13 }}
             >
-              {status === "running" ? "Đang đổi…" : "Đổi tên"}
+              {status === "running" ? t("rename_renaming", meaningDisplay) : t("rename_button", meaningDisplay)}
             </button>
           </div>
 
