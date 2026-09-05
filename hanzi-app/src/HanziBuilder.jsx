@@ -541,6 +541,82 @@ const UI_TEXT = {
     vi: `Chữ "${char}" đã có trong kho dữ liệu.`,
     en: `Character "${char}" already exists in storage.`,
   }),
+  add_no_components_note: {
+    vi: ' (chưa có bộ thủ cấu thành nên sẽ không xuất hiện trong chế độ Chơi — dùng nút "🔍 Tự động điền" hoặc thêm bộ thủ thủ công trước khi lưu)',
+    en: ' (no components assigned yet, so it won\'t appear in Play mode — use "🔍 Auto-fill" or add components manually before saving)',
+  },
+  add_char_success: (char, lists, note) => ({
+    vi: `Đã thêm chữ "${char}" vào danh sách "${lists}"!${note}`,
+    en: `Added character "${char}" to list "${lists}"!${note}`,
+  }),
+  add_char_error: (msg) => ({
+    vi: `Có lỗi xảy ra: ${msg}. Vui lòng thử lại.`,
+    en: `An error occurred: ${msg}. Please try again.`,
+  }),
+  add_unknown_error: { vi: "không rõ nguyên nhân", en: "unknown cause" },
+
+  // Bulk import panel
+  bulk_toggle: (max) => ({
+    vi: `Nhập hàng loạt (tối đa ${max} mục, chữ đơn hoặc từ nhiều chữ)`,
+    en: `Bulk Import (up to ${max} items, single characters or multi-character words)`,
+  }),
+  bulk_instructions: (max) => ({
+    vi: `Dán tối đa ${max} mục, mỗi mục một dòng. Một chữ đơn (vd: 好) sẽ được thêm như một chữ; hai chữ trở lên trên cùng một dòng (vd: 你好) sẽ được thêm như một từ. Mỗi mục chưa có sẽ được tra cứu tự động; mục đã có sẽ chỉ được gắn thêm tên danh sách này.`,
+    en: `Paste up to ${max} items, one per line. A single character (e.g. 好) is added as a character; two or more characters on the same line (e.g. 你好) are added as a word. New items are looked up automatically; existing ones just get this list name added.`,
+  }),
+  bulk_count: (n, max) => ({ vi: `${n} / ${max} mục`, en: `${n} / ${max} items` }),
+  bulk_lists_label: { vi: "Danh sách (có thể chọn nhiều)", en: "Lists (multiple allowed)" },
+  bulk_list_placeholder: { vi: "vd: HSK1… rồi Enter", en: "e.g. HSK1… then Enter" },
+  bulk_add: { vi: "+ Thêm", en: "+ Add" },
+  bulk_start: { vi: "Bắt đầu nhập", en: "Start Import" },
+  bulk_stop: { vi: "Dừng lại", en: "Stop" },
+  bulk_reset: { vi: "Làm mới", en: "Reset" },
+  bulk_processing: (item) => ({ vi: `— đang xử lý: ${item}`, en: `— processing: ${item}` }),
+  bulk_complete: { vi: "— hoàn tất", en: "— complete" },
+  bulk_summary: (added, tagged) => ({
+    vi: `✓ Đã thêm mới ${added} mục, gắn thêm danh sách cho ${tagged} mục đã có sẵn.`,
+    en: `✓ Added ${added} new items, tagged ${tagged} existing items with this list.`,
+  }),
+  bulk_errors: (n, items) => ({ vi: `✗ ${n} mục thất bại: ${items}`, en: `✗ ${n} item(s) failed: ${items}` }),
+  bulk_retry_hint: {
+    vi: 'Có thể thử lại bằng cách dán riêng các mục này và bấm "Bắt đầu nhập" lần nữa.',
+    en: 'You can retry by pasting just these items and clicking "Start Import" again.',
+  },
+  bulk_no_chars_found: { vi: "Không tìm thấy chữ Hán nào trong ô dán.", en: "No Chinese characters found in the pasted text." },
+  bulk_need_list: { vi: "Vui lòng chọn hoặc thêm ít nhất một danh sách.", en: "Please select or add at least one list." },
+
+  // Add-word panel (multi-character word)
+  word_toggle: { vi: "Thêm từ nhiều chữ (vd: 你好)", en: "Add Multi-Character Word (e.g. 你好)" },
+  word_instructions: {
+    vi: "Gõ một từ có từ 2 chữ Hán trở lên, rồi rời khỏi ô (hoặc bấm nút) để tự động điền pinyin, nghĩa, Hán Việt, và bộ thủ cho từng chữ còn thiếu — tất cả trong một bước.",
+    en: "Type a word with 2 or more Chinese characters, then leave the field (or click the button) to auto-fill pinyin, meaning, Sino-Vietnamese, and components for each missing character — all in one step.",
+  },
+  word_looking_up: { vi: "Đang tra…", en: "Looking up…" },
+  word_autofill: { vi: "🔍 Tự động điền", en: "🔍 Auto-fill" },
+  word_ready: { vi: "✓ sẵn sàng", en: "✓ ready" },
+  word_no_components: { vi: "chưa có bộ thủ", en: "no components" },
+  word_failed: { vi: "thất bại", en: "failed" },
+  word_pinyin_label: { vi: "Pinyin cả từ", en: "Whole-word Pinyin" },
+  word_meaning_en_label: { vi: "Nghĩa cả từ (English)", en: "Whole-word Meaning (English)" },
+  word_meaning_vi_label: { vi: "Nghĩa cả từ (Tiếng Việt)", en: "Whole-word Meaning (Vietnamese)" },
+  word_hanviet_label: { vi: "Hán Việt (tùy chọn)", en: "Sino-Vietnamese (optional)" },
+  word_lists_label: { vi: "Danh sách (Lists)", en: "Lists" },
+  word_auto_or_manual: { vi: "tự động điền, hoặc nhập tay", en: "auto-filled, or type manually" },
+  word_list_placeholder: { vi: "vd: Thành ngữ… rồi Enter", en: "e.g. Idioms… then Enter" },
+  word_add_list: { vi: "+ Thêm", en: "+ Add" },
+  word_save: { vi: "Lưu từ", en: "Save Word" },
+  word_lookup_failed: {
+    vi: "Tra cứu từ thất bại. Vui lòng nhập tay pinyin / nghĩa / Hán Việt.",
+    en: "Word lookup failed. Please enter pinyin / meaning / Sino-Vietnamese manually.",
+  },
+  word_need_2_chars: { vi: "Từ cần có ít nhất 2 chữ Hán.", en: "The word needs at least 2 Chinese characters." },
+  word_need_components: {
+    vi: 'Mỗi chữ trong từ cần có bộ thủ trước — dùng nút "Tự động điền" bên dưới cho những chữ còn thiếu.',
+    en: 'Every character in the word needs components first — use the "Auto-fill" button below for any that are missing.',
+  },
+  word_need_pinyin_meaning: { vi: "Vui lòng điền pinyin và nghĩa của từ.", en: "Please fill in the word's pinyin and meaning." },
+  word_exists: (word) => ({ vi: `Từ "${word}" đã có trong kho dữ liệu.`, en: `Word "${word}" already exists in storage.` }),
+  word_added_success: (word) => ({ vi: `Đã thêm từ "${word}"!`, en: `Added word "${word}"!` }),
 
   // Bộ thủ (Radicals tab)
   radicals_header_p1: {
@@ -3920,15 +3996,15 @@ function AddTab({
         components: components,
         lists: listsToSave,
       });
-      const playableNote =
-        components.length > 0
-          ? ""
-          : ' (chưa có bộ thủ cấu thành nên sẽ không xuất hiện trong chế độ Chơi — dùng nút "🔍 Tự động điền" hoặc thêm bộ thủ thủ công trước khi lưu)';
-      setMessage({ type: "success", text: `Đã thêm chữ "${trimmedChar}" vào danh sách "${listsToSave.join(", ")}"!${playableNote}` });
+      const playableNote = components.length > 0 ? "" : t("add_no_components_note", meaningDisplay);
+      setMessage({ type: "success", text: t("add_char_success", meaningDisplay, trimmedChar, listsToSave.join(", "), playableNote) });
       resetForm();
     } catch (err) {
       console.error("Add character failed:", err);
-      setMessage({ type: "error", text: `Có lỗi xảy ra: ${err && err.message ? err.message : "không rõ nguyên nhân"}. Vui lòng thử lại.` });
+      setMessage({
+        type: "error",
+        text: t("add_char_error", meaningDisplay, err && err.message ? err.message : t("add_unknown_error", meaningDisplay)),
+      });
     }
   }
 
@@ -4246,6 +4322,7 @@ function AddTab({
         onRequireAuth={onRequireAuth}
         onViewPremium={onViewPremium}
         onQuotaUpdate={onQuotaUpdate}
+        meaningDisplay={meaningDisplay}
       />
 
       <AddWordPanel
@@ -4261,6 +4338,7 @@ function AddTab({
         onRequireAuth={onRequireAuth}
         onViewPremium={onViewPremium}
         onQuotaUpdate={onQuotaUpdate}
+        meaningDisplay={meaningDisplay}
       />
 
       <RenameListPanel
@@ -4279,7 +4357,7 @@ const BULK_IMPORT_MAX = 20;
    single character or a multi-character word. Each is looked up for real
    (same lookups as the single-item auto-fill flows) and tagged with one
    list name. Existing items just get the list name appended. ---------- */
-function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord, userId, onRequireAuth, onViewPremium, onQuotaUpdate }) {
+function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, onAddBushou, onUpdateCharacter, onAddWord, userId, onRequireAuth, onViewPremium, onQuotaUpdate, meaningDisplay }) {
   const [expanded, setExpanded] = useState(false);
   const [rawInput, setRawInput] = useState("");
   const [selectedLists, setSelectedLists] = useState([]);
@@ -4393,7 +4471,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
     const items = parseItems();
 
     if (items.length === 0) {
-      setResults([{ item: "", outcome: "error", detail: "Không tìm thấy chữ Hán nào trong ô dán." }]);
+      setResults([{ item: "", outcome: "error", detail: t("bulk_no_chars_found", meaningDisplay) }]);
       return;
     }
     if (items.length > BULK_IMPORT_MAX) {
@@ -4401,7 +4479,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
       return;
     }
     if (selectedLists.length === 0) {
-      setResults([{ item: "", outcome: "error", detail: "Vui lòng chọn hoặc thêm ít nhất một danh sách." }]);
+      setResults([{ item: "", outcome: "error", detail: t("bulk_need_list", meaningDisplay) }]);
       return;
     }
 
@@ -4573,15 +4651,13 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
           textAlign: "center",
         }}
       >
-        {expanded ? "▲" : "▼"} Nhập hàng loạt (tối đa {BULK_IMPORT_MAX} mục, chữ đơn hoặc từ nhiều chữ)
+        {expanded ? "▲" : "▼"} {t("bulk_toggle", meaningDisplay, BULK_IMPORT_MAX)}
       </button>
 
       {expanded && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>
-            Dán tối đa {BULK_IMPORT_MAX} mục, <strong>mỗi mục một dòng</strong>. Một chữ đơn (vd: 好) sẽ được thêm
-            như một chữ; hai chữ trở lên trên cùng một dòng (vd: 你好) sẽ được thêm như một từ. Mỗi mục chưa có
-            sẽ được tra cứu tự động; mục đã có sẽ chỉ được gắn thêm tên danh sách này.
+            {t("bulk_instructions", meaningDisplay, BULK_IMPORT_MAX)}
           </div>
 
           <textarea
@@ -4593,11 +4669,11 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
             style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 15, resize: "vertical", marginBottom: 6, whiteSpace: "pre" }}
           />
           <div style={{ fontSize: 11, color: parsedCount > BULK_IMPORT_MAX ? COLORS.error : COLORS.inkSoft, marginBottom: 12 }}>
-            {parsedCount} / {BULK_IMPORT_MAX} mục
+            {t("bulk_count", meaningDisplay, parsedCount, BULK_IMPORT_MAX)}
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 11.5, color: COLORS.inkSoft, display: "block", marginBottom: 6 }}>Danh sách (có thể chọn nhiều)</label>
+            <label style={{ fontSize: 11.5, color: COLORS.inkSoft, display: "block", marginBottom: 6 }}>{t("bulk_lists_label", meaningDisplay)}</label>
             {selectedLists.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
                 {selectedLists.map((l) => (
@@ -4638,12 +4714,12 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
                   }
                 }}
                 disabled={status === "running"}
-                placeholder="vd: HSK1… rồi Enter"
+                placeholder={t("bulk_list_placeholder", meaningDisplay)}
                 list="existing-bulk-lists"
                 style={inputStyle}
               />
               <button type="button" onClick={() => addList(listTypeahead)} disabled={status === "running"} className="ghost-btn" style={ghostBtnStyle}>
-                + Thêm
+                {t("bulk_add", meaningDisplay)}
               </button>
             </div>
             <datalist id="existing-bulk-lists">
@@ -4680,16 +4756,16 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             {status !== "running" ? (
               <button type="button" onClick={startImport} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13 }}>
-                Bắt đầu nhập
+                {t("bulk_start", meaningDisplay)}
               </button>
             ) : (
               <button type="button" onClick={handleCancel} className="ghost-btn" style={ghostBtnStyle}>
-                Dừng lại
+                {t("bulk_stop", meaningDisplay)}
               </button>
             )}
             {status === "done" && (
               <button type="button" onClick={handleReset} className="ghost-btn" style={ghostBtnStyle}>
-                Làm mới
+                {t("bulk_reset", meaningDisplay)}
               </button>
             )}
           </div>
@@ -4698,7 +4774,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
             <div style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 12, color: COLORS.inkSoft, marginBottom: 4 }}>
                 {progress.done} / {progress.total}
-                {status === "running" ? ` — đang xử lý: ${progress.current}` : " — hoàn tất"}
+                {status === "running" ? ` ${t("bulk_processing", meaningDisplay, progress.current)}` : ` ${t("bulk_complete", meaningDisplay)}`}
               </div>
               <div style={{ height: 6, background: COLORS.grid, borderRadius: 3, overflow: "hidden" }}>
                 <div
@@ -4720,13 +4796,13 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
           {status === "done" && !(results.length === 1 && results[0].item === "") && (
             <div style={{ fontSize: 12.5, fontWeight: 600 }}>
               <div style={{ color: COLORS.bamboo, marginBottom: 4 }}>
-                ✓ Đã thêm mới {addedCount} mục, gắn thêm danh sách cho {taggedCount} mục đã có sẵn.
+                {t("bulk_summary", meaningDisplay, addedCount, taggedCount)}
               </div>
               {errorResults.length > 0 && (
                 <div style={{ color: COLORS.error }}>
-                  ✗ {errorResults.length} mục thất bại: {errorResults.map((r) => r.item).join(", ")}
+                  {t("bulk_errors", meaningDisplay, errorResults.length, errorResults.map((r) => r.item).join(", "))}
                   <div style={{ fontWeight: 400, fontSize: 11.5, marginTop: 2 }}>
-                    Có thể thử lại bằng cách dán riêng các mục này và bấm "Bắt đầu nhập" lần nữa.
+                    {t("bulk_retry_hint", meaningDisplay)}
                   </div>
                 </div>
               )}
@@ -4895,7 +4971,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
    already exist (or can be auto-filled on the spot), tag it with lists,
    and save it. Only shows/manages the current user's own custom words —
    the built-in seed words aren't editable here. ---------- */
-function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord, userId, onRequireAuth, onViewPremium, onQuotaUpdate }) {
+function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddCharacter, onAddBushou, onAddWord, onDeleteWord, userId, onRequireAuth, onViewPremium, onQuotaUpdate, meaningDisplay }) {
   const [expanded, setExpanded] = useState(false);
   const [wordInput, setWordInput] = useState("");
   const [pinyin, setPinyin] = useState("");
@@ -5065,7 +5141,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
     } catch (err) {
       console.error("Word lookup failed:", err);
       setWordLookupStatus("error");
-      setMessage({ type: "error", text: "Tra cứu từ thất bại. Vui lòng nhập tay pinyin / nghĩa / Hán Việt." });
+      setMessage({ type: "error", text: t("word_lookup_failed", meaningDisplay) });
     }
   }
 
@@ -5106,24 +5182,24 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
     setMessage(null);
     const word = chars.join("");
     if (chars.length < 2) {
-      setMessage({ type: "error", text: "Từ cần có ít nhất 2 chữ Hán." });
+      setMessage({ type: "error", text: t("word_need_2_chars", meaningDisplay) });
       return;
     }
     if (!allReady) {
-      setMessage({ type: "error", text: "Mỗi chữ trong từ cần có bộ thủ trước — dùng nút \"Tự động điền\" bên dưới cho những chữ còn thiếu." });
+      setMessage({ type: "error", text: t("word_need_components", meaningDisplay) });
       return;
     }
     if (!pinyin.trim() || !meaning.trim()) {
-      setMessage({ type: "error", text: "Vui lòng điền pinyin và nghĩa của từ." });
+      setMessage({ type: "error", text: t("word_need_pinyin_meaning", meaningDisplay) });
       return;
     }
     if (wordList.some((w) => w.word === word)) {
-      setMessage({ type: "error", text: `Từ "${word}" đã có trong kho dữ liệu.` });
+      setMessage({ type: "error", text: t("word_exists", meaningDisplay, word) });
       return;
     }
     const listsToSave = selectedLists.length > 0 ? selectedLists : ["Chưa phân loại"];
     onAddWord({ word, chars, pinyin: pinyin.trim(), meaning: meaning.trim(), meaning_vi: meaningVi.trim(), sv: sv.trim(), lists: listsToSave });
-    setMessage({ type: "success", text: `Đã thêm từ "${word}"!` });
+    setMessage({ type: "success", text: t("word_added_success", meaningDisplay, word) });
     setWordInput("");
     setPinyin("");
     setMeaning("");
@@ -5169,14 +5245,13 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
           textAlign: "center",
         }}
       >
-        {expanded ? "▲" : "▼"} Thêm từ nhiều chữ (vd: 你好)
+        {expanded ? "▲" : "▼"} {t("word_toggle", meaningDisplay)}
       </button>
 
       {expanded && (
         <div style={{ marginTop: 12 }}>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>
-            Gõ một từ có từ 2 chữ Hán trở lên, rồi rời khỏi ô (hoặc bấm nút) để tự động điền pinyin, nghĩa, Hán
-            Việt, và bộ thủ cho từng chữ còn thiếu — tất cả trong một bước.
+            {t("word_instructions", meaningDisplay)}
           </div>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
@@ -5199,7 +5274,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
               className="ghost-btn"
               style={{ ...ghostBtnStyle, padding: "8px 12px", fontSize: 12.5, opacity: chars.length < 2 ? 0.4 : 1, whiteSpace: "nowrap" }}
             >
-              {wordLookupStatus === "loading" ? "Đang tra…" : "🔍 Tự động điền"}
+              {wordLookupStatus === "loading" ? t("word_looking_up", meaningDisplay) : t("word_autofill", meaningDisplay)}
             </button>
           </div>
 
@@ -5223,10 +5298,10 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                   >
                     <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20 }}>{ch}</span>
                     {ready ? (
-                      <span style={{ fontSize: 11, color: COLORS.bamboo, fontWeight: 600 }}>✓ sẵn sàng</span>
+                      <span style={{ fontSize: 11, color: COLORS.bamboo, fontWeight: 600 }}>{t("word_ready", meaningDisplay)}</span>
                     ) : (
                       <>
-                        <span style={{ fontSize: 11, color: COLORS.error }}>chưa có bộ thủ</span>
+                        <span style={{ fontSize: 11, color: COLORS.error }}>{t("word_no_components", meaningDisplay)}</span>
                         <button
                           type="button"
                           onClick={() => handleAutoFillChar(ch)}
@@ -5234,31 +5309,31 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                           className="ghost-btn"
                           style={{ ...ghostBtnStyle, padding: "3px 8px", fontSize: 10.5, borderColor: COLORS.gold, color: COLORS.gold }}
                         >
-                          {status === "loading" ? "Đang tra…" : "🔍 Tự động điền"}
+                          {status === "loading" ? t("word_looking_up", meaningDisplay) : t("word_autofill", meaningDisplay)}
                         </button>
                       </>
                     )}
-                    {status === "error" && <span style={{ fontSize: 10.5, color: COLORS.error }}>thất bại</span>}
+                    {status === "error" && <span style={{ fontSize: 10.5, color: COLORS.error }}>{t("word_failed", meaningDisplay)}</span>}
                   </div>
                 );
               })}
             </div>
           )}
 
-          <FieldRow label="Pinyin cả từ">
-            <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
+          <FieldRow label={t("word_pinyin_label", meaningDisplay)}>
+            <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder={t("word_auto_or_manual", meaningDisplay)} style={inputStyle} />
           </FieldRow>
-          <FieldRow label="Nghĩa cả từ (English)">
-            <input value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
+          <FieldRow label={t("word_meaning_en_label", meaningDisplay)}>
+            <input value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder={t("word_auto_or_manual", meaningDisplay)} style={inputStyle} />
           </FieldRow>
-          <FieldRow label="Nghĩa cả từ (Tiếng Việt)">
-            <input value={meaningVi} onChange={(e) => setMeaningVi(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
+          <FieldRow label={t("word_meaning_vi_label", meaningDisplay)}>
+            <input value={meaningVi} onChange={(e) => setMeaningVi(e.target.value)} placeholder={t("word_auto_or_manual", meaningDisplay)} style={inputStyle} />
           </FieldRow>
-          <FieldRow label="Hán Việt (tùy chọn)">
-            <input value={sv} onChange={(e) => setSv(e.target.value)} placeholder="tự động điền, hoặc nhập tay" style={inputStyle} />
+          <FieldRow label={t("word_hanviet_label", meaningDisplay)}>
+            <input value={sv} onChange={(e) => setSv(e.target.value)} placeholder={t("word_auto_or_manual", meaningDisplay)} style={inputStyle} />
           </FieldRow>
 
-          <FieldRow label="Danh sách (Lists)">
+          <FieldRow label={t("word_lists_label", meaningDisplay)}>
             <div style={{ flex: 1 }}>
               {selectedLists.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
@@ -5299,12 +5374,12 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                       addList(listTypeahead);
                     }
                   }}
-                  placeholder="vd: Thành ngữ… rồi Enter"
+                  placeholder={t("word_list_placeholder", meaningDisplay)}
                   list="existing-word-lists"
                   style={inputStyle}
                 />
                 <button type="button" onClick={() => addList(listTypeahead)} className="ghost-btn" style={ghostBtnStyle}>
-                  + Thêm
+                  {t("word_add_list", meaningDisplay)}
                 </button>
               </div>
               <datalist id="existing-word-lists">
@@ -5346,7 +5421,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
 
           <div style={{ textAlign: "center", marginTop: 12 }}>
             <button type="button" onClick={handleSaveWord} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 20px", fontSize: 13 }}>
-              Lưu từ
+              {t("word_save", meaningDisplay)}
             </button>
           </div>
         </div>
@@ -6453,7 +6528,9 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
       <div style={{ marginTop: 4 }}>
         <MeaningBoxes meaning={w.meaning} meaningVi={w.meaning_vi} meaningDisplay={meaningDisplay} />
       </div>
-      {w.sv && <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 4, fontWeight: 600 }}>HV: {w.sv}</div>}
+      {w.sv && meaningDisplay !== "en" && (
+        <div style={{ color: COLORS.bamboo, fontSize: 11.5, marginTop: 4, fontWeight: 600 }}>HV: {w.sv}</div>
+      )}
       {isAdmin && (
         <button
           type="button"
@@ -6599,7 +6676,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 18, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{w.pinyin}</strong></span>
-          {w.sv && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{w.sv}</strong></span>}
+          {w.sv && meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{w.sv}</strong></span>}
         </div>
 
         {characterList && (
@@ -7196,7 +7273,9 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <div style={{ marginTop: 4 }}>
             <MeaningBoxes meaning={c.meaning} meaningVi={c.meaning_vi} meaningDisplay={meaningDisplay} />
           </div>
-          <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 4, fontWeight: 600 }}>HV: {c.sv}</div>
+          {meaningDisplay !== "en" && (
+            <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 4, fontWeight: 600 }}>HV: {c.sv}</div>
+          )}
           {isAdmin && (
             <button
               type="button"
@@ -7396,7 +7475,7 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 22, marginBottom: 12, fontSize: 16, flexWrap: "wrap" }}>
           <span style={{ color: COLORS.sealDark }}>Pinyin: <strong>{c.pinyin}</strong></span>
-          <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{c.sv}</strong></span>
+          {meaningDisplay !== "en" && <span style={{ color: COLORS.bamboo }}>Hán Việt: <strong>{c.sv}</strong></span>}
         </div>
 
         <div style={{ marginBottom: 18 }}>
@@ -7601,6 +7680,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
                 hasOverride={overrideBushouKeys ? overrideBushouKeys.has(b.char) : false}
                 onPromoteBushou={onPromoteBushou}
                 onWithdrawBushou={onWithdrawBushou}
+                meaningDisplay={meaningDisplay}
               />
             ))}
           </div>
@@ -7614,7 +7694,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
    Saving just re-upserts the same char via onAddBushou (addBushouRow),
    which already overwrites on conflict — so "add" and "edit" are the same
    operation under the hood, exactly like character editing works. ---------- */
-function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromoteBushou, onWithdrawBushou }) {
+function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromoteBushou, onWithdrawBushou, meaningDisplay }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   const [pinyin, setPinyin] = useState(b.pinyin);
@@ -7753,7 +7833,9 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
           <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 30, color: COLORS.ink }}>{b.char}</div>
           <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{b.pinyin}</div>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{b.meaning}</div>
-          <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {b.sv}</div>
+          {meaningDisplay !== "en" && (
+            <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {b.sv}</div>
+          )}
           {isAdmin && (
             <button
               type="button"
