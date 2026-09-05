@@ -667,6 +667,30 @@ const UI_TEXT = {
     vi: "Tra cứu tự động thất bại. Vui lòng nhập pinyin / nghĩa / Hán Việt thủ công.",
     en: "Auto-lookup failed. Please enter pinyin / meaning / Sino-Vietnamese manually.",
   },
+  add_list_placeholder: { vi: "vd: HSK1, Gia đình, Bài 5… rồi Enter", en: "e.g. HSK1, Family, Lesson 5… then Enter" },
+  add_list_add_button: { vi: "+ Thêm", en: "+ Add" },
+  quota_admin_usage: (n) => ({ vi: `${n} lượt đã dùng · không giới hạn`, en: `${n} lookups used · unlimited` }),
+  quota_remaining: (remaining, limit) => ({
+    vi: `${remaining}/${limit} lượt tra cứu còn lại`,
+    en: `${remaining}/${limit} lookups remaining`,
+  }),
+
+  add_note_p1: {
+    vi: "Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu của người học.",
+    en: "Note: the lookup tool sometimes splits a character's components imprecisely or differently than a learner would want.",
+  },
+  add_note_p2: {
+    vi: "Ví dụ: 超 sẽ được công cụ tách thành 走 và 召. Tuy nhiên, người học cũng có thể tách chữ này thành 3 bộ 走, 刀, 口, hoặc 走 và 召, tùy theo nguyện vọng cá nhân.",
+    en: "Example: the tool would split 超 into 走 and 召. However, a learner could also split this character into 3 parts (走, 刀, 口) or into 走 and 召, depending on personal preference.",
+  },
+  add_note_p3: {
+    vi: "Người học sẽ phải nhập thủ công các bộ thành phần trong trường hợp người học muốn tách bộ thành phần theo cách khác với mặc định của thanh công cụ.",
+    en: "Learners will need to enter components manually if they want to split them differently from the tool's default.",
+  },
+  add_note_p4: {
+    vi: "Ngoài ra, thanh công cụ đôi lúc vẫn có thể tách sai bộ thành phần. Người học cần tra soát lại với các hệ thống từ điển và nhập lại thủ công nếu phát hiện sai sót. Các từ điển tham khảo:",
+    en: "Also, the tool can occasionally split components incorrectly. Double-check against a dictionary and re-enter manually if you spot an error. Reference dictionaries:",
+  },
 
   // Bộ thủ (Radicals tab)
   radicals_header_p1: {
@@ -1894,7 +1918,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <Header meaningDisplay={meaningDisplay} />
-        {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} />}
+        {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />}
         <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
         <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />
 
@@ -2071,7 +2095,7 @@ function Header({ meaningDisplay }) {
 
 /* ---------- Countdown showing how many auto-fill lookups this user has
    left. Admins are unlimited, so it shows their usage without a limit. ---------- */
-function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
+function LookupQuotaBadge({ count, limit, tier, isAdmin, meaningDisplay }) {
   const remaining = Math.max(0, limit - count);
   const isLow = !isAdmin && remaining <= Math.max(5, limit * 0.1);
   const isOut = !isAdmin && remaining === 0;
@@ -2095,7 +2119,7 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin }) {
         </span>
         <span style={{ width: 1, height: 20, background: accentColor, opacity: 0.35 }} />
         <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.ink }}>
-          {isAdmin ? `${count} lượt đã dùng · không giới hạn` : `${remaining}/${limit} lượt tra cứu còn lại`}
+          {isAdmin ? t("quota_admin_usage", meaningDisplay, count) : t("quota_remaining", meaningDisplay, remaining, limit)}
         </span>
       </div>
     </div>
@@ -4096,20 +4120,16 @@ function AddTab({
             }}
           >
             <p style={{ margin: 0, marginBottom: 10 }}>
-              Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu
-              của người học.
+              {t("add_note_p1", meaningDisplay)}
             </p>
             <p style={{ margin: 0, marginBottom: 10 }}>
-              Ví dụ: 超 sẽ được công cụ tách thành 走 và 召. Tuy nhiên, người học cũng có thể tách chữ này thành 3 bộ 走,
-              刀, 口, hoặc 走 và 召, tùy theo nguyện vọng cá nhân.
+              {t("add_note_p2", meaningDisplay)}
             </p>
             <p style={{ margin: 0, marginBottom: 10 }}>
-              Người học sẽ phải nhập thủ công các bộ thành phần trong trường hợp người học muốn tách bộ thành phần
-              theo cách khác với mặc định của thanh công cụ.
+              {t("add_note_p3", meaningDisplay)}
             </p>
             <p style={{ margin: 0, marginBottom: 10 }}>
-              Ngoài ra, thanh công cụ đôi lúc vẫn có thể tách sai bộ thành phần. Người học cần tra soát lại với các hệ
-              thống từ điển và nhập lại thủ công nếu phát hiện sai sót. Các từ điển tham khảo:
+              {t("add_note_p4", meaningDisplay)}
             </p>
             <p style={{ margin: 0 }}>
               <a href="https://hvdic.thivien.net/" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.sealDark }}>
@@ -4306,12 +4326,12 @@ function AddTab({
                     addList(listTypeahead);
                   }
                 }}
-                placeholder="vd: HSK1, Gia đình, Bài 5… rồi Enter"
+                placeholder={t("add_list_placeholder", meaningDisplay)}
                 list="existing-lists"
                 style={inputStyle}
               />
               <button type="button" onClick={() => addList(listTypeahead)} className="ghost-btn" style={ghostBtnStyle}>
-                + Thêm
+                {t("add_list_add_button", meaningDisplay)}
               </button>
             </div>
             <datalist id="existing-lists">
