@@ -2156,17 +2156,17 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 /* ---------- Header ---------- */
 function Header({ meaningDisplay }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginBottom: 22, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "clamp(10px, 3vw, 20px)", marginBottom: 22, flexWrap: "nowrap" }}>
       <img
         src={LOGO_DATA_URI}
         alt="minouQ - Scholastic Joy"
-        style={{ height: 127, width: "auto", flexShrink: 0 }}
+        style={{ width: "clamp(70px, 20vw, 195px)", height: "auto", flexShrink: 0 }}
       />
-      <div style={{ textAlign: "left" }}>
+      <div style={{ textAlign: "left", minWidth: 0 }}>
         <div
           style={{
             fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
-            fontSize: 44,
+            fontSize: "clamp(22px, 6vw, 44px)",
             fontWeight: 700,
             letterSpacing: 4,
             color: COLORS.ink,
@@ -2178,7 +2178,7 @@ function Header({ meaningDisplay }) {
           <div
             style={{
               fontFamily: "'Noto Sans', Inter, 'Segoe UI', sans-serif",
-              fontSize: 17,
+              fontSize: "clamp(11px, 2.2vw, 17px)",
               fontWeight: 600,
               color: COLORS.sealDark,
               marginTop: 6,
@@ -2193,7 +2193,7 @@ function Header({ meaningDisplay }) {
           <div
             style={{
               fontFamily: meaningDisplay === "en" ? "'Noto Sans', Inter, 'Segoe UI', sans-serif" : undefined,
-              fontSize: meaningDisplay === "en" ? 17 : 12,
+              fontSize: meaningDisplay === "en" ? "clamp(11px, 2.2vw, 17px)" : "clamp(9px, 1.6vw, 12px)",
               fontWeight: meaningDisplay === "en" ? 600 : 400,
               color: meaningDisplay === "en" ? COLORS.sealDark : COLORS.inkSoft,
               marginTop: 6,
