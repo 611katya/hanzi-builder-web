@@ -2160,15 +2160,15 @@ function Header({ meaningDisplay }) {
       <img
         src={LOGO_DATA_URI}
         alt="minouQ - Scholastic Joy"
-        style={{ width: "clamp(70px, 20vw, 195px)", height: "auto", flexShrink: 0 }}
+        style={{ width: "clamp(90px, 26vw, 260px)", height: "auto", flexShrink: 0 }}
       />
       <div style={{ textAlign: "left", minWidth: 0 }}>
         <div
           style={{
             fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
-            fontSize: "clamp(22px, 6vw, 44px)",
+            fontSize: "clamp(18px, 4.5vw, 34px)",
             fontWeight: 700,
-            letterSpacing: 4,
+            letterSpacing: 3,
             color: COLORS.ink,
           }}
         >
@@ -2178,11 +2178,11 @@ function Header({ meaningDisplay }) {
           <div
             style={{
               fontFamily: "'Noto Sans', Inter, 'Segoe UI', sans-serif",
-              fontSize: "clamp(11px, 2.2vw, 17px)",
+              fontSize: "clamp(9px, 1.7vw, 13px)",
               fontWeight: 600,
               color: COLORS.sealDark,
-              marginTop: 6,
-              maxWidth: 480,
+              marginTop: 5,
+              maxWidth: 380,
               lineHeight: 1.4,
             }}
           >
@@ -2193,13 +2193,13 @@ function Header({ meaningDisplay }) {
           <div
             style={{
               fontFamily: meaningDisplay === "en" ? "'Noto Sans', Inter, 'Segoe UI', sans-serif" : undefined,
-              fontSize: meaningDisplay === "en" ? "clamp(11px, 2.2vw, 17px)" : "clamp(9px, 1.6vw, 12px)",
+              fontSize: meaningDisplay === "en" ? "clamp(9px, 1.7vw, 13px)" : "clamp(8px, 1.3vw, 10px)",
               fontWeight: meaningDisplay === "en" ? 600 : 400,
               color: meaningDisplay === "en" ? COLORS.sealDark : COLORS.inkSoft,
-              marginTop: 6,
+              marginTop: 5,
               letterSpacing: meaningDisplay === "en" ? undefined : 0.2,
               fontStyle: meaningDisplay === "en" ? "normal" : "italic",
-              maxWidth: meaningDisplay === "en" ? 480 : 460,
+              maxWidth: meaningDisplay === "en" ? 380 : 360,
               lineHeight: meaningDisplay === "en" ? 1.4 : 1.5,
             }}
           >
