@@ -379,19 +379,19 @@ const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
 
 const COLORS = {
-  paper: "#FDFCFA",
-  paperDark: "#F3F1EA",
-  card: "#FFFFFF",
+  paper: "#F2F5F0",
+  paperDark: "#E7ECE3",
+  card: "#FDFEFC",
   ink: "#24261F",
-  inkSoft: "#8B8A80",
+  inkSoft: "#7A8177",
   seal: "#3F6B4A",
   sealDark: "#2F5238",
-  bamboo: "#A6791E",
-  bambooDark: "#8A6419",
-  gold: "#A6791E",
-  grid: "#E4EBE0",
-  chipBg: "#F1F5EE",
-  error: "#B3401F",
+  bamboo: "#5B7285",
+  bambooDark: "#46596A",
+  gold: "#5B7285",
+  grid: "#DCE3D9",
+  chipBg: "#EAF0E7",
+  error: "#A8482F",
 };
 
 /* ============================================================
