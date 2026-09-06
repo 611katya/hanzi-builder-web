@@ -376,7 +376,7 @@ function buildCharGroups(chars, characterList) {
 
 /* ---------- Fonts + design tokens ---------- */
 const FONT_IMPORT =
-  "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
+  "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans:wght@400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700;800&display=swap');";
 
 const COLORS = {
   paper: "#FFFFFF",
@@ -1331,7 +1331,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div
           style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Noto Sans', 'Inter', sans-serif",
             padding: 30,
             maxWidth: 600,
             margin: "40px auto",
@@ -1889,7 +1889,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   return (
     <div
       style={{
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "'Noto Sans', 'Inter', sans-serif",
         background: COLORS.paper,
         minHeight: "100%",
         color: COLORS.ink,
@@ -1907,7 +1907,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         .ghost-btn:hover { background: rgba(43,41,37,0.06) !important; }
         @keyframes popIn { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .pop { animation: popIn 0.28s cubic-bezier(.2,1.4,.4,1) both; }
-        input, select, textarea { font-family: 'Inter', sans-serif; }
+        input, select, textarea { font-family: 'Noto Sans', 'Inter', sans-serif; }
         ::selection { background: ${COLORS.gold}55; }
         @media (max-width: 480px) {
           .field-row { flex-direction: column; align-items: flex-start !important; gap: 4px !important; }
@@ -2058,7 +2058,7 @@ function Header({ meaningDisplay }) {
       {meaningDisplay !== "en" && (
         <div
           style={{
-            fontFamily: "Inter, 'Segoe UI', sans-serif",
+            fontFamily: "'Noto Sans', Inter, 'Segoe UI', sans-serif",
             fontSize: 17,
             fontWeight: 600,
             color: COLORS.sealDark,
@@ -2075,7 +2075,7 @@ function Header({ meaningDisplay }) {
       {meaningDisplay !== "vi" && (
         <div
           style={{
-            fontFamily: meaningDisplay === "en" ? "Inter, 'Segoe UI', sans-serif" : undefined,
+            fontFamily: meaningDisplay === "en" ? "'Noto Sans', Inter, 'Segoe UI', sans-serif" : undefined,
             fontSize: meaningDisplay === "en" ? 17 : 12,
             fontWeight: meaningDisplay === "en" ? 600 : 400,
             color: meaningDisplay === "en" ? COLORS.sealDark : COLORS.inkSoft,
