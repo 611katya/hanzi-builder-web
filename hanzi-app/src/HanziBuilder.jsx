@@ -3546,7 +3546,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
               onChange={(e) => switchListMidSession(e.target.value)}
               style={{ ...selectStyle, width: 220, textAlign: "center", display: "inline-block", fontSize: 12 }}
             >
-              <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả danh sách</option>
+              <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("wp_all_lists", meaningDisplay)}</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                   {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
