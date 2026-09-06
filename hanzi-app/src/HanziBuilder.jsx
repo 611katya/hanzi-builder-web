@@ -1014,6 +1014,71 @@ async function getAuthHeaders() {
 
 /* ---------- Shown when a guest tries to use a lookup (auto-fill) —
    lookups cost real money per call, so they require a real account. ---------- */
+function LanguagePromptModal({ onChoose }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,28,10,0.55)",
+        zIndex: 1400,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          background: COLORS.card,
+          borderRadius: 14,
+          padding: "28px 24px",
+          width: "90%",
+          maxWidth: 380,
+          textAlign: "center",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+        }}
+      >
+        <div style={{ fontFamily: "'Noto Serif SC', serif", fontSize: 28, fontWeight: 700, color: COLORS.ink, marginBottom: 12 }}>
+          学部首学汉字
+        </div>
+        <div style={{ fontSize: 14.5, color: COLORS.ink, marginBottom: 4, fontWeight: 600 }}>
+          Chọn ngôn ngữ hiển thị
+        </div>
+        <div style={{ fontSize: 14.5, color: COLORS.ink, marginBottom: 20, fontWeight: 600 }}>
+          Choose your display language
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => onChoose("both")}
+            className="seal-btn"
+            style={{ ...sealBtnStyle, padding: "12px 20px", fontSize: 14 }}
+          >
+            Tiếng Việt + English
+          </button>
+          <button
+            type="button"
+            onClick={() => onChoose("vi")}
+            className="ghost-btn"
+            style={{ ...ghostBtnStyle, padding: "11px 20px", fontSize: 14 }}
+          >
+            Chỉ Tiếng Việt
+          </button>
+          <button
+            type="button"
+            onClick={() => onChoose("en")}
+            className="ghost-btn"
+            style={{ ...ghostBtnStyle, padding: "11px 20px", fontSize: 14 }}
+          >
+            English Only
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AuthRequiredModal({ onClose, onSignIn }) {
   return (
     <div
@@ -1420,6 +1485,34 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
     },
     [userId]
   );
+
+  // Ask first-time guest visitors to pick a language up front, rather than
+  // leaving them to find the small toggle on their own. Only for guests --
+  // logged-in users already have a saved preference (or a sensible default)
+  // tied to their account. Remembered in localStorage so it only asks once
+  // per browser, not on every visit.
+  const [showLangPrompt, setShowLangPrompt] = useState(false);
+  useEffect(() => {
+    if (userId) return; // logged in -- never show this to them
+    let alreadyChosen = false;
+    try {
+      alreadyChosen = localStorage.getItem("hanzi_guest_lang_chosen") === "1";
+    } catch (e) {
+      // localStorage unavailable (e.g. private browsing) -- just skip the prompt
+      alreadyChosen = true;
+    }
+    if (!alreadyChosen) setShowLangPrompt(true);
+  }, [userId]);
+
+  function handleLangPromptChoice(choice) {
+    updateMeaningDisplay(choice);
+    setShowLangPrompt(false);
+    try {
+      localStorage.setItem("hanzi_guest_lang_chosen", "1");
+    } catch (e) {
+      // ignore -- worst case it asks again next visit
+    }
+  }
 
   // List access rules -- loaded for everyone, including guests, since list
   // NAMES are meant to be visible to everyone (that's the upgrade hook).
@@ -1930,6 +2023,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
           .autofill-hint { padding-left: 0 !important; }
         }
       `}</style>
+
+      {showLangPrompt && <LanguagePromptModal onChoose={handleLangPromptChoice} />}
 
       <div style={{ position: "fixed", top: 44, right: 16, zIndex: 40 }}>
         <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
