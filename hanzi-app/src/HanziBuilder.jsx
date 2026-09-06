@@ -2156,59 +2156,57 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 /* ---------- Header ---------- */
 function Header({ meaningDisplay }) {
   return (
-    <div style={{ textAlign: "center", marginBottom: 22 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20, marginBottom: 22, flexWrap: "wrap" }}>
       <img
         src={LOGO_DATA_URI}
         alt="minouQ - Scholastic Joy"
-        style={{ height: 56, width: "auto", marginBottom: 10 }}
+        style={{ height: 64, width: "auto", flexShrink: 0 }}
       />
-      <div
-        style={{
-          fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
-          fontSize: 44,
-          fontWeight: 700,
-          letterSpacing: 4,
-          color: COLORS.ink,
-        }}
-      >
-        学部首学汉字
+      <div style={{ textAlign: "left" }}>
+        <div
+          style={{
+            fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
+            fontSize: 44,
+            fontWeight: 700,
+            letterSpacing: 4,
+            color: COLORS.ink,
+          }}
+        >
+          学部首学汉字
+        </div>
+        {meaningDisplay !== "en" && (
+          <div
+            style={{
+              fontFamily: "'Noto Sans', Inter, 'Segoe UI', sans-serif",
+              fontSize: 17,
+              fontWeight: 600,
+              color: COLORS.sealDark,
+              marginTop: 6,
+              maxWidth: 480,
+              lineHeight: 1.4,
+            }}
+          >
+            {UI_TEXT.header_subtitle.vi}
+          </div>
+        )}
+        {meaningDisplay !== "vi" && (
+          <div
+            style={{
+              fontFamily: meaningDisplay === "en" ? "'Noto Sans', Inter, 'Segoe UI', sans-serif" : undefined,
+              fontSize: meaningDisplay === "en" ? 17 : 12,
+              fontWeight: meaningDisplay === "en" ? 600 : 400,
+              color: meaningDisplay === "en" ? COLORS.sealDark : COLORS.inkSoft,
+              marginTop: 6,
+              letterSpacing: meaningDisplay === "en" ? undefined : 0.2,
+              fontStyle: meaningDisplay === "en" ? "normal" : "italic",
+              maxWidth: meaningDisplay === "en" ? 480 : 460,
+              lineHeight: meaningDisplay === "en" ? 1.4 : 1.5,
+            }}
+          >
+            {UI_TEXT.header_subtitle.en}
+          </div>
+        )}
       </div>
-      {meaningDisplay !== "en" && (
-        <div
-          style={{
-            fontFamily: "'Noto Sans', Inter, 'Segoe UI', sans-serif",
-            fontSize: 17,
-            fontWeight: 600,
-            color: COLORS.sealDark,
-            marginTop: 6,
-            maxWidth: 480,
-            marginLeft: "auto",
-            marginRight: "auto",
-            lineHeight: 1.4,
-          }}
-        >
-          {UI_TEXT.header_subtitle.vi}
-        </div>
-      )}
-      {meaningDisplay !== "vi" && (
-        <div
-          style={{
-            fontFamily: meaningDisplay === "en" ? "'Noto Sans', Inter, 'Segoe UI', sans-serif" : undefined,
-            fontSize: meaningDisplay === "en" ? 17 : 12,
-            fontWeight: meaningDisplay === "en" ? 600 : 400,
-            color: meaningDisplay === "en" ? COLORS.sealDark : COLORS.inkSoft,
-            marginTop: 6,
-            letterSpacing: meaningDisplay === "en" ? undefined : 0.2,
-            fontStyle: meaningDisplay === "en" ? "normal" : "italic",
-            maxWidth: meaningDisplay === "en" ? 480 : 460,
-            marginLeft: "auto",
-            marginRight: "auto",
-            lineHeight: meaningDisplay === "en" ? 1.4 : 1.5,
-          }}
-        >
-          {UI_TEXT.header_subtitle.en}
-        </div>
-      )}
     </div>
   );
 }
