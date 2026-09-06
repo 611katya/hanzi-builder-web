@@ -379,18 +379,18 @@ const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
 
 const COLORS = {
-  paper: "#FAFBF9",
-  paperDark: "#F0F1EC",
-  card: "#FDFEFC",
-  ink: "#1A1A1A",
-  inkSoft: "#5F5A54",
-  seal: "#74833E",
-  sealDark: "#4C5628",
-  bamboo: "#746D69",
-  bambooDark: "#5A544F",
-  gold: "#746D69",
-  grid: "#E5E7DF",
-  chipBg: "#F0F1E7",
+  paper: "#FFFFFF",
+  paperDark: "#F2F2F0",
+  card: "#FBFBFA",
+  ink: "#16181A",
+  inkSoft: "#5B6165",
+  seal: "#31708E",
+  sealDark: "#24586F",
+  bamboo: "#687864",
+  bambooDark: "#4F5D4C",
+  gold: "#687864",
+  grid: "#E9E9E7",
+  chipBg: "#F2F2F0",
   error: "#A8482F",
 };
 
