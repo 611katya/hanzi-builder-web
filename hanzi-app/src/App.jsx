@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession, useRecoveryMode, AuthScreen, ResetPasswordScreen } from "./Auth.jsx";
 import { supabase } from "./supabaseClient.js";
 import HanziBuilder from "./HanziBuilder.jsx";
@@ -7,6 +7,10 @@ export default function App() {
   const session = useSession();
   const [showAuth, setShowAuth] = useState(false);
   const [recovery, setRecovery] = useRecoveryMode();
+
+  useEffect(() => {
+    document.title = "Study Hanzi";
+  }, []);
 
   if (session === undefined) {
     return <div style={{ padding: 40, textAlign: "center", fontFamily: "system-ui" }}>Loading…</div>;
@@ -45,7 +49,7 @@ export default function App() {
     <div>
       <TopBar>
         <span>Browsing as guest — changes won't be saved</span>
-        <button onClick={() => setShowAuth(true)} style={{ ...buttonStyle, background: "#556B2F", borderColor: "#556B2F", color: "#FBF9EF" }}>
+        <button onClick={() => setShowAuth(true)} style={{ ...buttonStyle, background: "#31708E", borderColor: "#31708E", color: "#FBF9EF" }}>
           Log in / Sign up
         </button>
       </TopBar>
@@ -65,7 +69,7 @@ function TopBar({ children }) {
         padding: "8px 16px",
         fontSize: 12.5,
         fontFamily: "system-ui, sans-serif",
-        color: "#7A7A56",
+        color: "#33383B",
       }}
     >
       {children}
@@ -74,7 +78,7 @@ function TopBar({ children }) {
 }
 
 const buttonStyle = {
-  border: "1px solid #DDD9BB",
+  border: "2px solid #C7C9C5",
   background: "transparent",
   borderRadius: 6,
   padding: "4px 10px",

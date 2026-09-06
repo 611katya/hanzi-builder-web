@@ -975,7 +975,7 @@ function Chip({ info, onClick, disabled, big, tone }) {
         justifyContent: "center",
         borderRadius: 8,
         border: `1.5px solid ${tone === "seal" ? COLORS.seal : COLORS.gold}`,
-        background: disabled ? "rgba(169,130,47,0.12)" : COLORS.chipBg,
+        background: disabled ? "rgba(80,133,165,0.12)" : COLORS.chipBg,
         color: disabled ? COLORS.inkSoft : COLORS.ink,
         cursor: disabled ? "default" : "pointer",
         opacity: disabled ? 0.35 : 1,
@@ -1335,20 +1335,20 @@ class ErrorBoundary extends React.Component {
             padding: 30,
             maxWidth: 600,
             margin: "40px auto",
-            background: "#FAF9EF",
-            border: "1px solid #DDD9BB",
+            background: "#FFFFFF",
+            border: "2px solid #C7C9C5",
             borderRadius: 10,
-            color: "#2A2A16",
+            color: "#16181A",
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 8, color: "#A6432E" }}>Đã xảy ra lỗi · Something went wrong</div>
-          <div style={{ fontSize: 13, marginBottom: 14, color: "#7A7A56" }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: "#A8482F" }}>Đã xảy ra lỗi · Something went wrong</div>
+          <div style={{ fontSize: 13, marginBottom: 14, color: "#33383B" }}>
             {String(this.state.error && this.state.error.message ? this.state.error.message : this.state.error)}
           </div>
           <button
             onClick={() => this.setState({ error: null })}
             style={{
-              background: "#A6432E",
+              background: "#A8482F",
               border: "none",
               color: "#FBF9EF",
               borderRadius: 7,
@@ -2102,7 +2102,7 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin, meaningDisplay }) {
   const isLow = !isAdmin && remaining <= Math.max(5, limit * 0.1);
   const isOut = !isAdmin && remaining === 0;
   const accentColor = isOut ? COLORS.error : isLow ? COLORS.gold : COLORS.seal;
-  const bg = isOut ? "rgba(166,67,46,0.08)" : isLow ? "rgba(89,89,0,0.08)" : "rgba(85,107,47,0.07)";
+  const bg = isOut ? "rgba(168,72,47,0.08)" : isLow ? "rgba(80,133,165,0.08)" : "rgba(49,112,142,0.07)";
   return (
     <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
       <div
@@ -3792,7 +3792,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                   padding: "4px 10px",
                   borderRadius: 999,
                   border: `1px solid ${brushSize === opt.id ? COLORS.seal : COLORS.grid}`,
-                  background: brushSize === opt.id ? "rgba(85,107,47,0.08)" : "transparent",
+                  background: brushSize === opt.id ? "rgba(49,112,142,0.08)" : "transparent",
                   color: brushSize === opt.id ? COLORS.seal : COLORS.inkSoft,
                   cursor: "pointer",
                 }}
@@ -4249,7 +4249,7 @@ function AddTab({
           </div>
 
           {newCompDraft && (
-            <div style={{ marginTop: 12, padding: 12, background: "rgba(169,130,47,0.08)", borderRadius: 8, border: `1px dashed ${COLORS.gold}` }}>
+            <div style={{ marginTop: 12, padding: 12, background: "rgba(80,133,165,0.08)", borderRadius: 8, border: `1px dashed ${COLORS.gold}` }}>
               <div style={{ fontSize: 12.5, marginBottom: 8 }}>
                 {t("add_new_component_before", meaningDisplay)}{" "}
                 <strong style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18 }}>{newCompDraft.char}</strong>{" "}
@@ -4328,7 +4328,7 @@ function AddTab({
                       padding: "3px 6px 3px 10px",
                       borderRadius: 999,
                       border: `1px solid ${COLORS.seal}`,
-                      background: "rgba(174,58,42,0.08)",
+                      background: "rgba(168,72,47,0.08)",
                       color: COLORS.seal,
                     }}
                   >
@@ -4385,7 +4385,7 @@ function AddTab({
                   padding: "3px 9px",
                   borderRadius: 999,
                   border: `1px solid ${selectedLists.includes(l) ? COLORS.seal : COLORS.grid}`,
-                  background: selectedLists.includes(l) ? "rgba(174,58,42,0.08)" : "transparent",
+                  background: selectedLists.includes(l) ? "rgba(168,72,47,0.08)" : "transparent",
                   color: selectedLists.includes(l) ? COLORS.seal : COLORS.inkSoft,
                   cursor: "pointer",
                 }}
@@ -4717,7 +4717,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
   return (
     <div
       style={{
-        background: "rgba(89,89,0,0.05)",
+        background: "rgba(80,133,165,0.05)",
         border: `1px dashed ${COLORS.gold}`,
         borderRadius: 8,
         padding: "12px 14px",
@@ -4788,7 +4788,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
                       padding: "3px 6px 3px 10px",
                       borderRadius: 999,
                       border: `1px solid ${COLORS.seal}`,
-                      background: "rgba(85,107,47,0.08)",
+                      background: "rgba(49,112,142,0.08)",
                       color: COLORS.seal,
                     }}
                   >
@@ -4841,7 +4841,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
                       padding: "3px 9px",
                       borderRadius: 999,
                       border: `1px solid ${selectedLists.includes(l) ? COLORS.seal : COLORS.grid}`,
-                      background: selectedLists.includes(l) ? "rgba(85,107,47,0.08)" : "transparent",
+                      background: selectedLists.includes(l) ? "rgba(49,112,142,0.08)" : "transparent",
                       color: selectedLists.includes(l) ? COLORS.seal : COLORS.inkSoft,
                       cursor: "pointer",
                     }}
@@ -4986,7 +4986,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
   return (
     <div
       style={{
-        background: "rgba(89,89,0,0.05)",
+        background: "rgba(80,133,165,0.05)",
         border: `1px dashed ${COLORS.gold}`,
         borderRadius: 8,
         padding: "12px 14px",
@@ -5311,7 +5311,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   return (
     <div
       style={{
-        background: "rgba(89,89,0,0.05)",
+        background: "rgba(80,133,165,0.05)",
         border: `1px dashed ${COLORS.gold}`,
         borderRadius: 8,
         padding: "12px 14px",
@@ -5449,7 +5449,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                         padding: "3px 6px 3px 10px",
                         borderRadius: 999,
                         border: `1px solid ${COLORS.seal}`,
-                        background: "rgba(85,107,47,0.08)",
+                        background: "rgba(49,112,142,0.08)",
                         color: COLORS.seal,
                       }}
                     >
@@ -5500,7 +5500,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                         padding: "3px 9px",
                         borderRadius: 999,
                         border: `1px solid ${selectedLists.includes(l) ? COLORS.seal : COLORS.grid}`,
-                        background: selectedLists.includes(l) ? "rgba(85,107,47,0.08)" : "transparent",
+                        background: selectedLists.includes(l) ? "rgba(49,112,142,0.08)" : "transparent",
                         color: selectedLists.includes(l) ? COLORS.seal : COLORS.inkSoft,
                         cursor: "pointer",
                       }}
@@ -5953,7 +5953,7 @@ function AdminPanel({ isAdmin, allListNamesInUse }) {
                           padding: "2px 7px",
                           borderRadius: 999,
                           border: `1px solid ${COLORS.error}`,
-                          background: "rgba(166,67,46,0.08)",
+                          background: "rgba(168,72,47,0.08)",
                           color: COLORS.error,
                         }}
                       >
@@ -6079,7 +6079,7 @@ function AdminPanel({ isAdmin, allListNamesInUse }) {
                                   padding: "4px 10px",
                                   borderRadius: 999,
                                   border: `1px solid ${editAllowedTiers.includes(t) ? COLORS.seal : COLORS.grid}`,
-                                  background: editAllowedTiers.includes(t) ? "rgba(85,107,47,0.08)" : "transparent",
+                                  background: editAllowedTiers.includes(t) ? "rgba(49,112,142,0.08)" : "transparent",
                                   color: editAllowedTiers.includes(t) ? COLORS.seal : COLORS.inkSoft,
                                   cursor: "pointer",
                                 }}
@@ -6106,7 +6106,7 @@ function AdminPanel({ isAdmin, allListNamesInUse }) {
                                     padding: "3px 6px 3px 10px",
                                     borderRadius: 999,
                                     border: `1px solid ${COLORS.seal}`,
-                                    background: "rgba(85,107,47,0.08)",
+                                    background: "rgba(49,112,142,0.08)",
                                     color: COLORS.seal,
                                   }}
                                 >
@@ -6476,7 +6476,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
                   padding: "2px 5px 2px 8px",
                   borderRadius: 999,
                   border: `1px solid ${COLORS.seal}`,
-                  background: "rgba(85,107,47,0.08)",
+                  background: "rgba(49,112,142,0.08)",
                   color: COLORS.seal,
                 }}
               >
@@ -6526,7 +6526,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
                   padding: "2px 7px",
                   borderRadius: 999,
                   border: `1px solid ${selectedLists.includes(l) ? COLORS.seal : COLORS.grid}`,
-                  background: selectedLists.includes(l) ? "rgba(85,107,47,0.08)" : "transparent",
+                  background: selectedLists.includes(l) ? "rgba(49,112,142,0.08)" : "transparent",
                   color: selectedLists.includes(l) ? COLORS.seal : COLORS.inkSoft,
                   cursor: "pointer",
                 }}
@@ -6648,7 +6648,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
             padding: "3px 8px",
             borderRadius: 999,
             border: `1px solid ${!hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold}`,
-            background: !hasOverride && isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+            background: !hasOverride && isOfficial ? "rgba(80,133,165,0.12)" : "rgba(80,133,165,0.06)",
             color: defaultStatus === "error" ? COLORS.error : !hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold,
             cursor: defaultStatus === "working" ? "default" : "pointer",
             opacity: defaultStatus === "working" ? 0.6 : 1,
@@ -7231,7 +7231,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                     padding: "2px 5px 2px 8px",
                     borderRadius: 999,
                     border: `1px solid ${COLORS.seal}`,
-                    background: "rgba(174,58,42,0.08)",
+                    background: "rgba(168,72,47,0.08)",
                     color: COLORS.seal,
                   }}
                 >
@@ -7337,7 +7337,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
             </button>
           </div>
           {newCompDraft && (
-            <div style={{ padding: 8, background: "rgba(169,130,47,0.08)", borderRadius: 6, border: `1px dashed ${COLORS.gold}`, marginBottom: 6 }}>
+            <div style={{ padding: 8, background: "rgba(80,133,165,0.08)", borderRadius: 6, border: `1px dashed ${COLORS.gold}`, marginBottom: 6 }}>
               <div style={{ fontSize: 11, marginBottom: 6 }}>
                 Bộ thủ <strong style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif" }}>{newCompDraft.char}</strong> chưa có — điền thông tin:
               </div>
@@ -7393,7 +7393,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                 padding: "3px 8px",
                 borderRadius: 999,
                 border: `1px solid ${!hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold}`,
-                background: !hasOverride && isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+                background: !hasOverride && isOfficial ? "rgba(80,133,165,0.12)" : "rgba(80,133,165,0.06)",
                 color: defaultStatus === "error" ? COLORS.error : !hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold,
                 cursor: defaultStatus === "working" ? "default" : "pointer",
                 opacity: defaultStatus === "working" ? 0.6 : 1,
@@ -7953,7 +7953,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
                 padding: "3px 8px",
                 borderRadius: 999,
                 border: `1px solid ${!hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold}`,
-                background: !hasOverride && isOfficial ? "rgba(89,89,0,0.12)" : "rgba(89,89,0,0.06)",
+                background: !hasOverride && isOfficial ? "rgba(80,133,165,0.12)" : "rgba(80,133,165,0.06)",
                 color: defaultStatus === "error" ? COLORS.error : !hasOverride && isOfficial ? COLORS.bamboo : COLORS.gold,
                 cursor: defaultStatus === "working" ? "default" : "pointer",
                 opacity: defaultStatus === "working" ? 0.6 : 1,
