@@ -601,7 +601,7 @@ const UI_TEXT = {
   word_pinyin_label: { vi: "Pinyin cả từ", en: "Whole-word Pinyin" },
   word_meaning_en_label: { vi: "Nghĩa cả từ (English)", en: "Whole-word Meaning (English)" },
   word_meaning_vi_label: { vi: "Nghĩa cả từ (Tiếng Việt)", en: "Whole-word Meaning (Vietnamese)" },
-  word_hanviet_label: { vi: "Hán Việt (tùy chọn)", en: "Sino-Vietnamese (optional)" },
+  word_hanviet_label: { vi: "Hán Việt", en: "Sino-Vietnamese" },
   word_lists_label: { vi: "Danh sách (Lists)", en: "Lists" },
   word_auto_or_manual: { vi: "tự động điền, hoặc nhập tay", en: "auto-filled, or type manually" },
   word_list_placeholder: { vi: "vd: Thành ngữ… rồi Enter", en: "e.g. Idioms… then Enter" },
@@ -1918,10 +1918,13 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         }
       `}</style>
 
+      <div style={{ position: "fixed", top: 44, right: 16, zIndex: 40 }}>
+        <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
+      </div>
+
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <Header meaningDisplay={meaningDisplay} />
         {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />}
-        <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
         <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />
 
         {!loaded ? (
@@ -2109,18 +2112,18 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin, meaningDisplay }) {
         style={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 12,
-          padding: "10px 22px",
+          gap: 8,
+          padding: "7px 15px",
           borderRadius: 999,
-          border: `2px solid ${accentColor}`,
+          border: `1.5px solid ${accentColor}`,
           background: bg,
         }}
       >
-        <span style={{ fontSize: 17, fontWeight: 700, color: accentColor, letterSpacing: 0.4, textTransform: "uppercase" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: accentColor, letterSpacing: 0.3, textTransform: "uppercase" }}>
           {isAdmin ? "Admin" : tier}
         </span>
-        <span style={{ width: 1, height: 20, background: accentColor, opacity: 0.35 }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.ink }}>
+        <span style={{ width: 1, height: 14, background: accentColor, opacity: 0.35 }} />
+        <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.ink }}>
           {isAdmin ? t("quota_admin_usage", meaningDisplay, count) : t("quota_remaining", meaningDisplay, remaining, limit)}
         </span>
       </div>
@@ -2138,34 +2141,34 @@ function MeaningDisplayToggle({ value, onChange }) {
     { id: "vi", label: "VI" },
   ];
   return (
-    <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-      <div
-        style={{
-          display: "inline-flex",
-          borderRadius: 999,
-          border: `2px solid ${COLORS.grid}`,
-          overflow: "hidden",
-        }}
-      >
-        {options.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            style={{
-              padding: "5px 14px",
-              fontSize: 11.5,
-              fontWeight: 700,
-              border: "none",
-              cursor: "pointer",
-              background: value === opt.id ? COLORS.seal : "transparent",
-              color: value === opt.id ? "#FBF9EF" : COLORS.inkSoft,
-            }}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+    <div
+      style={{
+        display: "inline-flex",
+        borderRadius: 999,
+        border: `2px solid ${COLORS.grid}`,
+        overflow: "hidden",
+        background: COLORS.card,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+      }}
+    >
+      {options.map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onChange(opt.id)}
+          style={{
+            padding: "5px 14px",
+            fontSize: 11.5,
+            fontWeight: 700,
+            border: "none",
+            cursor: "pointer",
+            background: value === opt.id ? COLORS.seal : "transparent",
+            color: value === opt.id ? "#FBF9EF" : COLORS.inkSoft,
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }
