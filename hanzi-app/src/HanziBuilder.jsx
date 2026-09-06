@@ -379,18 +379,18 @@ const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
 
 const COLORS = {
-  paper: "#F2F5F0",
-  paperDark: "#E7ECE3",
+  paper: "#FAFBF9",
+  paperDark: "#F0F1EC",
   card: "#FDFEFC",
-  ink: "#24261F",
-  inkSoft: "#7A8177",
-  seal: "#3F6B4A",
-  sealDark: "#2F5238",
-  bamboo: "#5B7285",
-  bambooDark: "#46596A",
-  gold: "#5B7285",
-  grid: "#DCE3D9",
-  chipBg: "#EAF0E7",
+  ink: "#1A1A1A",
+  inkSoft: "#5F5A54",
+  seal: "#74833E",
+  sealDark: "#4C5628",
+  bamboo: "#746D69",
+  bambooDark: "#5A544F",
+  gold: "#746D69",
+  grid: "#E5E7DF",
+  chipBg: "#F0F1E7",
   error: "#A8482F",
 };
 
@@ -2203,10 +2203,11 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
           style={{
             background: "none",
             border: "none",
-            borderBottom: `2px solid ${tab === it.id ? COLORS.seal : "transparent"}`,
+            borderBottom: `3px solid ${tab === it.id ? COLORS.seal : "transparent"}`,
             color: tab === it.id ? COLORS.seal : COLORS.inkSoft,
-            fontWeight: tab === it.id ? 700 : 500,
+            fontWeight: tab === it.id ? 800 : 600,
             fontSize: 14.5,
+            letterSpacing: 0.2,
             padding: "8px 14px",
             cursor: "pointer",
           }}
@@ -2572,11 +2573,12 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
 
 const ghostBtnStyle = {
   background: "transparent",
-  border: `1px solid ${COLORS.grid}`,
+  border: `1.5px solid ${COLORS.grid}`,
   color: COLORS.inkSoft,
   borderRadius: 7,
   padding: "9px 16px",
   fontSize: 13.5,
+  fontWeight: 700,
   cursor: "pointer",
 };
 
@@ -2587,7 +2589,7 @@ const sealBtnStyle = {
   borderRadius: 7,
   padding: "10px 22px",
   fontSize: 14,
-  fontWeight: 600,
+  fontWeight: 800,
   cursor: "pointer",
   letterSpacing: 0.3,
 };
