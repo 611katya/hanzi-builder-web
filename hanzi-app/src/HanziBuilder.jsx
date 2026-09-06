@@ -1063,7 +1063,7 @@ function LanguagePromptModal({ onChoose }) {
             className="ghost-btn"
             style={{ ...ghostBtnStyle, padding: "11px 20px", fontSize: 14 }}
           >
-            Chỉ Tiếng Việt
+            Tiếng Việt
           </button>
           <button
             type="button"
@@ -1071,7 +1071,7 @@ function LanguagePromptModal({ onChoose }) {
             className="ghost-btn"
             style={{ ...ghostBtnStyle, padding: "11px 20px", fontSize: 14 }}
           >
-            English Only
+            English
           </button>
         </div>
       </div>
