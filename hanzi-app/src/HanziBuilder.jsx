@@ -2160,7 +2160,7 @@ function Header({ meaningDisplay }) {
       <img
         src={LOGO_DATA_URI}
         alt="minouQ - Scholastic Joy"
-        style={{ height: 64, width: "auto", flexShrink: 0 }}
+        style={{ height: 128, width: "auto", flexShrink: 0 }}
       />
       <div style={{ textAlign: "left" }}>
         <div
