@@ -2116,7 +2116,7 @@ function LookupQuotaBadge({ count, limit, tier, isAdmin, meaningDisplay }) {
           background: bg,
         }}
       >
-        <span style={{ fontSize: 17, fontWeight: 800, color: accentColor, letterSpacing: 0.4, textTransform: "uppercase" }}>
+        <span style={{ fontSize: 17, fontWeight: 700, color: accentColor, letterSpacing: 0.4, textTransform: "uppercase" }}>
           {isAdmin ? "Admin" : tier}
         </span>
         <span style={{ width: 1, height: 20, background: accentColor, opacity: 0.35 }} />
@@ -2205,7 +2205,7 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
             border: "none",
             borderBottom: `3px solid ${tab === it.id ? COLORS.seal : "transparent"}`,
             color: tab === it.id ? COLORS.seal : COLORS.inkSoft,
-            fontWeight: tab === it.id ? 800 : 600,
+            fontWeight: tab === it.id ? 700 : 600,
             fontSize: 14.5,
             letterSpacing: 0.2,
             padding: "8px 14px",
@@ -2351,7 +2351,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
             onClick={() => setDifficulty(lvl.id)}
             style={{
               fontSize: 14,
-              fontWeight: 800,
+              fontWeight: 700,
               padding: "8px 18px",
               borderRadius: 999,
               border: `2px solid ${difficulty === lvl.id ? COLORS.seal : COLORS.grid}`,
@@ -2589,7 +2589,7 @@ const sealBtnStyle = {
   borderRadius: 7,
   padding: "10px 22px",
   fontSize: 14,
-  fontWeight: 800,
+  fontWeight: 700,
   cursor: "pointer",
   letterSpacing: 0.3,
 };
@@ -5558,7 +5558,7 @@ function PremiumTab() {
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
-        <span style={{ fontSize: 16, fontWeight: 800, color: COLORS.seal, textTransform: "uppercase" }}>{name}</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: COLORS.seal, textTransform: "uppercase" }}>{name}</span>
         <span style={{ fontSize: 12.5, color: COLORS.inkSoft }}>{limit} lượt tra cứu tự động</span>
       </div>
       <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.5 }}>{blurb}</div>
