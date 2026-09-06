@@ -383,12 +383,12 @@ const COLORS = {
   paperDark: "#F2F2F0",
   card: "#FFFFFF",
   ink: "#16181A",
-  inkSoft: "#5B6165",
+  inkSoft: "#33383B",
   seal: "#31708E",
   sealDark: "#24586F",
-  bamboo: "#687864",
-  bambooDark: "#4F5D4C",
-  gold: "#687864",
+  bamboo: "#5085A5",
+  bambooDark: "#3D6B85",
+  gold: "#5085A5",
   grid: "#E9E9E7",
   chipBg: "#F2F2F0",
   error: "#A8482F",
@@ -504,7 +504,7 @@ const UI_TEXT = {
   wp_complete_no_mistakes: { vi: "✓ Hoàn thành! Không có lỗi nào.", en: "✓ Complete! No mistakes." },
   wp_complete_with_mistakes: (n) => ({ vi: `✓ Hoàn thành! ${n} lỗi.`, en: `✓ Complete! ${n} mistake(s).` }),
   wp_dots_connect_prefix: { vi: "nối điểm", en: "connect the" },
-  wp_dots_green: { vi: "xanh", en: "green" },
+  wp_dots_green: { vi: "xanh dương", en: "blue" },
   wp_dots_start_label: { vi: "(bắt đầu)", en: "(start)" },
   wp_dots_to: { vi: "tới điểm", en: "dot to the" },
   wp_dots_red: { vi: "đỏ", en: "red" },
@@ -3669,7 +3669,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                       width: 16,
                       height: 16,
                       borderRadius: "50%",
-                      background: "#2E8B57",
+                      background: "#2563EB",
                       border: "2px solid white",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
                       pointerEvents: "none",
@@ -3732,7 +3732,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 <>
                   <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 4 }}>
                     {t("wp_dots_stroke_progress", meaningDisplay, dotStrokeIndex + 1, dotTotalStrokes)} {t("wp_dots_connect_prefix", meaningDisplay)}{" "}
-                    <span style={{ color: "#2E8B57", fontWeight: 700 }}>{t("wp_dots_green", meaningDisplay)}</span> {t("wp_dots_start_label", meaningDisplay)}{" "}
+                    <span style={{ color: "#2563EB", fontWeight: 700 }}>{t("wp_dots_green", meaningDisplay)}</span> {t("wp_dots_start_label", meaningDisplay)}{" "}
                     {t("wp_dots_to", meaningDisplay)}{" "}
                     <span style={{ color: "#C0392B", fontWeight: 700 }}>{t("wp_dots_red", meaningDisplay)}</span> {t("wp_dots_end_label", meaningDisplay)}
                   </div>
