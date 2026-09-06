@@ -517,6 +517,8 @@ const UI_TEXT = {
     vi: `Không tải được dữ liệu nét cho chữ "${char}" — bấm "Bỏ qua bước này" để tiếp tục.`,
     en: `Could not load stroke data for "${char}" — click "Skip this step" to continue.`,
   }),
+  wp_prev_page: { vi: "← Trang trước", en: "← Previous Page" },
+  wp_next_page: { vi: "Trang sau →", en: "Next Page →" },
 
   // Tạo thẻ từ mới (Add tab)
   add_intro: {
@@ -2936,14 +2938,14 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const dotCurrentPathRef = useRef([]);
 
   const RECALL_INK_COLOR = "#2456A6";
-  const BRUSH_WIDTHS = { thin: 18, normal: 30, thick: 48 };
+  const BRUSH_WIDTHS = { thin: 23.4, normal: 39, thick: 62.4 };
   // HanziWriter's drawingWidth is specified in its own internal SVG
   // coordinate space and gets scaled down to fit the display size, so the
   // same raw number looks much thinner there than it would as a plain
   // canvas lineWidth (which is 1 unit = 1 actual pixel, no scaling). This
   // is the recall canvas's own scale, tuned to visually match the guided
   // tracing pen at the same "Cỡ bút" selection.
-  const RECALL_BRUSH_WIDTHS = { thin: 4.5, normal: 7.5, thick: 12 };
+  const RECALL_BRUSH_WIDTHS = { thin: 5.85, normal: 9.75, thick: 15.6 };
   const PREVIEW_PER_PAGE = 24; // ~8 columns x 3 rows at this layout's width
 
   const allLists = useMemo(() => {
@@ -3504,7 +3506,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                     className="ghost-btn"
                     style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, opacity: previewPage === 0 ? 0.4 : 1 }}
                   >
-                    ← Trang trước
+                    {t("wp_prev_page", meaningDisplay)}
                   </button>
                   <span style={{ fontSize: 11.5, color: COLORS.inkSoft }}>
                     {previewPage + 1} / {previewTotalPages}
@@ -3516,7 +3518,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                     className="ghost-btn"
                     style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, opacity: previewPage >= previewTotalPages - 1 ? 0.4 : 1 }}
                   >
-                    Trang sau →
+                    {t("wp_next_page", meaningDisplay)}
                   </button>
                 </div>
               )}
@@ -3751,7 +3753,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 className={revealOn ? "seal-btn" : "ghost-btn"}
                 style={{ ...(revealOn ? sealBtnStyle : ghostBtnStyle), padding: "8px 14px", fontSize: 12.5 }}
               >
-                Hiện chữ đúng
+                {t("wp_reveal", meaningDisplay)}
               </button>
               <button
                 type="button"
@@ -3760,7 +3762,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 className="ghost-btn"
                 style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5, opacity: completedDotStrokes.length === 0 ? 0.4 : 1 }}
               >
-                ↩ Xóa nét trước
+                {t("wp_undo_stroke", meaningDisplay)}
               </button>
             </div>
           )}
