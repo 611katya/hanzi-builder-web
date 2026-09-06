@@ -4487,44 +4487,50 @@ function AddTab({
         </div>
       </div>
 
-      <BulkImportPanel
-        characterList={characterList}
-        wordList={wordList}
-        bushouList={bushouList}
-        onAddCharacter={onAddCharacter}
-        onAddBushou={onAddBushou}
-        onUpdateCharacter={onUpdateCharacter}
-        onAddWord={onAddWord}
-        userId={userId}
-        onRequireAuth={onRequireAuth}
-        onViewPremium={onViewPremium}
-        onQuotaUpdate={onQuotaUpdate}
-        meaningDisplay={meaningDisplay}
-      />
+      <div style={{ marginTop: 28 }}>
+        <BulkImportPanel
+          characterList={characterList}
+          wordList={wordList}
+          bushouList={bushouList}
+          onAddCharacter={onAddCharacter}
+          onAddBushou={onAddBushou}
+          onUpdateCharacter={onUpdateCharacter}
+          onAddWord={onAddWord}
+          userId={userId}
+          onRequireAuth={onRequireAuth}
+          onViewPremium={onViewPremium}
+          onQuotaUpdate={onQuotaUpdate}
+          meaningDisplay={meaningDisplay}
+        />
+      </div>
 
-      <AddWordPanel
-        characterList={characterList}
-        wordList={wordList}
-        customWords={customWords}
-        bushouList={bushouList}
-        onAddCharacter={onAddCharacter}
-        onAddBushou={onAddBushou}
-        onAddWord={onAddWord}
-        onDeleteWord={onDeleteWord}
-        userId={userId}
-        onRequireAuth={onRequireAuth}
-        onViewPremium={onViewPremium}
-        onQuotaUpdate={onQuotaUpdate}
-        meaningDisplay={meaningDisplay}
-      />
+      <div style={{ marginTop: 20 }}>
+        <AddWordPanel
+          characterList={characterList}
+          wordList={wordList}
+          customWords={customWords}
+          bushouList={bushouList}
+          onAddCharacter={onAddCharacter}
+          onAddBushou={onAddBushou}
+          onAddWord={onAddWord}
+          onDeleteWord={onDeleteWord}
+          userId={userId}
+          onRequireAuth={onRequireAuth}
+          onViewPremium={onViewPremium}
+          onQuotaUpdate={onQuotaUpdate}
+          meaningDisplay={meaningDisplay}
+        />
+      </div>
 
-      <RenameListPanel
-        characterList={characterList}
-        wordList={wordList}
-        onUpdateCharacter={onUpdateCharacter}
-        onAddWord={onAddWord}
-        meaningDisplay={meaningDisplay}
-      />
+      <div style={{ marginTop: 20 }}>
+        <RenameListPanel
+          characterList={characterList}
+          wordList={wordList}
+          onUpdateCharacter={onUpdateCharacter}
+          onAddWord={onAddWord}
+          meaningDisplay={meaningDisplay}
+        />
+      </div>
     </div>
   );
 }
