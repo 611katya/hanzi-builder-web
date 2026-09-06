@@ -5186,6 +5186,9 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
   const [meaning, setMeaning] = useState("");
   const [meaningVi, setMeaningVi] = useState("");
   const [sv, setSv] = useState("");
+  const [wantMeaningEn, setWantMeaningEn] = useState(true);
+  const [wantMeaningVi, setWantMeaningVi] = useState(true);
+  const [wantSv, setWantSv] = useState(true);
   const [selectedLists, setSelectedLists] = useState([]);
   const [listTypeahead, setListTypeahead] = useState("");
   const [message, setMessage] = useState(null);
@@ -5339,10 +5342,10 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       const clean = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(clean);
       if (parsed.pinyin) setPinyin(parsed.pinyin);
-      if (parsed.meaning) setMeaning(parsed.meaning);
-      if (parsed.meaning_vi) setMeaningVi(parsed.meaning_vi);
-      if (parsed.sino_vietnamese) setSv(parsed.sino_vietnamese);
-      if (!parsed.pinyin && !parsed.meaning) {
+      if (wantMeaningEn && parsed.meaning) setMeaning(parsed.meaning);
+      if (wantMeaningVi && parsed.meaning_vi) setMeaningVi(parsed.meaning_vi);
+      if (wantSv && parsed.sino_vietnamese) setSv(parsed.sino_vietnamese);
+      if (!parsed.pinyin) {
         setMessage({ type: "error", text: `Không tra được thông tin cho từ "${word}". Vui lòng nhập tay.` });
       }
       setWordLookupStatus("idle");
@@ -5397,16 +5400,40 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       setMessage({ type: "error", text: t("word_need_components", meaningDisplay) });
       return;
     }
-    if (!pinyin.trim() || !meaning.trim()) {
+    if (!pinyin.trim()) {
       setMessage({ type: "error", text: t("word_need_pinyin_meaning", meaningDisplay) });
+      return;
+    }
+    if (wantMeaningEn && !meaning.trim()) {
+      setMessage({ type: "error", text: t("add_need_meaning_en", meaningDisplay) });
+      return;
+    }
+    if (wantMeaningVi && !meaningVi.trim()) {
+      setMessage({ type: "error", text: t("add_need_meaning_vi", meaningDisplay) });
+      return;
+    }
+    if (wantSv && !sv.trim()) {
+      setMessage({ type: "error", text: t("add_need_sv", meaningDisplay) });
+      return;
+    }
+    if (selectedLists.length === 0) {
+      setMessage({ type: "error", text: t("add_need_list", meaningDisplay) });
       return;
     }
     if (wordList.some((w) => w.word === word)) {
       setMessage({ type: "error", text: t("word_exists", meaningDisplay, word) });
       return;
     }
-    const listsToSave = selectedLists.length > 0 ? selectedLists : ["Chưa phân loại"];
-    onAddWord({ word, chars, pinyin: pinyin.trim(), meaning: meaning.trim(), meaning_vi: meaningVi.trim(), sv: sv.trim(), lists: listsToSave });
+    const listsToSave = selectedLists;
+    onAddWord({
+      word,
+      chars,
+      pinyin: pinyin.trim(),
+      meaning: wantMeaningEn ? meaning.trim() : "",
+      meaning_vi: wantMeaningVi ? meaningVi.trim() : "",
+      sv: wantSv ? sv.trim() : "",
+      lists: listsToSave,
+    });
     setMessage({ type: "success", text: t("word_added_success", meaningDisplay, word) });
     setWordInput("");
     setPinyin("");
@@ -5532,13 +5559,70 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
             <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} placeholder={t("word_auto_or_manual", meaningDisplay)} style={inputStyle} />
           </FieldRow>
           <FieldRow label={t("word_meaning_en_label", meaningDisplay)}>
-            <input value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder={t("word_auto_or_manual", meaningDisplay)} style={inputStyle} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+              <input
+                value={meaning}
+                onChange={(e) => setMeaning(e.target.value)}
+                placeholder={t("word_auto_or_manual", meaningDisplay)}
+                disabled={!wantMeaningEn}
+                style={{ ...inputStyle, flex: 1, opacity: wantMeaningEn ? 1 : 0.45 }}
+              />
+              <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: COLORS.inkSoft, whiteSpace: "nowrap", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={wantMeaningEn}
+                  onChange={(e) => {
+                    setWantMeaningEn(e.target.checked);
+                    if (!e.target.checked) setMeaning("");
+                  }}
+                />
+                {t("add_field_required_checkbox", meaningDisplay)}
+              </label>
+            </div>
           </FieldRow>
           <FieldRow label={t("word_meaning_vi_label", meaningDisplay)}>
-            <input value={meaningVi} onChange={(e) => setMeaningVi(e.target.value)} placeholder={t("word_auto_or_manual", meaningDisplay)} style={inputStyle} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+              <input
+                value={meaningVi}
+                onChange={(e) => setMeaningVi(e.target.value)}
+                placeholder={t("word_auto_or_manual", meaningDisplay)}
+                disabled={!wantMeaningVi}
+                style={{ ...inputStyle, flex: 1, opacity: wantMeaningVi ? 1 : 0.45 }}
+              />
+              <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: COLORS.inkSoft, whiteSpace: "nowrap", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={wantMeaningVi}
+                  onChange={(e) => {
+                    setWantMeaningVi(e.target.checked);
+                    if (!e.target.checked) setMeaningVi("");
+                  }}
+                />
+                {t("add_field_required_checkbox", meaningDisplay)}
+              </label>
+            </div>
           </FieldRow>
           <FieldRow label={t("word_hanviet_label", meaningDisplay)}>
-            <input value={sv} onChange={(e) => setSv(e.target.value)} placeholder={t("word_auto_or_manual", meaningDisplay)} style={inputStyle} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+              <input
+                value={sv}
+                onChange={(e) => setSv(e.target.value)}
+                placeholder={t("word_auto_or_manual", meaningDisplay)}
+                disabled={!wantSv}
+                style={{ ...inputStyle, flex: 1, opacity: wantSv ? 1 : 0.45 }}
+              />
+              <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: COLORS.inkSoft, whiteSpace: "nowrap", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={wantSv}
+                  onChange={(e) => {
+                    setWantSv(e.target.checked);
+                    if (!e.target.checked) setSv("");
+                  }}
+                />
+                {t("add_field_required_checkbox", meaningDisplay)}
+              </label>
+            </div>
           </FieldRow>
 
           <FieldRow label={t("word_lists_label", meaningDisplay)}>
