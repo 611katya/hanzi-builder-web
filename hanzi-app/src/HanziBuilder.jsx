@@ -381,7 +381,7 @@ const FONT_IMPORT =
 const COLORS = {
   paper: "#FFFFFF",
   paperDark: "#F2F2F0",
-  card: "#FBFBFA",
+  card: "#FFFFFF",
   ink: "#16181A",
   inkSoft: "#5B6165",
   seal: "#31708E",
