@@ -669,6 +669,19 @@ const UI_TEXT = {
     vi: "Tra cứu tự động thất bại. Vui lòng nhập pinyin / nghĩa / Hán Việt thủ công.",
     en: "Auto-lookup failed. Please enter pinyin / meaning / Sino-Vietnamese manually.",
   },
+  add_need_meaning_en: { vi: "Vui lòng điền Nghĩa (English) hoặc bỏ tick ô này.", en: "Please fill in Meaning (English), or untick this field." },
+  add_need_meaning_vi: { vi: "Vui lòng điền Nghĩa (Tiếng Việt) hoặc bỏ tick ô này.", en: "Please fill in Meaning (Vietnamese), or untick this field." },
+  add_need_sv: { vi: "Vui lòng điền Âm Hán Việt hoặc bỏ tick ô này.", en: "Please fill in Sino-Vietnamese, or untick this field." },
+  add_need_list: { vi: "Vui lòng chọn hoặc thêm ít nhất một danh sách.", en: "Please select or add at least one list." },
+  add_field_required_checkbox: { vi: "Cần trường này", en: "Required" },
+  bulk_missing_pinyin: { vi: "không tra được pinyin", en: "pinyin not found" },
+  bulk_missing_meaning_en: { vi: "thiếu Nghĩa (English)", en: "missing Meaning (English)" },
+  bulk_missing_meaning_vi: { vi: "thiếu Nghĩa (Tiếng Việt)", en: "missing Meaning (Vietnamese)" },
+  bulk_missing_sv: { vi: "thiếu Âm Hán Việt", en: "missing Sino-Vietnamese" },
+  bulk_required_fields_label: { vi: "Trường bắt buộc:", en: "Required fields:" },
+  bulk_field_meaning_en: { vi: "Nghĩa (English)", en: "Meaning (English)" },
+  bulk_field_meaning_vi: { vi: "Nghĩa (Tiếng Việt)", en: "Meaning (Vietnamese)" },
+  bulk_field_sv: { vi: "Âm Hán Việt", en: "Sino-Vietnamese" },
   add_list_placeholder: { vi: "vd: HSK1, Gia đình, Bài 5… rồi Enter", en: "e.g. HSK1, Family, Lesson 5… then Enter" },
   add_list_add_button: { vi: "+ Thêm", en: "+ Add" },
   quota_admin_usage: (n) => ({ vi: `${n} lượt đã dùng · không giới hạn`, en: `${n} lookups used · unlimited` }),
@@ -3912,6 +3925,9 @@ function AddTab({
   const [meaningVi, setMeaningVi] = useState("");
   const [pinyin, setPinyin] = useState("");
   const [sv, setSv] = useState("");
+  const [wantMeaningEn, setWantMeaningEn] = useState(true);
+  const [wantMeaningVi, setWantMeaningVi] = useState(true);
+  const [wantSv, setWantSv] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNote, setShowNote] = useState(false);
   const [limitInfo, setLimitInfo] = useState(null); // { count, limit, tier } | null
@@ -4049,9 +4065,9 @@ function AddTab({
       const parsed = JSON.parse(clean);
 
       if (parsed.pinyin && (overwrite || !pinyin.trim())) setPinyin(parsed.pinyin);
-      if (parsed.meaning && (overwrite || !meaning.trim())) setMeaning(parsed.meaning);
-      if (parsed.meaning_vi && (overwrite || !meaningVi.trim())) setMeaningVi(parsed.meaning_vi);
-      if (parsed.sino_vietnamese && (overwrite || !sv.trim())) setSv(parsed.sino_vietnamese);
+      if (wantMeaningEn && parsed.meaning && (overwrite || !meaning.trim())) setMeaning(parsed.meaning);
+      if (wantMeaningVi && parsed.meaning_vi && (overwrite || !meaningVi.trim())) setMeaningVi(parsed.meaning_vi);
+      if (wantSv && parsed.sino_vietnamese && (overwrite || !sv.trim())) setSv(parsed.sino_vietnamese);
 
       if (Array.isArray(parsed.components) && (overwrite || components.length === 0)) {
         const compChars = [];
@@ -4068,7 +4084,7 @@ function AddTab({
 
       lastLookedUpRef.current = target;
       setLookupStatus("idle");
-      if (!parsed.pinyin && !parsed.meaning && !parsed.sino_vietnamese) {
+      if (!parsed.pinyin) {
         setMessage({ type: "error", text: `Không tra được thông tin cho "${target}". Vui lòng nhập tay.` });
       }
     } catch (err) {
@@ -4082,22 +4098,38 @@ function AddTab({
     e.preventDefault();
     setMessage(null);
     try {
-      if (!charInput.trim() || !meaning.trim() || !pinyin.trim() || !sv.trim()) {
+      if (!charInput.trim() || !pinyin.trim()) {
         setMessage({ type: "error", text: t("add_fill_required", meaningDisplay) });
+        return;
+      }
+      if (wantMeaningEn && !meaning.trim()) {
+        setMessage({ type: "error", text: t("add_need_meaning_en", meaningDisplay) });
+        return;
+      }
+      if (wantMeaningVi && !meaningVi.trim()) {
+        setMessage({ type: "error", text: t("add_need_meaning_vi", meaningDisplay) });
+        return;
+      }
+      if (wantSv && !sv.trim()) {
+        setMessage({ type: "error", text: t("add_need_sv", meaningDisplay) });
+        return;
+      }
+      if (selectedLists.length === 0) {
+        setMessage({ type: "error", text: t("add_need_list", meaningDisplay) });
         return;
       }
       if (characterList.some((c) => c.char === charInput.trim())) {
         setMessage({ type: "error", text: t("add_char_exists", meaningDisplay, charInput.trim()) });
         return;
       }
-      const listsToSave = selectedLists.length > 0 ? selectedLists : ["Chưa phân loại"];
+      const listsToSave = selectedLists;
       const trimmedChar = charInput.trim();
       onAddCharacter({
         char: trimmedChar,
-        meaning: meaning.trim(),
-        meaning_vi: meaningVi.trim(),
+        meaning: wantMeaningEn ? meaning.trim() : "",
+        meaning_vi: wantMeaningVi ? meaningVi.trim() : "",
         pinyin: pinyin.trim(),
-        sv: sv.trim(),
+        sv: wantSv ? sv.trim() : "",
         components: components,
         lists: listsToSave,
       });
@@ -4277,23 +4309,51 @@ function AddTab({
         </div>
 
         <FieldRow label={t("add_meaning_en_label", meaningDisplay)}>
-          <input
-            value={meaning}
-            onChange={(e) => setMeaning(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
-            placeholder="good, well"
-            style={inputStyle}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+            <input
+              value={meaning}
+              onChange={(e) => setMeaning(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
+              placeholder="good, well"
+              disabled={!wantMeaningEn}
+              style={{ ...inputStyle, flex: 1, opacity: wantMeaningEn ? 1 : 0.45 }}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: COLORS.inkSoft, whiteSpace: "nowrap", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={wantMeaningEn}
+                onChange={(e) => {
+                  setWantMeaningEn(e.target.checked);
+                  if (!e.target.checked) setMeaning("");
+                }}
+              />
+              {t("add_field_required_checkbox", meaningDisplay)}
+            </label>
+          </div>
         </FieldRow>
 
         <FieldRow label={t("add_meaning_vi_label", meaningDisplay)}>
-          <input
-            value={meaningVi}
-            onChange={(e) => setMeaningVi(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
-            placeholder="tốt"
-            style={inputStyle}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+            <input
+              value={meaningVi}
+              onChange={(e) => setMeaningVi(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
+              placeholder="tốt"
+              disabled={!wantMeaningVi}
+              style={{ ...inputStyle, flex: 1, opacity: wantMeaningVi ? 1 : 0.45 }}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: COLORS.inkSoft, whiteSpace: "nowrap", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={wantMeaningVi}
+                onChange={(e) => {
+                  setWantMeaningVi(e.target.checked);
+                  if (!e.target.checked) setMeaningVi("");
+                }}
+              />
+              {t("add_field_required_checkbox", meaningDisplay)}
+            </label>
+          </div>
         </FieldRow>
 
         <FieldRow label={t("add_pinyin_label", meaningDisplay)}>
@@ -4307,13 +4367,27 @@ function AddTab({
         </FieldRow>
 
         <FieldRow label={t("add_hanviet_label", meaningDisplay)}>
-          <input
-            value={sv}
-            onChange={(e) => setSv(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
-            placeholder="hảo"
-            style={inputStyle}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+            <input
+              value={sv}
+              onChange={(e) => setSv(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
+              placeholder="hảo"
+              disabled={!wantSv}
+              style={{ ...inputStyle, flex: 1, opacity: wantSv ? 1 : 0.45 }}
+            />
+            <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: COLORS.inkSoft, whiteSpace: "nowrap", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={wantSv}
+                onChange={(e) => {
+                  setWantSv(e.target.checked);
+                  if (!e.target.checked) setSv("");
+                }}
+              />
+              {t("add_field_required_checkbox", meaningDisplay)}
+            </label>
+          </div>
         </FieldRow>
 
         <FieldRow label={t("add_lists_label", meaningDisplay)}>
@@ -4466,6 +4540,9 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
   const [rawInput, setRawInput] = useState("");
   const [selectedLists, setSelectedLists] = useState([]);
   const [listTypeahead, setListTypeahead] = useState("");
+  const [wantMeaningEn, setWantMeaningEn] = useState(true);
+  const [wantMeaningVi, setWantMeaningVi] = useState(true);
+  const [wantSv, setWantSv] = useState(true);
   const [status, setStatus] = useState("idle"); // idle | running | done
   const [progress, setProgress] = useState({ done: 0, total: 0, current: "" });
   const [results, setResults] = useState([]); // [{item, kind: 'char'|'word', outcome, detail}]
@@ -4542,7 +4619,10 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
     const text = (data.content || []).map((b) => b.text || "").join("");
     const clean = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
-    if (!parsed.pinyin && !parsed.meaning && !parsed.sino_vietnamese) throw new Error("no data returned");
+    if (!parsed.pinyin) throw new Error(t("bulk_missing_pinyin", meaningDisplay));
+    if (wantMeaningEn && !parsed.meaning) throw new Error(t("bulk_missing_meaning_en", meaningDisplay));
+    if (wantMeaningVi && !parsed.meaning_vi) throw new Error(t("bulk_missing_meaning_vi", meaningDisplay));
+    if (wantSv && !parsed.sino_vietnamese) throw new Error(t("bulk_missing_sv", meaningDisplay));
 
     const compChars = [];
     (parsed.components || []).forEach((comp) => {
@@ -4558,9 +4638,9 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
     await onAddCharacter({
       char: ch,
       pinyin: parsed.pinyin || "",
-      meaning: parsed.meaning || "",
-      meaning_vi: parsed.meaning_vi || "",
-      sv: parsed.sino_vietnamese || "",
+      meaning: wantMeaningEn ? parsed.meaning || "" : "",
+      meaning_vi: wantMeaningVi ? parsed.meaning_vi || "" : "",
+      sv: wantSv ? parsed.sino_vietnamese || "" : "",
       components: compChars,
       lists: tags,
     });
@@ -4652,13 +4732,17 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
             const wordText = (wordData.content || []).map((b) => b.text || "").join("");
             const wordClean = wordText.replace(/```json|```/g, "").trim();
             const wordParsed = JSON.parse(wordClean);
+            if (!wordParsed.pinyin) throw new Error(t("bulk_missing_pinyin", meaningDisplay));
+            if (wantMeaningEn && !wordParsed.meaning) throw new Error(t("bulk_missing_meaning_en", meaningDisplay));
+            if (wantMeaningVi && !wordParsed.meaning_vi) throw new Error(t("bulk_missing_meaning_vi", meaningDisplay));
+            if (wantSv && !wordParsed.sino_vietnamese) throw new Error(t("bulk_missing_sv", meaningDisplay));
             await onAddWord({
               word: item,
               chars: Array.from(item),
               pinyin: wordParsed.pinyin || "",
-              meaning: wordParsed.meaning || "",
-              meaning_vi: wordParsed.meaning_vi || "",
-              sv: wordParsed.sino_vietnamese || "",
+              meaning: wantMeaningEn ? wordParsed.meaning || "" : "",
+              meaning_vi: wantMeaningVi ? wordParsed.meaning_vi || "" : "",
+              sv: wantSv ? wordParsed.sino_vietnamese || "" : "",
               lists: selectedLists,
             });
             setResults((prev) => [...prev, { item, kind: "word", outcome: "added" }]);
@@ -4855,6 +4939,26 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
                 ))}
               </div>
             )}
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: 11.5, color: COLORS.inkSoft, display: "block", marginBottom: 6 }}>
+              {t("bulk_required_fields_label", meaningDisplay)}
+            </label>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: COLORS.ink, cursor: "pointer" }}>
+                <input type="checkbox" checked={wantMeaningEn} disabled={status === "running"} onChange={(e) => setWantMeaningEn(e.target.checked)} />
+                {t("bulk_field_meaning_en", meaningDisplay)}
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: COLORS.ink, cursor: "pointer" }}>
+                <input type="checkbox" checked={wantMeaningVi} disabled={status === "running"} onChange={(e) => setWantMeaningVi(e.target.checked)} />
+                {t("bulk_field_meaning_vi", meaningDisplay)}
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: COLORS.ink, cursor: "pointer" }}>
+                <input type="checkbox" checked={wantSv} disabled={status === "running"} onChange={(e) => setWantSv(e.target.checked)} />
+                {t("bulk_field_sv", meaningDisplay)}
+              </label>
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
