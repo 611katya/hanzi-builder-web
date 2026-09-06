@@ -379,19 +379,19 @@ const FONT_IMPORT =
   "@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@400;500;600;700&display=swap');";
 
 const COLORS = {
-  paper: "#F2F0E1",
-  paperDark: "#E7E4CE",
-  card: "#FAF9EF",
-  ink: "#2A2A16",
-  inkSoft: "#7A7A56",
-  seal: "#556B2F",
-  sealDark: "#3E4E22",
-  bamboo: "#595900",
-  bambooDark: "#3F3F00",
-  gold: "#584C25",
-  grid: "#DDD9BB",
-  chipBg: "#F6F4E6",
-  error: "#A6432E",
+  paper: "#FDFCFA",
+  paperDark: "#F3F1EA",
+  card: "#FFFFFF",
+  ink: "#24261F",
+  inkSoft: "#8B8A80",
+  seal: "#3F6B4A",
+  sealDark: "#2F5238",
+  bamboo: "#A6791E",
+  bambooDark: "#8A6419",
+  gold: "#A6791E",
+  grid: "#E4EBE0",
+  chipBg: "#F1F5EE",
+  error: "#B3401F",
 };
 
 /* ============================================================
@@ -965,7 +965,7 @@ function Chip({ info, onClick, disabled, big, tone }) {
       title={info ? `${info.pinyin} · ${info.meaning} · SV: ${info.sv}` : ""}
       className="hanzi-chip"
       style={{
-        fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+        fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
         fontSize: big ? 30 : 26,
         width: big ? 56 : 48,
         height: big ? 56 : 48,
@@ -2046,7 +2046,7 @@ function Header({ meaningDisplay }) {
     <div style={{ textAlign: "center", marginBottom: 22 }}>
       <div
         style={{
-          fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+          fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
           fontSize: 44,
           fontWeight: 700,
           letterSpacing: 4,
@@ -2058,7 +2058,7 @@ function Header({ meaningDisplay }) {
       {meaningDisplay !== "en" && (
         <div
           style={{
-            fontFamily: "Calibri, 'Segoe UI', sans-serif",
+            fontFamily: "Inter, 'Segoe UI', sans-serif",
             fontSize: 17,
             fontWeight: 600,
             color: COLORS.sealDark,
@@ -2075,7 +2075,7 @@ function Header({ meaningDisplay }) {
       {meaningDisplay !== "vi" && (
         <div
           style={{
-            fontFamily: meaningDisplay === "en" ? "Calibri, 'Segoe UI', sans-serif" : undefined,
+            fontFamily: meaningDisplay === "en" ? "Inter, 'Segoe UI', sans-serif" : undefined,
             fontSize: meaningDisplay === "en" ? 17 : 12,
             fontWeight: meaningDisplay === "en" ? 600 : 400,
             color: meaningDisplay === "en" ? COLORS.sealDark : COLORS.inkSoft,
@@ -2486,7 +2486,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           return (
             <CharacterGrid key={i} state={boxState} size={isWord ? 110 : 168}>
               {status === "correct" || status === "revealed" ? (
-                <div className="pop" style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: isWord ? 54 : 78, color: COLORS.bamboo }}>
+                <div className="pop" style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: isWord ? 54 : 78, color: COLORS.bamboo }}>
                   {g.char}
                 </div>
               ) : charsInBox.length === 0 ? (
@@ -2504,7 +2504,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
                   <span
                     key={ci}
                     style={{
-                      fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                      fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
                       fontSize: isWord ? 26 : 40,
                       color: status === "wrong" && !boxCorrectness[i] ? COLORS.error : COLORS.ink,
                     }}
@@ -2825,12 +2825,12 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
             }}
           >
             {!flipped ? (
-              <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: current.type === "word" ? 44 : 64, color: COLORS.ink }}>
+              <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: current.type === "word" ? 44 : 64, color: COLORS.ink }}>
                 {current.key}
               </div>
             ) : (
               <div style={{ width: "100%" }}>
-                <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 34, color: COLORS.ink, marginBottom: 10 }}>
+                <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 34, color: COLORS.ink, marginBottom: 10 }}>
                   {current.key}
                 </div>
                 <div style={{ fontSize: 16, color: COLORS.sealDark, marginBottom: 6 }}>{current.data.pinyin}</div>
@@ -3439,7 +3439,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                     onClick={() => startSingleChar(c)}
                     title={`${c.pinyin} · ${c.meaning}`}
                     style={{
-                      fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                      fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
                       fontSize: 22,
                       width: 44,
                       height: 44,
@@ -3482,7 +3482,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                     onClick={() => startSingleChar(c)}
                     title={`${c.pinyin} · ${c.meaning}`}
                     style={{
-                      fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                      fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
                       fontSize: 20,
                       width: 38,
                       height: 38,
@@ -3605,7 +3605,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                   >
                     <div
                       style={{
-                        fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                        fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
                         fontSize: gridSize * 0.72,
                         color: COLORS.ink,
                         opacity: 0.3,
@@ -4190,7 +4190,7 @@ function AddTab({
               }
             }}
             placeholder="例：好"
-            style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 22, width: 90, textAlign: "center" }}
+            style={{ ...inputStyle, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 22, width: 90, textAlign: "center" }}
             maxLength={4}
           />
           <button
@@ -4233,7 +4233,7 @@ function AddTab({
               value={compInput}
               onChange={(e) => setCompInput(e.target.value)}
               placeholder={t("add_component_input_placeholder", meaningDisplay)}
-              style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", width: 140 }}
+              style={{ ...inputStyle, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", width: 140 }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -4250,7 +4250,7 @@ function AddTab({
             <div style={{ marginTop: 12, padding: 12, background: "rgba(169,130,47,0.08)", borderRadius: 8, border: `1px dashed ${COLORS.gold}` }}>
               <div style={{ fontSize: 12.5, marginBottom: 8 }}>
                 {t("add_new_component_before", meaningDisplay)}{" "}
-                <strong style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18 }}>{newCompDraft.char}</strong>{" "}
+                <strong style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18 }}>{newCompDraft.char}</strong>{" "}
                 {t("add_new_component_after", meaningDisplay)}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -4765,7 +4765,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
             disabled={status === "running"}
             placeholder={"例：\n好\n你好\n汉语"}
             rows={6}
-            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 15, resize: "vertical", marginBottom: 6, whiteSpace: "pre" }}
+            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 15, resize: "vertical", marginBottom: 6, whiteSpace: "pre" }}
           />
           <div style={{ fontSize: 11, color: parsedCount > BULK_IMPORT_MAX ? COLORS.error : COLORS.inkSoft, marginBottom: 12 }}>
             {t("bulk_count", meaningDisplay, parsedCount, BULK_IMPORT_MAX)}
@@ -5364,7 +5364,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                 }
               }}
               placeholder="例：你好"
-              style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20 }}
+              style={{ ...inputStyle, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20 }}
             />
             <button
               type="button"
@@ -5395,7 +5395,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
                       background: COLORS.chipBg,
                     }}
                   >
-                    <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20 }}>{ch}</span>
+                    <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20 }}>{ch}</span>
                     {ready ? (
                       <span style={{ fontSize: 11, color: COLORS.bamboo, fontWeight: 600 }}>{t("word_ready", meaningDisplay)}</span>
                     ) : (
@@ -6451,7 +6451,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
           textAlign: "left",
         }}
       >
-        <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18, marginBottom: 6 }}>{w.word}</div>
+        <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, marginBottom: 6 }}>{w.word}</div>
         <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
         <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
         <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (English)</label>
@@ -6619,7 +6619,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
       <div
         onClick={() => setZoomed(true)}
         title="Bấm để phóng to"
-        style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 20, color: COLORS.ink, marginBottom: 2, marginTop: 6, cursor: "pointer" }}
+        style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: COLORS.ink, marginBottom: 2, marginTop: 6, cursor: "pointer" }}
       >
         {w.word}
       </div>
@@ -6671,13 +6671,13 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
             if (!found || !found.components || found.components.length === 0) return null;
             return (
               <div key={i} style={{ fontSize: 10.5, color: COLORS.inkSoft, marginBottom: 3 }}>
-                <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", color: COLORS.ink, fontSize: 13 }}>{ch}</span>
+                <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", color: COLORS.ink, fontSize: 13 }}>{ch}</span>
                 {" = "}
                 {found.components.map((comp, ci) => (
                   <span key={ci}>
                     <span
                       title={findBushou ? `${findBushou(comp).pinyin} · ${findBushou(comp).meaning} · HV: ${findBushou(comp).sv}` : undefined}
-                      style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", color: COLORS.gold, fontSize: 13 }}
+                      style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", color: COLORS.gold, fontSize: 13 }}
                     >
                       {comp}
                     </span>
@@ -6763,7 +6763,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
         <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
           {chars.map((ch, i) => (
             <CharacterGrid key={i} state="revealed" size={boxSize}>
-              <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: Math.round(boxSize * 0.6), color: COLORS.ink }}>
+              <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: Math.round(boxSize * 0.6), color: COLORS.ink }}>
                 {ch}
               </div>
             </CharacterGrid>
@@ -6789,7 +6789,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
               return (
                 <div key={i} style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 13, color: COLORS.ink, marginBottom: 8, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                    <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 18 }}>{ch}</span>
+                    <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18 }}>{ch}</span>
                     <span>({found.pinyin} · {found.meaning})</span>
                     <button
                       type="button"
@@ -6822,7 +6822,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
                       const info = findBushou(comp);
                       return (
                         <div key={ci} style={{ fontSize: 12, color: COLORS.inkSoft }}>
-                          <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 15, color: COLORS.ink }}>{comp}</span>
+                          <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 15, color: COLORS.ink }}>{comp}</span>
                           {" — "}
                           {info.pinyin} · {info.meaning} · HV: {info.sv}
                         </div>
@@ -7204,7 +7204,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
 
       {mode === "edit" ? (
         <div style={{ textAlign: "left" }}>
-          <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
+          <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
             {c.char}
           </div>
           <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (English)</label>
@@ -7294,7 +7294,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <span
                     style={{
-                      fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                      fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
                       fontSize: 14,
                       color: COLORS.gold,
                       padding: "1px 5px",
@@ -7317,7 +7317,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               value={compInput}
               onChange={(e) => setCompInput(e.target.value)}
               placeholder="+ bộ thủ"
-              style={{ ...inputStyle, fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 12.5, padding: "5px 8px" }}
+              style={{ ...inputStyle, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 12.5, padding: "5px 8px" }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -7337,7 +7337,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           {newCompDraft && (
             <div style={{ padding: 8, background: "rgba(169,130,47,0.08)", borderRadius: 6, border: `1px dashed ${COLORS.gold}`, marginBottom: 6 }}>
               <div style={{ fontSize: 11, marginBottom: 6 }}>
-                Bộ thủ <strong style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif" }}>{newCompDraft.char}</strong> chưa có — điền thông tin:
+                Bộ thủ <strong style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif" }}>{newCompDraft.char}</strong> chưa có — điền thông tin:
               </div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 <input value={ncPinyin} onChange={(e) => setNcPinyin(e.target.value)} placeholder="pinyin" style={{ ...inputStyle, fontSize: 11.5, padding: "4px 6px", width: 60 }} />
@@ -7364,7 +7364,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <div
             onClick={() => setZoomed(true)}
             title="Bấm để phóng to"
-            style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 32, color: COLORS.ink, cursor: "pointer", marginTop: 10 }}
+            style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 32, color: COLORS.ink, cursor: "pointer", marginTop: 10 }}
           >
             {c.char}
           </div>
@@ -7425,7 +7425,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                   key={i}
                   title={`${findBushou(comp).pinyin} · ${findBushou(comp).meaning} · HV: ${findBushou(comp).sv}`}
                   style={{
-                    fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif",
+                    fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
                     fontSize: 16,
                     color: COLORS.gold,
                     padding: "2px 5px",
@@ -7565,7 +7565,7 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
 
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
           <CharacterGrid state="revealed" size={220}>
-            <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 130, color: COLORS.ink }}>{c.char}</div>
+            <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 130, color: COLORS.ink }}>{c.char}</div>
           </CharacterGrid>
         </div>
 
@@ -7605,7 +7605,7 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
                 const info = findBushou(comp);
                 return (
                   <div key={i} style={{ fontSize: 12.5, color: COLORS.inkSoft }}>
-                    <span style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 16, color: COLORS.ink }}>{comp}</span>
+                    <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 16, color: COLORS.ink }}>{comp}</span>
                     {" — "}
                     {info.pinyin} · {info.meaning} · HV: {info.sv}
                   </div>
@@ -7903,7 +7903,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
 
       {mode === "edit" ? (
         <div style={{ textAlign: "left" }}>
-          <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
+          <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
             {b.char}
           </div>
           <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
@@ -7929,7 +7929,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
         </div>
       ) : (
         <>
-          <div style={{ fontFamily: "KaiTi, 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif", fontSize: 30, color: COLORS.ink }}>{b.char}</div>
+          <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 30, color: COLORS.ink }}>{b.char}</div>
           <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{b.pinyin}</div>
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{b.meaning}</div>
           {meaningDisplay !== "en" && (
