@@ -2137,6 +2137,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
+            userId={userId}
           />
         ) : tab === "vocab" ? (
           <WordListPanel
@@ -2154,6 +2155,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
+            userId={userId}
           />
         ) : tab === "premium" ? (
           <PremiumTab />
