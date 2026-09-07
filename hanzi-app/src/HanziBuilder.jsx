@@ -4238,6 +4238,20 @@ function AddTab({
       setShowAuthModal(true);
       return;
     }
+    // If this character already exists with full data, use it directly
+    // instead of spending a paid lookup on data we already have.
+    const existing = characterList.find((c) => c.char === target);
+    if (existing && existing.pinyin && existing.meaning && existing.sv) {
+      lastLookedUpRef.current = target;
+      if (existing.pinyin && (overwrite || !pinyin.trim())) setPinyin(existing.pinyin);
+      if (wantMeaningEn && existing.meaning && (overwrite || !meaning.trim())) setMeaning(existing.meaning);
+      if (wantMeaningVi && existing.meaning_vi && (overwrite || !meaningVi.trim())) setMeaningVi(existing.meaning_vi);
+      if (wantSv && existing.sv && (overwrite || !sv.trim())) setSv(existing.sv);
+      if (Array.isArray(existing.components) && existing.components.length > 0 && (overwrite || components.length === 0)) {
+        setComponents(existing.components);
+      }
+      return;
+    }
     setLookupStatus("loading");
     try {
       const authHeaders = await getAuthHeaders();
@@ -5520,6 +5534,16 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
     if (!word) return;
     if (!userId) {
       setShowAuthModal(true);
+      return;
+    }
+    // If this word already exists with full data, use it directly instead
+    // of spending a paid lookup on data we already have.
+    const existingWord = wordList.find((w) => w.word === word);
+    if (existingWord && existingWord.pinyin && existingWord.meaning && existingWord.sv) {
+      if (existingWord.pinyin) setPinyin(existingWord.pinyin);
+      if (wantMeaningEn && existingWord.meaning) setMeaning(existingWord.meaning);
+      if (wantMeaningVi && existingWord.meaning_vi) setMeaningVi(existingWord.meaning_vi);
+      if (wantSv && existingWord.sv) setSv(existingWord.sv);
       return;
     }
     setWordLookupStatus("loading");
