@@ -2329,8 +2329,8 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
             background: "none",
             border: "none",
             borderBottom: `2px solid ${tab === it.id ? COLORS.seal : "transparent"}`,
-            color: tab === it.id ? COLORS.ink : COLORS.metadata,
-            fontWeight: tab === it.id ? 600 : 500,
+            color: tab === it.id ? COLORS.ink : COLORS.inkSoft,
+            fontWeight: tab === it.id ? 700 : 600,
             fontSize: 14,
             padding: "10px 2px",
             marginBottom: -1,
@@ -2443,7 +2443,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
 
   const listPicker = (
     <div style={{ textAlign: "center", marginBottom: 16 }}>
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 10, flexWrap: "wrap" }}>
         <select
           value={selectedList}
           onChange={(e) => {
@@ -2465,18 +2465,22 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           ))}
         </select>
 
-        <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.ink }}>{t("play_difficulty_label", meaningDisplay)}</span>
-        <select
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-          style={{ ...selectStyle, width: 140, textAlign: "center", display: "inline-block" }}
-        >
-          {DIFFICULTY_LEVELS.map((lvl) => (
-            <option key={lvl.id} value={lvl.id} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-              {lvl.label}
-            </option>
-          ))}
-        </select>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.metadata, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+            {t("play_difficulty_label", meaningDisplay)}
+          </div>
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            style={{ ...selectStyle, width: 140, textAlign: "center", display: "inline-block" }}
+          >
+            {DIFFICULTY_LEVELS.map((lvl) => (
+              <option key={lvl.id} value={lvl.id} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                {lvl.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       {lockedListName && (
         <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
