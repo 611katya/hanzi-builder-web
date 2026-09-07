@@ -2249,8 +2249,6 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
           />
         ) : tab === "premium" ? (
           <PremiumTab />
-        ) : tab === "blog" ? (
-          <BlogTab meaningDisplay={meaningDisplay} />
         ) : tab === "about" ? (
           <AboutTab meaningDisplay={meaningDisplay} />
         ) : tab === "feedback" ? (
@@ -5977,13 +5975,27 @@ const ALL_TIERS = [...Object.keys(TIER_PRESETS), "Enrolled Course"];
    everyone, including guests -- this is the conversion page the
    quota-exhausted and locked-list popups link to. Static content for now;
    revise the copy freely, it's just plain text/JSX below. ---------- */
+// Placeholder — swap this in for your real WordPress blog URL once it's live.
+const BLOG_URL = "https://blog.example.com";
+
 function SiteFooter({ setTab, meaningDisplay }) {
-  const links = [
+  const tabLinks = [
     { id: "premium", label: t("tab_premium", meaningDisplay) },
-    { id: "blog", label: t("tab_blog", meaningDisplay) },
     { id: "about", label: t("tab_about", meaningDisplay) },
     { id: "feedback", label: t("tab_feedback", meaningDisplay) },
   ];
+  const linkStyle = {
+    background: "none",
+    border: "none",
+    color: "#FBF9EF",
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: "pointer",
+    padding: 0,
+    opacity: 0.92,
+    textDecoration: "none",
+    fontFamily: "inherit",
+  };
   return (
     <div
       style={{
@@ -5994,7 +6006,10 @@ function SiteFooter({ setTab, meaningDisplay }) {
     >
       <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", gap: 28, flexWrap: "wrap", marginBottom: 18 }}>
-          {links.map((l) => (
+          <a href={BLOG_URL} target="_blank" rel="noopener noreferrer" style={linkStyle}>
+            {t("tab_blog", meaningDisplay)}
+          </a>
+          {tabLinks.map((l) => (
             <button
               key={l.id}
               type="button"
@@ -6002,16 +6017,7 @@ function SiteFooter({ setTab, meaningDisplay }) {
                 setTab(l.id);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#FBF9EF",
-                fontSize: 14,
-                fontWeight: 500,
-                cursor: "pointer",
-                padding: 0,
-                opacity: 0.92,
-              }}
+              style={linkStyle}
             >
               {l.label}
             </button>
