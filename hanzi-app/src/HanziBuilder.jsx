@@ -6285,11 +6285,11 @@ function PremiumTab({ meaningDisplay }) {
     Platinum: t("pricing_hsk5", meaningDisplay),
   };
   const ads = {
-    Free: "✗",
-    Silver: "✗",
-    Titan: "✗",
-    Gold: "✓",
-    Platinum: "✓",
+    Free: t("pricing_yes", meaningDisplay),
+    Silver: t("pricing_yes", meaningDisplay),
+    Titan: t("pricing_yes", meaningDisplay),
+    Gold: t("pricing_no", meaningDisplay),
+    Platinum: t("pricing_no", meaningDisplay),
   };
   const rows = [
     { label: t("pricing_row_lookups", meaningDisplay), values: lookups },
@@ -6330,15 +6330,14 @@ function PremiumTab({ meaningDisplay }) {
                 <td style={labelCellStyle}>{row.label}</td>
                 {tiers.map((tier) => {
                   const isAdsRow = row.label === t("pricing_row_ads", meaningDisplay);
-                  const isYes = row.values[tier] === "✓";
+                  const isYes = row.values[tier] === t("pricing_yes", meaningDisplay);
                   return (
                     <td
                       key={tier}
                       style={{
                         ...cellStyle,
-                        fontWeight: isAdsRow ? 700 : 400,
-                        fontSize: isAdsRow ? 15 : 12.5,
-                        color: isAdsRow ? (isYes ? "#2E7D32" : "#C62828") : COLORS.inkSoft,
+                        fontWeight: isAdsRow ? 600 : 400,
+                        color: isAdsRow ? (isYes ? "#C62828" : "#2E7D32") : COLORS.inkSoft,
                       }}
                     >
                       {row.values[tier]}
