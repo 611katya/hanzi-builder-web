@@ -438,11 +438,71 @@ const UI_TEXT = {
     vi: "Bạn thấy điều gì hữu ích? Điều gì cần cải thiện? Hãy cho chúng tôi biết bên dưới.",
     en: "What's working well? What could be better? Let us know below.",
   },
+  feedback_contact_line: {
+    vi: "Hoặc liên hệ trực tiếp với chúng tôi tại hello@minouq.com",
+    en: "Or contact us directly at hello@minouq.com",
+  },
   feedback_placeholder: { vi: "Viết góp ý của bạn ở đây…", en: "Write your feedback here…" },
   feedback_email_placeholder: { vi: "Email của bạn (không bắt buộc)", en: "Your email (optional)" },
   admin_feedback_title: { vi: "Góp ý từ người dùng", en: "User Feedback" },
   admin_feedback_none: { vi: "Chưa có góp ý nào.", en: "No feedback yet." },
   admin_feedback_no_email: { vi: "không có email", en: "no email" },
+  admin_feedback_account: { vi: "Tài khoản:", en: "Account:" },
+  admin_feedback_submitted_email: { vi: "Email đã nhập:", en: "Submitted email:" },
+  admin_feedback_guest: { vi: "Khách (chưa đăng nhập)", en: "Guest (not signed in)" },
+
+  // Admin panel - user management
+  admin_users_title: { vi: "Quản trị người dùng", en: "User Management" },
+  admin_search_email_placeholder: { vi: "Tìm theo email…", en: "Search by email…" },
+  admin_all_tiers: { vi: "Tất cả gói", en: "All Tiers" },
+  admin_all_status: { vi: "Tất cả trạng thái", en: "All Statuses" },
+  admin_status_enabled: { vi: "Đang hoạt động", en: "Active" },
+  admin_status_disabled: { vi: "Đã vô hiệu hóa", en: "Disabled" },
+  admin_all_courses: { vi: "Tất cả khóa học", en: "All Courses" },
+  admin_refresh: { vi: "⟳ Làm mới", en: "⟳ Refresh" },
+  admin_user_count: (filtered, total) => ({ vi: `${filtered} / ${total} người dùng`, en: `${filtered} / ${total} users` }),
+  admin_invalid_limit: { vi: "Giới hạn không hợp lệ.", en: "Invalid limit." },
+  admin_need_course_name: { vi: "Vui lòng nhập tên khóa học.", en: "Please enter a course name." },
+  admin_save_failed: (msg) => ({ vi: `Không thể lưu: ${msg}`, en: `Could not save: ${msg}` }),
+  admin_saved: { vi: "Đã lưu.", en: "Saved." },
+  admin_confirm_reset_usage: { vi: "Đặt lại lượt tra cứu về 0 cho người dùng này?", en: "Reset lookup count to 0 for this user?" },
+  admin_reset_failed: (msg) => ({ vi: `Không thể đặt lại: ${msg}`, en: `Could not reset: ${msg}` }),
+  admin_reset_done: { vi: "Đã đặt lại.", en: "Reset." },
+  admin_confirm_disable: (name) => ({
+    vi: `Vô hiệu hóa tài khoản "${name}"? Người này sẽ không thể tra cứu tự động cho đến khi được kích hoạt lại.`,
+    en: `Disable account "${name}"? This person won't be able to use auto-lookup until re-enabled.`,
+  }),
+  admin_update_failed: (msg) => ({ vi: `Không thể cập nhật: ${msg}`, en: `Could not update: ${msg}` }),
+  admin_disabled_done: { vi: "Đã vô hiệu hóa.", en: "Disabled." },
+  admin_enabled_done: { vi: "Đã kích hoạt lại.", en: "Re-enabled." },
+  admin_course_name_placeholder: { vi: "Tên khóa học…", en: "Course name…" },
+  admin_save: { vi: "Lưu", en: "Save" },
+  admin_cancel: { vi: "Hủy", en: "Cancel" },
+  admin_disabled_badge: { vi: "Đã vô hiệu hóa", en: "Disabled" },
+  admin_edit: { vi: "Sửa", en: "Edit" },
+  admin_reset_to_zero: { vi: "Đặt lại về 0", en: "Reset to 0" },
+  admin_reenable: { vi: "✓ Kích hoạt lại", en: "✓ Re-enable" },
+  admin_disable: { vi: "🚫 Vô hiệu hóa", en: "🚫 Disable" },
+  admin_no_users_found: { vi: "Không tìm thấy người dùng.", en: "No users found." },
+
+  // Admin panel - list management
+  admin_list_mgmt_title: { vi: "Quản lý danh sách", en: "List Management" },
+  admin_list_mgmt_description: {
+    vi: 'Danh sách chưa cấu hình bên dưới mặc định mở cho mọi người. "Chỉ admin" ẩn hoàn toàn khỏi người dùng thường. Chọn gói và/hoặc gán khóa học cụ thể để giới hạn quyền xem nội dung (tên danh sách vẫn hiển thị cho mọi người, trừ khi chọn "Chỉ admin").',
+    en: 'Lists not configured below default to open for everyone. "Admin only" hides it completely from regular users. Choose tiers and/or grant specific courses to restrict content access (the list name is still visible to everyone, unless "Admin only" is selected).',
+  },
+  admin_admin_only_checkbox: { vi: "Chỉ admin", en: "Admin only" },
+  admin_allowed_tiers_label: { vi: "Gói được phép xem:", en: "Tiers allowed to view:" },
+  admin_course_grants_label: {
+    vi: 'Cấp riêng cho khóa học cụ thể (dành cho gói "Enrolled Course"):',
+    en: 'Grant specific courses (for the "Enrolled Course" tier):',
+  },
+  admin_add: { vi: "+ Thêm", en: "+ Add" },
+  admin_open_to_all: { vi: "Mở cho tất cả", en: "Open to all" },
+  admin_admin_only_badge: { vi: "🔒 Chỉ admin", en: "🔒 Admin only" },
+  admin_course_count: (n) => ({ vi: `${n} khóa học`, en: `${n} course${n === 1 ? "" : "s"}` }),
+  admin_no_one_can_view: { vi: "Không ai được xem", en: "No one can view" },
+  admin_no_lists_yet: { vi: "Chưa có danh sách nào.", en: "No lists yet." },
   admin_feedback_delete: { vi: "Xóa", en: "Delete" },
   feedback_submit: { vi: "Gửi góp ý", en: "Submit Feedback" },
   feedback_sending: { vi: "Đang gửi…", en: "Sending…" },
@@ -5998,8 +6058,11 @@ function FeedbackTab({ meaningDisplay, userId }) {
       <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 8 }}>
         {t("feedback_title", meaningDisplay)}
       </div>
-      <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 6, lineHeight: 1.6 }}>
         {t("feedback_body", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 13, color: COLORS.metadata, marginBottom: 20, lineHeight: 1.5 }}>
+        {t("feedback_contact_line", meaningDisplay)}
       </div>
       <form onSubmit={handleSubmit}>
         <textarea
@@ -6139,9 +6202,22 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
     setFeedbackLoading(true);
     const { data, error } = await supabase
       .from("feedback")
-      .select("id, message, email, created_at")
+      .select("id, message, email, user_id, created_at")
       .order("created_at", { ascending: false });
-    if (!error) setFeedbackList(data || []);
+    if (error) {
+      setFeedbackLoading(false);
+      return;
+    }
+    const rows = data || [];
+    const userIds = [...new Set(rows.filter((f) => f.user_id).map((f) => f.user_id))];
+    let accountEmails = {};
+    if (userIds.length > 0) {
+      const { data: profileRows } = await supabase.from("profiles").select("user_id, email").in("user_id", userIds);
+      (profileRows || []).forEach((p) => {
+        accountEmails[p.user_id] = p.email;
+      });
+    }
+    setFeedbackList(rows.map((f) => ({ ...f, accountEmail: f.user_id ? accountEmails[f.user_id] : null })));
     setFeedbackLoading(false);
   }
 
@@ -6196,7 +6272,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
       .from("list_settings")
       .upsert({ name, admin_only: editAdminOnly, allowed_tiers: editAllowedTiers }, { onConflict: "name" });
     if (error) {
-      setListMessage({ type: "error", text: "Không thể lưu: " + error.message });
+      setListMessage({ type: "error", text: t("admin_save_failed", meaningDisplay, error.message) });
       return;
     }
     setListSettings((prev) => {
@@ -6204,7 +6280,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
       return [...without, { name, admin_only: editAdminOnly, allowed_tiers: editAllowedTiers }];
     });
     setEditingListName(null);
-    setListMessage({ type: "success", text: "Đã lưu." });
+    setListMessage({ type: "success", text: t("admin_saved", meaningDisplay) });
     setTimeout(() => setListMessage(null), 2500);
   }
 
@@ -6263,12 +6339,12 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
   async function saveEdit(userId) {
     const limitNum = parseInt(editLimit, 10);
     if (!Number.isFinite(limitNum) || limitNum < 0) {
-      setMessage({ type: "error", text: "Giới hạn không hợp lệ." });
+      setMessage({ type: "error", text: t("admin_invalid_limit", meaningDisplay) });
       return;
     }
     const isCourse = editTier === "Enrolled Course";
     if (isCourse && !editCourseName.trim()) {
-      setMessage({ type: "error", text: "Vui lòng nhập tên khóa học." });
+      setMessage({ type: "error", text: t("admin_need_course_name", meaningDisplay) });
       return;
     }
     const courseNameToSave = isCourse ? editCourseName.trim() : null;
@@ -6289,27 +6365,27 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
   }
 
   async function resetUsage(userId) {
-    if (!window.confirm("Đặt lại lượt tra cứu về 0 cho người dùng này?")) return;
+    if (!window.confirm(t("admin_confirm_reset_usage", meaningDisplay))) return;
     const { error } = await supabase.from("profiles").update({ lookup_count: 0 }).eq("user_id", userId);
     if (error) {
-      setMessage({ type: "error", text: "Không thể đặt lại: " + error.message });
+      setMessage({ type: "error", text: t("admin_reset_failed", meaningDisplay, error.message) });
       return;
     }
     setUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, lookup_count: 0 } : u)));
-    setMessage({ type: "success", text: "Đã đặt lại." });
+    setMessage({ type: "success", text: t("admin_reset_done", meaningDisplay) });
     setTimeout(() => setMessage(null), 2500);
   }
 
   async function toggleDisabled(u) {
     const next = !u.disabled;
-    if (next && !window.confirm(`Vô hiệu hóa tài khoản "${u.email || u.user_id}"? Người này sẽ không thể tra cứu tự động cho đến khi được kích hoạt lại.`)) return;
+    if (next && !window.confirm(t("admin_confirm_disable", meaningDisplay, u.email || u.user_id))) return;
     const { error } = await supabase.from("profiles").update({ disabled: next }).eq("user_id", u.user_id);
     if (error) {
-      setMessage({ type: "error", text: "Không thể cập nhật: " + error.message });
+      setMessage({ type: "error", text: t("admin_update_failed", meaningDisplay, error.message) });
       return;
     }
     setUsers((prev) => prev.map((x) => (x.user_id === u.user_id ? { ...x, disabled: next } : x)));
-    setMessage({ type: "success", text: next ? "Đã vô hiệu hóa." : "Đã kích hoạt lại." });
+    setMessage({ type: "success", text: next ? t("admin_disabled_done", meaningDisplay) : t("admin_enabled_done", meaningDisplay) });
     setTimeout(() => setMessage(null), 2500);
   }
 
@@ -6332,18 +6408,18 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
   return (
     <div>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
-        Quản trị người dùng
+        {t("admin_users_title", meaningDisplay)}
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Tìm theo email…"
+          placeholder={t("admin_search_email_placeholder", meaningDisplay)}
           style={{ ...inputStyle, width: 220, textAlign: "center" }}
         />
         <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} style={{ ...selectStyle, width: 150, flex: "none" }}>
-          <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả gói</option>
+          <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("admin_all_tiers", meaningDisplay)}</option>
           {ALL_TIERS.map((t) => (
             <option key={t} value={t} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
               {t}
@@ -6351,13 +6427,13 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
           ))}
         </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...selectStyle, width: 170, flex: "none" }}>
-          <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả trạng thái</option>
-          <option value="enabled" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Đang hoạt động</option>
-          <option value="disabled" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Đã vô hiệu hóa</option>
+          <option value="all" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("admin_all_status", meaningDisplay)}</option>
+          <option value="enabled" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("admin_status_enabled", meaningDisplay)}</option>
+          <option value="disabled" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("admin_status_disabled", meaningDisplay)}</option>
         </select>
         {existingCourseNames.length > 0 && (
           <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} style={{ ...selectStyle, width: 170, flex: "none" }}>
-            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>Tất cả khóa học</option>
+            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("admin_all_courses", meaningDisplay)}</option>
             {existingCourseNames.map((c) => (
               <option key={c} value={c} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
                 {c}
@@ -6366,12 +6442,12 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
           </select>
         )}
         <button type="button" onClick={loadUsers} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 14px", fontSize: 12.5 }}>
-          ⟳ Làm mới
+          {t("admin_refresh", meaningDisplay)}
         </button>
       </div>
 
       <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 14 }}>
-        {filtered.length} / {users.length} người dùng
+        {t("admin_user_count", meaningDisplay, filtered.length, users.length)}
       </div>
 
       {message && (
@@ -6426,7 +6502,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                       <input
                         value={editCourseName}
                         onChange={(e) => setEditCourseName(e.target.value)}
-                        placeholder="Tên khóa học…"
+                        placeholder={t("admin_course_name_placeholder", meaningDisplay)}
                         list="admin-course-names"
                         style={{ ...inputStyle, width: 170 }}
                       />
@@ -6438,7 +6514,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                     </>
                   )}
                   <button type="button" onClick={() => saveEdit(u.user_id)} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
-                    Lưu
+                    {t("admin_save", meaningDisplay)}
                   </button>
                   <button
                     type="button"
@@ -6446,7 +6522,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                     className="ghost-btn"
                     style={{ ...ghostBtnStyle, padding: "6px 14px", fontSize: 12 }}
                   >
-                    Hủy
+                    {t("admin_cancel", meaningDisplay)}
                   </button>
                 </div>
               ) : (
@@ -6467,7 +6543,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                           color: COLORS.error,
                         }}
                       >
-                        Đã vô hiệu hóa
+                        {t("admin_disabled_badge", meaningDisplay)}
                       </span>
                     )}
                   </div>
@@ -6486,7 +6562,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                     className="ghost-btn"
                     style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
                   >
-                    Sửa
+                    {t("admin_edit", meaningDisplay)}
                   </button>
                   <button
                     type="button"
@@ -6494,7 +6570,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                     className="ghost-btn"
                     style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
                   >
-                    Đặt lại về 0
+                    {t("admin_reset_to_zero", meaningDisplay)}
                   </button>
                   {!u.is_admin && (
                     <button
@@ -6509,7 +6585,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                         color: u.disabled ? COLORS.bamboo : COLORS.error,
                       }}
                     >
-                      {u.disabled ? "✓ Kích hoạt lại" : "🚫 Vô hiệu hóa"}
+                      {u.disabled ? t("admin_reenable", meaningDisplay) : t("admin_disable", meaningDisplay)}
                     </button>
                   )}
                 </div>
@@ -6517,19 +6593,17 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
             </div>
           ))}
           {filtered.length === 0 && (
-            <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>Không tìm thấy người dùng.</div>
+            <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("admin_no_users_found", meaningDisplay)}</div>
           )}
         </div>
       )}
 
       <div style={{ marginTop: 32, paddingTop: 22, borderTop: `1px dashed ${COLORS.grid}` }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
-          Quản lý danh sách
+          {t("admin_list_mgmt_title", meaningDisplay)}
         </div>
         <div style={{ fontSize: 11.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16, lineHeight: 1.5 }}>
-          Danh sách chưa cấu hình bên dưới mặc định mở cho mọi người. "Chỉ admin" ẩn hoàn toàn khỏi người dùng
-          thường. Chọn gói và/hoặc gán khóa học cụ thể để giới hạn quyền xem nội dung (tên danh sách vẫn hiển thị
-          cho mọi người, trừ khi chọn "Chỉ admin").
+          {t("admin_list_mgmt_description", meaningDisplay)}
         </div>
 
         {listMessage && (
@@ -6571,13 +6645,13 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                         <div style={{ flex: "1 1 160px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>{name}</div>
                         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: COLORS.ink, cursor: "pointer" }}>
                           <input type="checkbox" checked={editAdminOnly} onChange={(e) => setEditAdminOnly(e.target.checked)} />
-                          Chỉ admin
+                          {t("admin_admin_only_checkbox", meaningDisplay)}
                         </label>
                       </div>
 
                       {!editAdminOnly && (
                         <>
-                          <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 6 }}>Gói được phép xem:</div>
+                          <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 6 }}>{t("admin_allowed_tiers_label", meaningDisplay)}</div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
                             {ALL_TIERS.map((t) => (
                               <button
@@ -6601,7 +6675,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                           </div>
 
                           <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 6 }}>
-                            Cấp riêng cho khóa học cụ thể (dành cho gói "Enrolled Course"):
+                            {t("admin_course_grants_label", meaningDisplay)}
                           </div>
                           {courseGrants.length > 0 && (
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
@@ -6636,7 +6710,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                             <input
                               value={newCourseGrant}
                               onChange={(e) => setNewCourseGrant(e.target.value)}
-                              placeholder="Tên khóa học…"
+                              placeholder={t("admin_course_name_placeholder", meaningDisplay)}
                               style={{ ...inputStyle, fontSize: 12.5, padding: "6px 10px", width: 200 }}
                             />
                             <button
@@ -6645,7 +6719,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                               className="ghost-btn"
                               style={{ ...ghostBtnStyle, padding: "6px 12px", fontSize: 12 }}
                             >
-                              + Thêm
+                              {t("admin_add", meaningDisplay)}
                             </button>
                           </div>
                         </>
@@ -6658,7 +6732,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                           className="seal-btn"
                           style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}
                         >
-                          Lưu
+                          {t("admin_save", meaningDisplay)}
                         </button>
                         <button
                           type="button"
@@ -6666,7 +6740,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                           className="ghost-btn"
                           style={{ ...ghostBtnStyle, padding: "6px 14px", fontSize: 12 }}
                         >
-                          Hủy
+                          {t("admin_cancel", meaningDisplay)}
                         </button>
                       </div>
                     </div>
@@ -6675,13 +6749,13 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                       <div style={{ flex: "1 1 160px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>{name}</div>
                       <div style={{ fontSize: 12, color: COLORS.inkSoft }}>
                         {isOpen
-                          ? "Mở cho tất cả"
+                          ? t("admin_open_to_all", meaningDisplay)
                           : setting.admin_only
-                          ? "🔒 Chỉ admin"
+                          ? t("admin_admin_only_badge", meaningDisplay)
                           : [
                               ...(setting.allowed_tiers || []),
-                              ...(courseGrants.length > 0 ? [`${courseGrants.length} khóa học`] : []),
-                            ].join(", ") || "Không ai được xem"}
+                              ...(courseGrants.length > 0 ? [t("admin_course_count", meaningDisplay, courseGrants.length)] : []),
+                            ].join(", ") || t("admin_no_one_can_view", meaningDisplay)}
                       </div>
                       <button
                         type="button"
@@ -6689,7 +6763,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                         className="ghost-btn"
                         style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
                       >
-                        Sửa
+                        {t("admin_edit", meaningDisplay)}
                       </button>
                     </div>
                   )}
@@ -6697,7 +6771,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
               );
             })}
             {allListNamesInUse.length === 0 && (
-              <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>Chưa có danh sách nào.</div>
+              <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("admin_no_lists_yet", meaningDisplay)}</div>
             )}
           </div>
         )}
@@ -6715,12 +6789,22 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {feedbackList.map((f) => (
               <div key={f.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "14px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.seal }}>
-                    {f.email || t("admin_feedback_no_email", meaningDisplay)}
+                    {f.accountEmail
+                      ? `${t("admin_feedback_account", meaningDisplay)} ${f.accountEmail}`
+                      : t("admin_feedback_guest", meaningDisplay)}
                   </span>
                   <span style={{ fontSize: 11, color: COLORS.metadata }}>{new Date(f.created_at).toLocaleString()}</span>
                 </div>
+                {f.email && f.email !== f.accountEmail && (
+                  <div style={{ fontSize: 11.5, color: COLORS.metadata, marginBottom: 6 }}>
+                    {t("admin_feedback_submitted_email", meaningDisplay)} {f.email}
+                  </div>
+                )}
+                {!f.email && !f.accountEmail && (
+                  <div style={{ fontSize: 11.5, color: COLORS.metadata, marginBottom: 6 }}>{t("admin_feedback_no_email", meaningDisplay)}</div>
+                )}
                 <div style={{ fontSize: 13.5, color: COLORS.ink, lineHeight: 1.5, marginBottom: 8, whiteSpace: "pre-wrap" }}>{f.message}</div>
                 <button
                   type="button"
