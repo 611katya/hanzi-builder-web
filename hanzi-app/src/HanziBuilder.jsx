@@ -422,6 +422,8 @@ const UI_TEXT = {
   tab_blog: { vi: "Blog", en: "Blog" },
   tab_about: { vi: "Về chúng tôi", en: "About Us" },
   tab_feedback: { vi: "Góp ý", en: "Feedback" },
+  tab_privacy: { vi: "Privacy", en: "Privacy" },
+  tab_terms: { vi: "Terms", en: "Terms" },
   footer_copyright: { vi: "Bản quyền © 2026 MinouQ", en: "Copyright © 2026 MinouQ" },
   blog_coming_soon_title: { vi: "Blog sắp ra mắt", en: "Blog Coming Soon" },
   blog_coming_soon_body: {
@@ -2251,6 +2253,10 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
           <PremiumTab />
         ) : tab === "about" ? (
           <AboutTab meaningDisplay={meaningDisplay} />
+        ) : tab === "privacy" ? (
+          <PrivacyTab />
+        ) : tab === "terms" ? (
+          <TermsTab />
         ) : tab === "feedback" ? (
           <FeedbackTab meaningDisplay={meaningDisplay} userId={userId} />
         ) : tab === "admin" ? (
@@ -5983,6 +5989,8 @@ function SiteFooter({ setTab, meaningDisplay }) {
     { id: "premium", label: t("tab_premium", meaningDisplay) },
     { id: "about", label: t("tab_about", meaningDisplay) },
     { id: "feedback", label: t("tab_feedback", meaningDisplay) },
+    { id: "privacy", label: t("tab_privacy", meaningDisplay) },
+    { id: "terms", label: t("tab_terms", meaningDisplay) },
   ];
   const linkStyle = {
     background: "none",
@@ -6052,6 +6060,107 @@ function AboutTab({ meaningDisplay }) {
         {t("about_body", meaningDisplay)}
       </div>
     </div>
+  );
+}
+
+function LegalPage({ title, updated, sections }) {
+  return (
+    <div style={{ padding: "20px 4px", maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 4, textAlign: "center" }}>{title}</div>
+      <div style={{ fontSize: 12, color: COLORS.metadata, textAlign: "center", marginBottom: 24 }}>Last updated: {updated}</div>
+      {sections.map((s, i) => (
+        <div key={i} style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 600, color: COLORS.ink, marginBottom: 6 }}>{s.heading}</div>
+          <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, whiteSpace: "pre-line" }}>{s.body}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PrivacyTab() {
+  return (
+    <LegalPage
+      title="Privacy Policy"
+      updated="September 2026"
+      sections={[
+        {
+          heading: "1. What we collect",
+          body: "When you create an account, we collect your email address and password (handled securely by our authentication provider, Supabase — we never see or store your password in plain text). If you use the character/word lookup feature, we send the character or word you enter to Anthropic's Claude API to generate meaning, pinyin, and Sino-Vietnamese data. If you submit feedback, we store the message you write and, optionally, an email address you choose to provide.",
+        },
+        {
+          heading: "2. How we use it",
+          body: "We use your account data to let you save your own custom characters, words, and lists, track your flashcard progress, and manage your subscription tier. We use submitted feedback to improve the app. We do not sell your personal data to third parties.",
+        },
+        {
+          heading: "3. Third-party services",
+          body: "We use Supabase for authentication and data storage, and Anthropic's API for character/word lookups. These providers process data on our behalf under their own privacy and security terms.",
+        },
+        {
+          heading: "4. Cookies and local storage",
+          body: "We use your browser's local storage to remember small preferences, such as whether you've already chosen a display language, so we don't ask again on every visit. We don't use tracking or advertising cookies.",
+        },
+        {
+          heading: "5. Your choices",
+          body: "You can edit or delete your own custom characters, words, and lists at any time from within the app. To delete your account entirely or request a copy of your data, contact us using the details below.",
+        },
+        {
+          heading: "6. Children's privacy",
+          body: "This app is intended for general audiences learning Chinese. We do not knowingly collect personal data from children without appropriate parental consent where required by local law.",
+        },
+        {
+          heading: "7. Changes to this policy",
+          body: "We may update this policy as the app evolves. We'll update the date above when we do.",
+        },
+        {
+          heading: "8. Contact",
+          body: "Questions about this policy? Reach us at hello@minouq.com.",
+        },
+      ]}
+    />
+  );
+}
+
+function TermsTab() {
+  return (
+    <LegalPage
+      title="Terms of Service"
+      updated="September 2026"
+      sections={[
+        {
+          heading: "1. Using this service",
+          body: "MinouQ is a tool for learning Chinese characters through their component structure. By creating an account or using the app, you agree to these terms.",
+        },
+        {
+          heading: "2. Accounts",
+          body: "You're responsible for keeping your login credentials secure and for activity that happens under your account. You must provide a valid email address to create an account.",
+        },
+        {
+          heading: "3. Subscription tiers and lookups",
+          body: "Free accounts include a limited number of automatic character/word lookups per period. Paid tiers unlock higher or unlimited lookup allowances and access to additional content. Pricing and tier details are shown on the Pricing page.",
+        },
+        {
+          heading: "4. Acceptable use",
+          body: "Please don't use the lookup feature to abuse, overload, or attempt to extract data from our systems beyond normal use, and don't submit content that's illegal, abusive, or infringes on others' rights.",
+        },
+        {
+          heading: "5. Your content",
+          body: "Characters, words, and lists you add remain associated with your account. By submitting feedback, you allow us to use it to improve the app.",
+        },
+        {
+          heading: "6. Changes and availability",
+          body: "We may add, change, or remove features over time, and may suspend accounts that violate these terms. We aim for reliable uptime but don't guarantee uninterrupted service.",
+        },
+        {
+          heading: "7. Disclaimer",
+          body: "This app is provided \"as is.\" While we aim for accuracy, character meanings, pinyin, and readings — including those generated automatically — may occasionally contain errors; please cross-check important learning material against a trusted dictionary.",
+        },
+        {
+          heading: "8. Contact",
+          body: "Questions about these terms? Reach us at hello@minouq.com.",
+        },
+      ]}
+    />
   );
 }
 
