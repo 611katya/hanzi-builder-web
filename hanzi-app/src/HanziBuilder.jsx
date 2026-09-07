@@ -454,8 +454,12 @@ const UI_TEXT = {
   },
   about_title: { vi: "Về MinouQ", en: "About MinouQ" },
   about_body: {
-    vi: "MinouQ là công cụ học chữ Hán được xây dựng để giúp người học hiểu chữ Hán qua cách phân tích các bộ thành phần, thay vì học thuộc lòng. Chúng tôi tin rằng việc hiểu cấu tạo của một chữ Hán sẽ giúp việc ghi nhớ trở nên tự nhiên và bền vững hơn.",
-    en: "MinouQ is a Hanzi-learning tool built to help learners understand Chinese characters through their component structure, rather than by rote memorization. We believe that understanding how a character is built makes it easier to remember naturally and for the long term.",
+    vi: "MinouQ Chinese là công cụ học chữ Hán được xây dựng để giúp người học hiểu chữ Hán qua cách phân tích các bộ thành phần, thay vì học thuộc lòng. Chúng tôi tin rằng việc hiểu cấu tạo của một chữ Hán sẽ giúp việc ghi nhớ trở nên tự nhiên và bền vững hơn.",
+    en: "MinouQ Chinese is a Hanzi-learning tool built to help learners understand Chinese characters through their component structure, rather than by rote memorization. We believe that understanding how a character is built makes it easier to remember naturally and for the long term.",
+  },
+  about_visit_line: {
+    vi: "Để tìm hiểu thêm về các bài viết, sản phẩm, và nghiên cứu khác của MinouQ, vui lòng truy cập chúng tôi tại",
+    en: "To learn more about other articles, products, and research by MinouQ, please visit us at",
   },
   feedback_title: { vi: "Chúng tôi rất muốn nghe ý kiến của bạn", en: "We'd Love Your Feedback" },
   feedback_body: {
@@ -6078,8 +6082,14 @@ function AboutTab({ meaningDisplay }) {
       <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 14, textAlign: "center" }}>
         {t("about_title", meaningDisplay)}
       </div>
-      <div style={{ fontSize: 15, color: COLORS.inkSoft, lineHeight: 1.7, maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ fontSize: 15, color: COLORS.inkSoft, lineHeight: 1.7, maxWidth: 560, margin: "0 auto", textAlign: "justify" }}>
         {t("about_body", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 15, color: COLORS.inkSoft, lineHeight: 1.7, maxWidth: 560, margin: "16px auto 0", textAlign: "justify" }}>
+        {t("about_visit_line", meaningDisplay)}{" "}
+        <a href="https://www.minouq.com" target="_blank" rel="noopener noreferrer" style={{ color: COLORS.seal, fontWeight: 600 }}>
+          www.minouq.com
+        </a>
       </div>
     </div>
   );
@@ -6284,8 +6294,9 @@ function PremiumTab({ meaningDisplay }) {
     { label: t("pricing_row_rate", meaningDisplay), values: Object.fromEntries(tiers.map((tier) => [tier, t("pricing_tbd", meaningDisplay)])) },
   ];
 
+  const tierColors = { Free: COLORS.metadata, Silver: "#7B8794", Titan: COLORS.seal, Gold: "#B8860B", Platinum: "#6B4C9A" };
   const cellStyle = { padding: "10px 12px", fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", borderBottom: `1px solid ${COLORS.hairline}` };
-  const headStyle = { ...cellStyle, color: COLORS.ink, fontWeight: 700, fontSize: 13 };
+  const headStyle = { ...cellStyle, fontWeight: 700, fontSize: 13, borderBottom: "none" };
   const labelCellStyle = { ...cellStyle, textAlign: "left", fontWeight: 600, color: COLORS.ink };
 
   return (
@@ -6306,17 +6317,32 @@ function PremiumTab({ meaningDisplay }) {
             <tr>
               <th style={{ ...headStyle, textAlign: "left" }}></th>
               {tiers.map((tier) => (
-                <th key={tier} style={headStyle}>{tier}</th>
+                <th key={tier} style={{ ...headStyle, color: tierColors[tier], borderTop: `2px solid ${tierColors[tier]}`, paddingTop: 10 }}>
+                  {tier}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.label}>
+            {rows.map((row, i) => (
+              <tr key={row.label} style={{ background: i % 2 === 1 ? COLORS.chipBg : "transparent" }}>
                 <td style={labelCellStyle}>{row.label}</td>
-                {tiers.map((tier) => (
-                  <td key={tier} style={cellStyle}>{row.values[tier]}</td>
-                ))}
+                {tiers.map((tier) => {
+                  const isAdsRow = row.label === t("pricing_row_ads", meaningDisplay);
+                  const isNo = row.values[tier] === t("pricing_no", meaningDisplay);
+                  return (
+                    <td
+                      key={tier}
+                      style={{
+                        ...cellStyle,
+                        fontWeight: isAdsRow ? 600 : 400,
+                        color: isAdsRow ? (isNo ? COLORS.seal : "#B8860B") : COLORS.inkSoft,
+                      }}
+                    >
+                      {row.values[tier]}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
