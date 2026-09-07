@@ -472,6 +472,8 @@ const UI_TEXT = {
   admin_blog_cancel: { vi: "Hủy", en: "Cancel" },
   admin_blog_edit: { vi: "Sửa", en: "Edit" },
   admin_blog_delete: { vi: "Xóa", en: "Delete" },
+  admin_blog_publish_action: { vi: "Đăng bài", en: "Publish" },
+  admin_blog_unpublish_action: { vi: "Gỡ đăng", en: "Unpublish" },
   admin_blog_confirm_delete: { vi: "Xóa bài viết này?", en: "Delete this post?" },
   admin_blog_need_title_body: { vi: "Vui lòng nhập tiêu đề và nội dung.", en: "Please enter a title and content." },
   admin_blog_none: { vi: "Chưa có bài viết nào.", en: "No posts yet." },
@@ -6603,6 +6605,17 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
     if (!error) setBlogPosts((prev) => prev.filter((p) => p.id !== id));
   }
 
+  async function toggleBlogPublish(post) {
+    const nextPublished = !post.published;
+    const { error } = await supabase
+      .from("blog_posts")
+      .update({ published: nextPublished, updated_at: new Date().toISOString() })
+      .eq("id", post.id);
+    if (!error) {
+      setBlogPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, published: nextPublished } : p)));
+    }
+  }
+
   async function loadFeedback() {
     setFeedbackLoading(true);
     const { data, error } = await supabase
@@ -7339,6 +7352,19 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleBlogPublish(post)}
+                    className="seal-btn"
+                    style={{
+                      ...sealBtnStyle,
+                      padding: "5px 10px",
+                      fontSize: 11.5,
+                      background: post.published ? COLORS.metadata : COLORS.seal,
+                    }}
+                  >
+                    {post.published ? t("admin_blog_unpublish_action", meaningDisplay) : t("admin_blog_publish_action", meaningDisplay)}
+                  </button>
                   <button type="button" onClick={() => startEditBlogPost(post)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}>
                     {t("admin_blog_edit", meaningDisplay)}
                   </button>
