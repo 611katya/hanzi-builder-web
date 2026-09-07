@@ -9,7 +9,7 @@ export default function App() {
   const [recovery, setRecovery] = useRecoveryMode();
 
   useEffect(() => {
-    document.title = "Study Hanzi";
+    document.title = "MinouQ Chinese";
   }, []);
 
   if (session === undefined) {

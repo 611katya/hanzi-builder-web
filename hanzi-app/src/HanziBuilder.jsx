@@ -410,10 +410,10 @@ const COLORS = {
    ============================================================ */
 const UI_TEXT = {
   // Tab bar
-  tab_play: { vi: "Ghép bộ thủ", en: "Assemble Radicals" },
+  tab_play: { vi: "Ghép bộ thủ", en: "Combine Radicals" },
   tab_flashcards: { vi: "Flashcard", en: "Flashcard" },
-  tab_writing: { vi: "✍️ Luyện viết", en: "✍️ Writing Practice" },
-  tab_add: { vi: "Tạo thẻ từ mới", en: "Create New Cards" },
+  tab_writing: { vi: "✍️ Luyện viết", en: "✍️ Handwriting" },
+  tab_add: { vi: "Tạo thẻ từ mới", en: "Add Cards" },
   loading: { vi: "Đang tải…", en: "Loading…" },
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
