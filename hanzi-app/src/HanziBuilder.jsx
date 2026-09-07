@@ -439,6 +439,11 @@ const UI_TEXT = {
     en: "What's working well? What could be better? Let us know below.",
   },
   feedback_placeholder: { vi: "Viết góp ý của bạn ở đây…", en: "Write your feedback here…" },
+  feedback_email_placeholder: { vi: "Email của bạn (không bắt buộc)", en: "Your email (optional)" },
+  admin_feedback_title: { vi: "Góp ý từ người dùng", en: "User Feedback" },
+  admin_feedback_none: { vi: "Chưa có góp ý nào.", en: "No feedback yet." },
+  admin_feedback_no_email: { vi: "không có email", en: "no email" },
+  admin_feedback_delete: { vi: "Xóa", en: "Delete" },
   feedback_submit: { vi: "Gửi góp ý", en: "Submit Feedback" },
   feedback_sending: { vi: "Đang gửi…", en: "Sending…" },
   feedback_success: { vi: "Cảm ơn bạn đã góp ý!", en: "Thank you for your feedback!" },
@@ -5962,6 +5967,7 @@ function AboutTab({ meaningDisplay }) {
 
 function FeedbackTab({ meaningDisplay, userId }) {
   const [text, setText] = useState("");
+  const [email, setEmail] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | done | error
 
   async function handleSubmit(e) {
@@ -5972,10 +5978,15 @@ function FeedbackTab({ meaningDisplay, userId }) {
     }
     setStatus("sending");
     try {
-      const { error } = await supabase.from("feedback").insert({ message: text.trim(), user_id: userId || null });
+      const { error } = await supabase.from("feedback").insert({
+        message: text.trim(),
+        email: email.trim() || null,
+        user_id: userId || null,
+      });
       if (error) throw error;
       setStatus("done");
       setText("");
+      setEmail("");
     } catch (err) {
       console.error("Feedback submit failed:", err);
       setStatus("error");
@@ -5999,7 +6010,14 @@ function FeedbackTab({ meaningDisplay, userId }) {
           }}
           placeholder={t("feedback_placeholder", meaningDisplay)}
           rows={5}
-          style={{ ...inputStyle, width: "100%", boxSizing: "border-box", resize: "vertical", marginBottom: 12, fontFamily: "'Noto Sans', sans-serif" }}
+          style={{ ...inputStyle, width: "100%", boxSizing: "border-box", resize: "vertical", marginBottom: 10, fontFamily: "'Noto Sans', sans-serif" }}
+        />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder={t("feedback_email_placeholder", meaningDisplay)}
+          style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 12 }}
         />
         <button type="submit" className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }} disabled={status === "sending"}>
           {status === "sending" ? t("feedback_sending", meaningDisplay) : t("feedback_submit", meaningDisplay)}
@@ -6105,12 +6123,32 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
   const [newCourseGrant, setNewCourseGrant] = useState("");
   const [listMessage, setListMessage] = useState(null);
 
+  // Feedback review
+  const [feedbackList, setFeedbackList] = useState([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(true);
+
   useEffect(() => {
     if (!isAdmin) return;
     loadUsers();
     loadListSettings();
+    loadFeedback();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
+
+  async function loadFeedback() {
+    setFeedbackLoading(true);
+    const { data, error } = await supabase
+      .from("feedback")
+      .select("id, message, email, created_at")
+      .order("created_at", { ascending: false });
+    if (!error) setFeedbackList(data || []);
+    setFeedbackLoading(false);
+  }
+
+  async function handleDeleteFeedback(id) {
+    const { error } = await supabase.from("feedback").delete().eq("id", id);
+    if (!error) setFeedbackList((prev) => prev.filter((f) => f.id !== id));
+  }
 
   async function loadUsers() {
     setLoading(true);
@@ -6661,6 +6699,39 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
             {allListNamesInUse.length === 0 && (
               <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>Chưa có danh sách nào.</div>
             )}
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 28 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+          {t("admin_feedback_title", meaningDisplay)}
+        </div>
+        {feedbackLoading ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("loading", meaningDisplay)}</div>
+        ) : feedbackList.length === 0 ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("admin_feedback_none", meaningDisplay)}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {feedbackList.map((f) => (
+              <div key={f.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "14px 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.seal }}>
+                    {f.email || t("admin_feedback_no_email", meaningDisplay)}
+                  </span>
+                  <span style={{ fontSize: 11, color: COLORS.metadata }}>{new Date(f.created_at).toLocaleString()}</span>
+                </div>
+                <div style={{ fontSize: 13.5, color: COLORS.ink, lineHeight: 1.5, marginBottom: 8, whiteSpace: "pre-wrap" }}>{f.message}</div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteFeedback(f.id)}
+                  className="ghost-btn"
+                  style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
+                >
+                  {t("admin_feedback_delete", meaningDisplay)}
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
