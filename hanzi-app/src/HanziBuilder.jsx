@@ -417,7 +417,7 @@ const UI_TEXT = {
   loading: { vi: "Đang tải…", en: "Loading…" },
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
-  tab_vocab: { vi: "Từ vựng", en: "Vocabulary" },
+  tab_vocab: { vi: "Từ vựng", en: "Words" },
   tab_premium: { vi: "★ Thành viên", en: "★ Membership" },
   tab_admin: { vi: "⚙ Quản trị", en: "⚙ Admin" },
 
@@ -743,6 +743,7 @@ const UI_TEXT = {
 
   // Hán tự (Character list panel)
   hanzi_panel_title: { vi: "Danh sách Hán tự trong kho dữ liệu", en: "Character List in Storage" },
+  hanzi_panel_title_guest: { vi: "Đăng nhập để thêm chữ của riêng bạn", en: "Sign in to add your own characters" },
   hanzi_search_placeholder: {
     vi: "Tìm chữ theo Hán tự, pinyin, nghĩa, hoặc Hán Việt…",
     en: "Search by character, pinyin, meaning, or Sino-Vietnamese…",
@@ -758,6 +759,7 @@ const UI_TEXT = {
 
   // Từ vựng (Word list panel)
   vocab_panel_title: { vi: "Danh sách từ vựng trong kho dữ liệu", en: "Vocabulary List in Storage" },
+  vocab_panel_title_guest: { vi: "Đăng nhập để thêm từ của riêng bạn", en: "Sign in to add your own words" },
   vocab_empty: {
     vi: 'Bạn chưa có từ nào. Hãy thêm từ ở tab "Tạo thẻ từ mới".',
     en: 'You have no words yet. Add some in the "Create New Card" tab.',
@@ -6503,7 +6505,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
   );
 }
 
-function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord, checkListAccess, onViewPremium, meaningDisplay }) {
+function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord, checkListAccess, onViewPremium, meaningDisplay, userId }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
@@ -6576,7 +6578,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
   return (
     <div>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
-        {t("vocab_panel_title", meaningDisplay)}
+        {userId ? t("vocab_panel_title", meaningDisplay) : t("vocab_panel_title_guest", meaningDisplay)}
       </div>
 
       {(!wordList || wordList.length === 0) ? (
@@ -7151,7 +7153,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
 }
 
 /* ---------- List function: browse every character already in the database ---------- */
-function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter, checkListAccess, onViewPremium, meaningDisplay }) {
+function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter, checkListAccess, onViewPremium, meaningDisplay, userId }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
@@ -7234,7 +7236,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
   return (
     <div>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
-        {t("hanzi_panel_title", meaningDisplay)}
+        {userId ? t("hanzi_panel_title", meaningDisplay) : t("hanzi_panel_title_guest", meaningDisplay)}
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
