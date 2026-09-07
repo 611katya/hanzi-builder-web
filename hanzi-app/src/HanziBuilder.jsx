@@ -386,12 +386,14 @@ const COLORS = {
   card: "#FFFFFF",
   ink: "#16181A",
   inkSoft: "#33383B",
+  metadata: "#8A8F93",
   seal: "#31708E",
   sealDark: "#24586F",
   bamboo: "#2C5A78",
   bambooDark: "#1F4258",
   gold: "#2C5A78",
   grid: "#C7C9C5",
+  hairline: "#E3E4E1",
   chipBg: "#F2F2F0",
   error: "#A8482F",
 };
@@ -956,7 +958,7 @@ function MeaningBoxes({ meaning, meaningVi, meaningDisplay, large }) {
     padding: large ? "5px 10px" : "3px 7px",
     borderRadius: 6,
     background: COLORS.chipBg,
-    border: `2px solid ${COLORS.grid}`,
+    border: `1px solid ${COLORS.hairline}`,
     textAlign: "center",
   };
   return (
@@ -996,7 +998,7 @@ function Chip({ info, onClick, disabled, big, tone }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 8,
+        borderRadius: 11,
         border: `1.5px solid ${tone === "seal" ? COLORS.seal : COLORS.gold}`,
         background: disabled ? "rgba(80,133,165,0.12)" : COLORS.chipBg,
         color: disabled ? COLORS.inkSoft : COLORS.ink,
@@ -1355,7 +1357,7 @@ function StrokeOrderModal({ char, onClose }) {
             height: 26,
             lineHeight: "24px",
             fontSize: 14,
-            border: `2px solid ${COLORS.grid}`,
+            border: `1px solid ${COLORS.hairline}`,
             borderRadius: "50%",
             background: COLORS.chipBg,
             color: COLORS.inkSoft,
@@ -1375,7 +1377,7 @@ function StrokeOrderModal({ char, onClose }) {
             width: 260,
             height: 260,
             margin: "0 auto",
-            border: `2px solid ${COLORS.grid}`,
+            border: `1px solid ${COLORS.hairline}`,
             borderRadius: 6,
             background: COLORS.card,
             display: status === "error" ? "none" : "block",
@@ -1425,7 +1427,7 @@ class ErrorBoundary extends React.Component {
             margin: "40px auto",
             background: "#FFFFFF",
             border: "2px solid #C7C9C5",
-            borderRadius: 10,
+            borderRadius: 14,
             color: "#16181A",
           }}
         >
@@ -2266,7 +2268,7 @@ function MeaningDisplayToggle({ value, onChange }) {
       style={{
         display: "inline-flex",
         borderRadius: 999,
-        border: `2px solid ${COLORS.grid}`,
+        border: `1px solid ${COLORS.hairline}`,
         overflow: "hidden",
         background: COLORS.card,
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
@@ -2313,10 +2315,9 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
         display: "flex",
         justifyContent: "center",
         flexWrap: "wrap",
-        gap: 6,
-        marginBottom: 24,
-        borderBottom: `2px solid ${COLORS.grid}`,
-        paddingBottom: 2,
+        gap: "4px 26px",
+        marginBottom: 26,
+        borderBottom: `1px solid ${COLORS.hairline}`,
       }}
     >
       {items.map((it) => (
@@ -2327,12 +2328,12 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
           style={{
             background: "none",
             border: "none",
-            borderBottom: `3px solid ${tab === it.id ? COLORS.seal : "transparent"}`,
-            color: tab === it.id ? COLORS.seal : COLORS.inkSoft,
-            fontWeight: tab === it.id ? 700 : 600,
-            fontSize: 14.5,
-            letterSpacing: 0.2,
-            padding: "8px 14px",
+            borderBottom: `2px solid ${tab === it.id ? COLORS.seal : "transparent"}`,
+            color: tab === it.id ? COLORS.ink : COLORS.metadata,
+            fontWeight: tab === it.id ? 600 : 500,
+            fontSize: 14,
+            padding: "10px 2px",
+            marginBottom: -1,
             cursor: "pointer",
           }}
         >
@@ -2572,8 +2573,8 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
       <div
         style={{
           background: COLORS.card,
-          border: `2px solid ${COLORS.grid}`,
-          borderRadius: 10,
+          border: `1px solid ${COLORS.hairline}`,
+          borderRadius: 14,
           padding: "16px 20px",
           marginBottom: 22,
           textAlign: "center",
@@ -2689,12 +2690,12 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
 
 const ghostBtnStyle = {
   background: "transparent",
-  border: `2px solid ${COLORS.grid}`,
+  border: `1px solid ${COLORS.hairline}`,
   color: COLORS.inkSoft,
-  borderRadius: 7,
-  padding: "9px 16px",
+  borderRadius: 9,
+  padding: "9px 17px",
   fontSize: 13.5,
-  fontWeight: 700,
+  fontWeight: 500,
   cursor: "pointer",
 };
 
@@ -2702,12 +2703,12 @@ const sealBtnStyle = {
   background: COLORS.seal,
   border: "none",
   color: "#FBF9EF",
-  borderRadius: 7,
+  borderRadius: 9,
   padding: "10px 22px",
   fontSize: 14,
-  fontWeight: 700,
+  fontWeight: 600,
   cursor: "pointer",
-  letterSpacing: 0.3,
+  letterSpacing: 0.2,
 };
 
 /* ---------- Simplified SM-2 (the algorithm behind Anki). Given a card's
@@ -2929,7 +2930,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
             onClick={() => setFlipped((f) => !f)}
             style={{
               background: COLORS.card,
-              border: `2px solid ${COLORS.grid}`,
+              border: `1px solid ${COLORS.hairline}`,
               borderRadius: 14,
               padding: "40px 24px",
               minHeight: 220,
@@ -3008,7 +3009,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
 
 const ratingBtnStyle = {
   padding: "10px 4px",
-  borderRadius: 8,
+  borderRadius: 11,
   border: "1.5px solid",
   background: "transparent",
   fontSize: 12,
@@ -3561,7 +3562,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                       fontSize: 22,
                       width: 44,
                       height: 44,
-                      border: `2px solid ${COLORS.grid}`,
+                      border: `1px solid ${COLORS.hairline}`,
                       borderRadius: 6,
                       background: COLORS.card,
                       color: COLORS.ink,
@@ -3604,7 +3605,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                       fontSize: 20,
                       width: 38,
                       height: 38,
-                      border: `2px solid ${COLORS.grid}`,
+                      border: `1px solid ${COLORS.hairline}`,
                       borderRadius: 6,
                       background: COLORS.card,
                       color: COLORS.ink,
@@ -3675,25 +3676,25 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", marginBottom: 14 }}>
             {meaningDisplay !== "vi" && (
-              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `2px solid ${COLORS.grid}`, textAlign: "center" }}>
+              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `1px solid ${COLORS.hairline}`, textAlign: "center" }}>
                 <div style={{ fontSize: 9, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>EN</div>
                 <div style={{ fontSize: 11.5, color: COLORS.ink }}>{current.meaning || "—"}</div>
               </div>
             )}
             {meaningDisplay !== "en" && (
-              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `2px solid ${COLORS.grid}`, textAlign: "center" }}>
+              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `1px solid ${COLORS.hairline}`, textAlign: "center" }}>
                 <div style={{ fontSize: 9, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>VI</div>
                 <div style={{ fontSize: 11.5, color: current.meaning_vi ? COLORS.ink : COLORS.inkSoft, fontStyle: current.meaning_vi ? "normal" : "italic" }}>
                   {current.meaning_vi || "(chưa dịch)"}
                 </div>
               </div>
             )}
-            <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `2px solid ${COLORS.grid}`, textAlign: "center" }}>
+            <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `1px solid ${COLORS.hairline}`, textAlign: "center" }}>
               <div style={{ fontSize: 9, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Pinyin</div>
               <div style={{ fontSize: 11.5, color: COLORS.sealDark }}>{current.pinyin}</div>
             </div>
             {meaningDisplay !== "en" && (
-              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `2px solid ${COLORS.grid}`, textAlign: "center" }}>
+              <div style={{ padding: "3px 7px", borderRadius: 6, background: COLORS.chipBg, border: `1px solid ${COLORS.hairline}`, textAlign: "center" }}>
                 <div style={{ fontSize: 9, color: COLORS.inkSoft, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>Hán Việt</div>
                 <div style={{ fontSize: 11.5, color: COLORS.bamboo }}>{current.sv}</div>
               </div>
@@ -3702,7 +3703,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
             {status === "recall" ? (
-              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
+              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `1px solid ${COLORS.hairline}`, borderRadius: 10 }}>
                 <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
                   <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
                   <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
@@ -3745,7 +3746,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 />
               </div>
             ) : status === "dots" ? (
-              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
+              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `1px solid ${COLORS.hairline}`, borderRadius: 10 }}>
                 <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
                   <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
                   <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
@@ -3825,7 +3826,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                 )}
               </div>
             ) : (
-              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `2px solid ${COLORS.grid}`, borderRadius: 10 }}>
+              <div style={{ width: gridSize, height: gridSize, position: "relative", border: `1px solid ${COLORS.hairline}`, borderRadius: 10 }}>
                 <svg width={gridSize} height={gridSize} style={{ position: "absolute", inset: 0, opacity: 0.9 }}>
                   <rect x={0} y={0} width={gridSize} height={gridSize} fill={COLORS.card} />
                   <line x1={mid} y1={inset} x2={mid} y2={far} stroke={COLORS.inkSoft} strokeWidth="1.2" strokeDasharray="4 4" />
@@ -4272,8 +4273,8 @@ function AddTab({
           <div
             style={{
               background: COLORS.card,
-              border: `2px solid ${COLORS.grid}`,
-              borderRadius: 10,
+              border: `1px solid ${COLORS.hairline}`,
+              borderRadius: 14,
               padding: "16px 18px",
               marginTop: 12,
               fontSize: 13,
@@ -4912,7 +4913,7 @@ function BulkImportPanel({ characterList, wordList, bushouList, onAddCharacter, 
       style={{
         background: "rgba(80,133,165,0.05)",
         border: `1px dashed ${COLORS.gold}`,
-        borderRadius: 8,
+        borderRadius: 11,
         padding: "12px 14px",
         marginBottom: 18,
       }}
@@ -5201,7 +5202,7 @@ function RenameListPanel({ characterList, wordList, onUpdateCharacter, onAddWord
       style={{
         background: "rgba(80,133,165,0.05)",
         border: `1px dashed ${COLORS.gold}`,
-        borderRadius: 8,
+        borderRadius: 11,
         padding: "12px 14px",
         marginBottom: 18,
       }}
@@ -5553,7 +5554,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       style={{
         background: "rgba(80,133,165,0.05)",
         border: `1px dashed ${COLORS.gold}`,
-        borderRadius: 8,
+        borderRadius: 11,
         padding: "12px 14px",
         marginBottom: 18,
       }}
@@ -5848,8 +5849,8 @@ function PremiumTab() {
     <div
       style={{
         background: COLORS.card,
-        border: `2px solid ${COLORS.grid}`,
-        borderRadius: 10,
+        border: `1px solid ${COLORS.hairline}`,
+        borderRadius: 14,
         padding: "16px 18px",
         marginBottom: 10,
       }}
@@ -6184,8 +6185,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
               key={u.user_id}
               style={{
                 background: COLORS.card,
-                border: `2px solid ${COLORS.grid}`,
-                borderRadius: 8,
+                border: `1px solid ${COLORS.hairline}`,
+                borderRadius: 11,
                 padding: "10px 14px",
               }}
             >
@@ -6347,8 +6348,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                   key={name}
                   style={{
                     background: COLORS.card,
-                    border: `2px solid ${COLORS.grid}`,
-                    borderRadius: 8,
+                    border: `1px solid ${COLORS.hairline}`,
+                    borderRadius: 11,
                     padding: "10px 14px",
                   }}
                 >
@@ -6851,7 +6852,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
       style={{
         padding: "10px 9px",
         borderRadius: 6,
-        border: `2px solid ${COLORS.grid}`,
+        border: `1px solid ${COLORS.hairline}`,
         background: COLORS.card,
         fontSize: 12,
         textAlign: "center",
@@ -6871,7 +6872,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
           lineHeight: "16px",
           padding: 0,
           fontSize: 10,
-          border: `2px solid ${COLORS.grid}`,
+          border: `1px solid ${COLORS.hairline}`,
           borderRadius: "50%",
           background: COLORS.chipBg,
           color: COLORS.sealDark,
@@ -7045,7 +7046,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
             height: 28,
             lineHeight: "26px",
             fontSize: 15,
-            border: `2px solid ${COLORS.grid}`,
+            border: `1px solid ${COLORS.hairline}`,
             borderRadius: "50%",
             background: COLORS.chipBg,
             color: COLORS.inkSoft,
@@ -7100,7 +7101,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
                         lineHeight: "18px",
                         padding: 0,
                         fontSize: 11,
-                        border: `2px solid ${COLORS.grid}`,
+                        border: `1px solid ${COLORS.hairline}`,
                         borderRadius: "50%",
                         background: COLORS.chipBg,
                         color: COLORS.sealDark,
@@ -7426,8 +7427,8 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
     <div
       style={{
         background: COLORS.card,
-        border: `2px solid ${COLORS.grid}`,
-        borderRadius: 8,
+        border: `1px solid ${COLORS.hairline}`,
+        borderRadius: 11,
         padding: "12px 10px",
         textAlign: "center",
         position: "relative",
@@ -7447,7 +7448,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
             lineHeight: "18px",
             padding: 0,
             fontSize: 11,
-            border: `2px solid ${COLORS.grid}`,
+            border: `1px solid ${COLORS.hairline}`,
             borderRadius: "50%",
             background: COLORS.chipBg,
             color: COLORS.sealDark,
@@ -7470,7 +7471,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               lineHeight: "18px",
               padding: 0,
               fontSize: 11,
-              border: `2px solid ${COLORS.grid}`,
+              border: `1px solid ${COLORS.hairline}`,
               borderRadius: "50%",
               background: COLORS.chipBg,
               color: COLORS.gold,
@@ -7489,7 +7490,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               lineHeight: "18px",
               padding: 0,
               fontSize: 12,
-              border: `2px solid ${COLORS.grid}`,
+              border: `1px solid ${COLORS.hairline}`,
               borderRadius: "50%",
               background: COLORS.chipBg,
               color: COLORS.error,
@@ -7597,7 +7598,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                       fontSize: 14,
                       color: COLORS.gold,
                       padding: "1px 5px",
-                      border: `2px solid ${COLORS.grid}`,
+                      border: `1px solid ${COLORS.hairline}`,
                       borderRadius: 4,
                       background: COLORS.chipBg,
                     }}
@@ -7728,7 +7729,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                     fontSize: 16,
                     color: COLORS.gold,
                     padding: "2px 5px",
-                    border: `2px solid ${COLORS.grid}`,
+                    border: `1px solid ${COLORS.hairline}`,
                     borderRadius: 4,
                     background: COLORS.chipBg,
                   }}
@@ -7848,7 +7849,7 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
             height: 28,
             lineHeight: "26px",
             fontSize: 15,
-            border: `2px solid ${COLORS.grid}`,
+            border: `1px solid ${COLORS.hairline}`,
             borderRadius: "50%",
             background: COLORS.chipBg,
             color: COLORS.inkSoft,
@@ -7929,15 +7930,15 @@ function FieldRow({ label, children }) {
 
 const formCardStyle = {
   background: COLORS.card,
-  border: `2px solid ${COLORS.grid}`,
-  borderRadius: 10,
-  padding: "22px 24px",
+  border: `1px solid ${COLORS.hairline}`,
+  borderRadius: 14,
+  padding: "24px 26px",
 };
 
 const inputStyle = {
-  border: `2px solid ${COLORS.grid}`,
-  borderRadius: 6,
-  padding: "8px 10px",
+  border: `1px solid ${COLORS.hairline}`,
+  borderRadius: 11,
+  padding: "9px 11px",
   fontSize: 14,
   background: "#fff",
   color: COLORS.ink,
@@ -7949,8 +7950,8 @@ const selectStyle = {
   ...inputStyle,
   background: COLORS.chipBg,
   color: COLORS.ink,
-  fontWeight: 700,
-  border: `1.5px solid ${COLORS.seal}`,
+  fontWeight: 500,
+  border: `1px solid ${COLORS.seal}`,
   cursor: "pointer",
 };
 
@@ -8002,8 +8003,8 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
       <div
         style={{
           background: COLORS.card,
-          border: `2px solid ${COLORS.grid}`,
-          borderRadius: 10,
+          border: `1px solid ${COLORS.hairline}`,
+          borderRadius: 14,
           padding: "16px 18px",
           marginBottom: 20,
           fontSize: 13,
@@ -8143,8 +8144,8 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
     <div
       style={{
         background: COLORS.card,
-        border: `2px solid ${COLORS.grid}`,
-        borderRadius: 8,
+        border: `1px solid ${COLORS.hairline}`,
+        borderRadius: 11,
         padding: "12px 10px",
         textAlign: "center",
         position: "relative",
@@ -8164,7 +8165,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
             lineHeight: "18px",
             padding: 0,
             fontSize: 11,
-            border: `2px solid ${COLORS.grid}`,
+            border: `1px solid ${COLORS.hairline}`,
             borderRadius: "50%",
             background: COLORS.chipBg,
             color: COLORS.sealDark,
@@ -8189,7 +8190,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
             lineHeight: "18px",
             padding: 0,
             fontSize: 11,
-            border: `2px solid ${COLORS.grid}`,
+            border: `1px solid ${COLORS.hairline}`,
             borderRadius: "50%",
             background: COLORS.chipBg,
             color: COLORS.gold,
