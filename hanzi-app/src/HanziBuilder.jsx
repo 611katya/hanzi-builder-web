@@ -2178,6 +2178,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         input, select, textarea { font-family: 'Noto Sans', 'Inter', sans-serif; }
         .rich-text-editor:empty:before { content: attr(data-placeholder); color: ${COLORS.metadata}; }
         .rich-text-editor a { color: ${COLORS.seal}; }
+        .cjk-enhanced { font-family: 'KaiTi', 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif; font-size: 1.2em; }
         ::selection { background: ${COLORS.gold}55; }
         @media (max-width: 480px) {
           .field-row { flex-direction: column; align-items: flex-start !important; gap: 4px !important; }
@@ -6214,16 +6215,20 @@ function BlogTab({ meaningDisplay }) {
                         {new Date(post.created_at).toLocaleDateString()} · {t("blog_read_time", meaningDisplay, readMins)}
                       </span>
                     </div>
-                    <div style={{ fontFamily: "'Noto Serif', serif", fontSize: 19, fontWeight: 700, color: COLORS.ink, marginBottom: 8, lineHeight: 1.35 }}>
-                      {post.title}
-                    </div>
+                    <div
+                      style={{ fontFamily: "'Noto Serif', serif", fontSize: 19, fontWeight: 700, color: COLORS.ink, marginBottom: 8, lineHeight: 1.35 }}
+                      dangerouslySetInnerHTML={{ __html: enhanceCjkInHtml(post.title) }}
+                    />
                     {isExpanded ? (
                       <div
                         style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7 }}
-                        dangerouslySetInnerHTML={{ __html: post.body }}
+                        dangerouslySetInnerHTML={{ __html: enhanceCjkInHtml(post.body) }}
                       />
                     ) : (
-                      <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, textAlign: "justify" }}>{preview}</div>
+                      <div
+                        style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, textAlign: "justify" }}
+                        dangerouslySetInnerHTML={{ __html: enhanceCjkInHtml(preview) }}
+                      />
                     )}
                     {isExpanded && post.external_link && (
                       <div style={{ marginTop: 12 }}>
@@ -8854,6 +8859,44 @@ function stripHtml(html) {
   const div = document.createElement("div");
   div.innerHTML = html;
   return (div.textContent || div.innerText || "").replace(/\s+/g, " ").trim();
+}
+
+// Wraps runs of Chinese characters in a span (class "cjk-enhanced") so they
+// can get their own font and size, independent of surrounding Latin text --
+// even when both sit in the same sentence. Walks actual DOM text nodes
+// rather than regex-matching the raw HTML string, so it can't accidentally
+// alter tag names or attribute values.
+const CJK_RANGE = /[\u3400-\u9FFF\uF900-\uFAFF]+/g;
+function enhanceCjkText(text) {
+  if (!CJK_RANGE.test(text)) return null;
+  CJK_RANGE.lastIndex = 0;
+  const frag = document.createDocumentFragment();
+  let lastIndex = 0;
+  let match;
+  while ((match = CJK_RANGE.exec(text))) {
+    if (match.index > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+    const span = document.createElement("span");
+    span.className = "cjk-enhanced";
+    span.textContent = match[0];
+    frag.appendChild(span);
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+  return frag;
+}
+function enhanceCjkInHtml(html) {
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  function walk(node) {
+    if (node.nodeType === 3) {
+      const frag = enhanceCjkText(node.nodeValue);
+      if (frag) node.parentNode.replaceChild(frag, node);
+    } else if (node.nodeType === 1) {
+      Array.from(node.childNodes).forEach(walk);
+    }
+  }
+  Array.from(container.childNodes).forEach(walk);
+  return container.innerHTML;
 }
 
 function RichTextEditor({ value, onChange, placeholder }) {
