@@ -501,10 +501,10 @@ const UI_TEXT = {
   wp_next_char: { vi: "Chữ tiếp theo →", en: "Next Character →" },
   wp_write_from_memory: { vi: "✏️ Viết từ trí nhớ →", en: "✏️ Write From Memory →" },
   wp_end: { vi: "Kết thúc", en: "End" },
-  wp_reveal: { vi: "Hiện chữ đúng", en: "Reveal Correct Character" },
+  wp_reveal: { vi: "Hiện chữ đúng", en: "Reveal" },
   wp_undo_stroke: { vi: "↩ Xóa nét trước", en: "↩ Undo Last Stroke" },
-  wp_recall_erase: { vi: "↩ Tẩy nét cuối", en: "↩ Erase Last Stroke" },
-  wp_clear_all: { vi: "🗑 Xóa hết, viết lại", en: "🗑 Clear All, Start Over" },
+  wp_recall_erase: { vi: "↩ Tẩy nét cuối", en: "↩ Erase" },
+  wp_clear_all: { vi: "🗑 Xóa hết, viết lại", en: "🗑 Start Over" },
   wp_brush_size: { vi: "Cỡ bút:", en: "Brush size:" },
   wp_brush_thin: { vi: "Mảnh", en: "Thin" },
   wp_brush_normal: { vi: "Vừa", en: "Normal" },
@@ -2565,8 +2565,10 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
     <div>
       {listPicker}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, fontSize: 13, color: COLORS.inkSoft }}>
-        <span>{t("play_score", meaningDisplay)} <strong style={{ color: COLORS.ink }}>{score}</strong></span>
-        <span>{t("play_streak", meaningDisplay)} <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
+        <div style={{ display: "flex", gap: 16 }}>
+          <span>{t("play_score", meaningDisplay)} <strong style={{ color: COLORS.ink }}>{score}</strong></span>
+          <span>{t("play_streak", meaningDisplay)} <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
+        </div>
         <span>
           {t("play_playable_count", meaningDisplay, playable.length, isWord || playable.some((p) => p.charGroups.length > 1))}
           {selectedList === REVIEW_LIST_VALUE ? ` ${t("play_needs_review_suffix", meaningDisplay)}` : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
@@ -2582,6 +2584,9 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           padding: "16px 20px",
           marginBottom: 22,
           textAlign: "center",
+          width: "fit-content",
+          maxWidth: "100%",
+          margin: "0 auto 22px",
         }}
       >
         <div style={{ marginBottom: 4 }}>
@@ -2669,7 +2674,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
 
       <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
         {status === "playing" && (
-          <button onClick={handleReset} className="ghost-btn" style={ghostBtnStyle}>
+          <button onClick={handleReset} className="ghost-btn" style={{ ...ghostBtnStyle, border: `1.5px solid ${COLORS.ink}`, color: COLORS.ink, fontWeight: 600 }}>
             {t("play_undo", meaningDisplay)}
           </button>
         )}
