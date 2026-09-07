@@ -624,8 +624,8 @@ const UI_TEXT = {
 
   // Tạo thẻ từ mới (Add tab)
   add_intro: {
-    vi: "Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, âm Hán Việt, và xếp vào một danh sách (list) tuỳ chọn.",
-    en: "Enter a complete Chinese character along with its meaning, pinyin, Sino-Vietnamese reading, and an optional list.",
+    vi: "Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, và một danh sách. Nếu chữ đã được phân tích trong kho dữ liệu chung, lượt tra cứu của bạn sẽ không bị tính.",
+    en: "Enter a complete Chinese character along with its meaning, pinyin, and a list. If a character has been broken down in shared storage, your lookup quota will not be counted.",
   },
   add_char_label: { vi: "Chữ Hán hoàn chỉnh", en: "Complete Chinese Character" },
   add_meaning_en_label: { vi: "Nghĩa (English)", en: "Meaning (English)" },
