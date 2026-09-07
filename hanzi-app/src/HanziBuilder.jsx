@@ -411,7 +411,7 @@ const COLORS = {
 const UI_TEXT = {
   // Tab bar
   tab_play: { vi: "Ghép bộ thủ", en: "Combine Radicals" },
-  tab_flashcards: { vi: "Flashcard", en: "Flashcard" },
+  tab_flashcards: { vi: "Flashcard", en: "Flashcards" },
   tab_writing: { vi: "✍️ Luyện viết", en: "✍️ Handwriting" },
   tab_add: { vi: "Tạo thẻ từ mới", en: "Add Cards" },
   loading: { vi: "Đang tải…", en: "Loading…" },
