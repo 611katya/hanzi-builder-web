@@ -2173,6 +2173,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         @keyframes popIn { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .pop { animation: popIn 0.28s cubic-bezier(.2,1.4,.4,1) both; }
         input, select, textarea { font-family: 'Noto Sans', 'Inter', sans-serif; }
+        .rich-text-editor:empty:before { content: attr(data-placeholder); color: ${COLORS.metadata}; }
+        .rich-text-editor a { color: ${COLORS.seal}; }
         ::selection { background: ${COLORS.gold}55; }
         @media (max-width: 480px) {
           .field-row { flex-direction: column; align-items: flex-start !important; gap: 4px !important; }
@@ -6168,16 +6170,22 @@ function BlogTab({ meaningDisplay }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {filtered.map((post) => {
                 const isExpanded = expandedId === post.id;
-                const preview = post.body.length > 140 ? post.body.slice(0, 140).trim() + "…" : post.body;
+                const plainText = stripHtml(post.body);
+                const preview = plainText.length > 140 ? plainText.slice(0, 140).trim() + "…" : plainText;
                 return (
                   <div key={post.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 14, padding: "18px 20px" }}>
                     <div style={{ fontSize: 11, color: COLORS.metadata, marginBottom: 4 }}>
                       {new Date(post.created_at).toLocaleDateString()}
                     </div>
                     <div style={{ fontSize: 16.5, fontWeight: 700, color: COLORS.ink, marginBottom: 8 }}>{post.title}</div>
-                    <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, textAlign: "justify", whiteSpace: "pre-line" }}>
-                      {isExpanded ? post.body : preview}
-                    </div>
+                    {isExpanded ? (
+                      <div
+                        style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7 }}
+                        dangerouslySetInnerHTML={{ __html: post.body }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, textAlign: "justify" }}>{preview}</div>
+                    )}
                     {isExpanded && post.external_link && (
                       <div style={{ marginTop: 12 }}>
                         <a href={post.external_link} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.seal, fontWeight: 600, fontSize: 13.5 }}>
@@ -6185,7 +6193,7 @@ function BlogTab({ meaningDisplay }) {
                         </a>
                       </div>
                     )}
-                    {post.body.length > 140 && (
+                    {plainText.length > 140 && (
                       <button
                         type="button"
                         onClick={() => setExpandedId(isExpanded ? null : post.id)}
@@ -7287,13 +7295,13 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                 {blogPublished ? t("admin_blog_published", meaningDisplay) : t("admin_blog_draft", meaningDisplay)}
               </label>
             </div>
-            <textarea
-              value={blogBody}
-              onChange={(e) => setBlogBody(e.target.value)}
-              placeholder={t("admin_blog_body_placeholder", meaningDisplay)}
-              rows={6}
-              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", resize: "vertical", marginBottom: 8, fontFamily: "'Noto Sans', sans-serif" }}
-            />
+            <div style={{ marginBottom: 8 }}>
+              <RichTextEditor
+                value={blogBody}
+                onChange={setBlogBody}
+                placeholder={t("admin_blog_body_placeholder", meaningDisplay)}
+              />
+            </div>
             <input
               value={blogLink}
               onChange={(e) => setBlogLink(e.target.value)}
@@ -8775,6 +8783,96 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function stripHtml(html) {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return (div.textContent || div.innerText || "").replace(/\s+/g, " ").trim();
+}
+
+function RichTextEditor({ value, onChange, placeholder }) {
+  const editorRef = useRef(null);
+  const lastValueRef = useRef(value);
+
+  useEffect(() => {
+    // Only push external value changes into the DOM (e.g. loading a
+    // different post to edit) -- never on every keystroke, or the cursor
+    // would jump to the start on each render.
+    if (editorRef.current && value !== lastValueRef.current) {
+      editorRef.current.innerHTML = value || "";
+      lastValueRef.current = value;
+    }
+  }, [value]);
+
+  function handleInput() {
+    const html = editorRef.current.innerHTML;
+    lastValueRef.current = html;
+    onChange(html);
+  }
+
+  function exec(command, arg) {
+    editorRef.current.focus();
+    document.execCommand(command, false, arg);
+    handleInput();
+  }
+
+  function insertLink() {
+    const url = window.prompt("Link URL:");
+    if (url) exec("createLink", url);
+  }
+
+  const toolbarBtnStyle = {
+    background: "none",
+    border: `1px solid ${COLORS.hairline}`,
+    borderRadius: 6,
+    padding: "5px 9px",
+    fontSize: 12.5,
+    color: COLORS.ink,
+    cursor: "pointer",
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
+        <button type="button" onClick={() => exec("bold")} style={{ ...toolbarBtnStyle, fontWeight: 700 }}>B</button>
+        <button type="button" onClick={() => exec("italic")} style={{ ...toolbarBtnStyle, fontStyle: "italic" }}>I</button>
+        <button type="button" onClick={() => exec("underline")} style={{ ...toolbarBtnStyle, textDecoration: "underline" }}>U</button>
+        <select
+          onChange={(e) => {
+            if (e.target.value) exec("fontSize", e.target.value);
+            e.target.value = "";
+          }}
+          defaultValue=""
+          style={{ ...toolbarBtnStyle, cursor: "pointer" }}
+        >
+          <option value="">Size</option>
+          <option value="2">Small</option>
+          <option value="3">Normal</option>
+          <option value="5">Large</option>
+          <option value="7">X-Large</option>
+        </select>
+        <button type="button" onClick={() => exec("justifyLeft")} style={toolbarBtnStyle}>⯇</button>
+        <button type="button" onClick={() => exec("justifyCenter")} style={toolbarBtnStyle}>☰</button>
+        <button type="button" onClick={() => exec("justifyRight")} style={toolbarBtnStyle}>⯈</button>
+        <button type="button" onClick={() => exec("justifyFull")} style={toolbarBtnStyle}>≡</button>
+        <button type="button" onClick={insertLink} style={toolbarBtnStyle}>🔗 Link</button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={handleInput}
+        data-placeholder={placeholder}
+        className="rich-text-editor"
+        style={{
+          ...inputStyle,
+          minHeight: 160,
+          overflowY: "auto",
+          lineHeight: 1.6,
+        }}
+      />
     </div>
   );
 }
