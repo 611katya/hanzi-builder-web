@@ -452,6 +452,29 @@ const UI_TEXT = {
     vi: "Chúng tôi đang chuẩn bị các bài viết về mẹo học chữ Hán, bộ thủ, và phương pháp luyện viết. Quay lại sau nhé!",
     en: "We're preparing articles on Hanzi learning tips, radicals, and writing practice methods. Check back soon!",
   },
+  blog_page_title: { vi: "Blog", en: "Blog" },
+  blog_cat_all: { vi: "Tất cả", en: "All" },
+  blog_cat_news: { vi: "Tin tức", en: "News" },
+  blog_cat_resources: { vi: "Tài liệu miễn phí", en: "Free Resources" },
+  blog_cat_founder: { vi: "Từ nhà sáng lập", en: "From the Founder" },
+  blog_read_more: { vi: "Đọc tiếp →", en: "Read more →" },
+  blog_collapse: { vi: "Thu gọn ↑", en: "Collapse ↑" },
+  blog_external_link: { vi: "Đọc bài viết đầy đủ →", en: "Read the full article →" },
+  blog_empty: { vi: "Chưa có bài viết nào trong mục này.", en: "No posts in this category yet." },
+  admin_blog_title: { vi: "Quản lý bài viết Blog", en: "Blog Post Management" },
+  admin_blog_new_post: { vi: "+ Bài viết mới", en: "+ New Post" },
+  admin_blog_title_placeholder: { vi: "Tiêu đề bài viết", en: "Post title" },
+  admin_blog_body_placeholder: { vi: "Nội dung bài viết…", en: "Post content…" },
+  admin_blog_link_placeholder: { vi: "Đường dẫn ngoài (tùy chọn)", en: "External link (optional)" },
+  admin_blog_published: { vi: "Đã đăng", en: "Published" },
+  admin_blog_draft: { vi: "Bản nháp", en: "Draft" },
+  admin_blog_save: { vi: "Lưu bài viết", en: "Save Post" },
+  admin_blog_cancel: { vi: "Hủy", en: "Cancel" },
+  admin_blog_edit: { vi: "Sửa", en: "Edit" },
+  admin_blog_delete: { vi: "Xóa", en: "Delete" },
+  admin_blog_confirm_delete: { vi: "Xóa bài viết này?", en: "Delete this post?" },
+  admin_blog_need_title_body: { vi: "Vui lòng nhập tiêu đề và nội dung.", en: "Please enter a title and content." },
+  admin_blog_none: { vi: "Chưa có bài viết nào.", en: "No posts yet." },
   about_title: { vi: "Về MinouQ", en: "About MinouQ" },
   about_body: {
     vi: "MinouQ Chinese là công cụ học chữ Hán được xây dựng để giúp người học hiểu chữ Hán qua cách phân tích các bộ thành phần, thay vì học thuộc lòng. Chúng tôi tin rằng việc hiểu cấu tạo của một chữ Hán sẽ giúp việc ghi nhớ trở nên tự nhiên và bền vững hơn.",
@@ -2277,6 +2300,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
           />
         ) : tab === "premium" ? (
           <PremiumTab meaningDisplay={meaningDisplay} />
+        ) : tab === "blog" ? (
+          <BlogTab meaningDisplay={meaningDisplay} />
         ) : tab === "about" ? (
           <AboutTab meaningDisplay={meaningDisplay} />
         ) : tab === "privacy" ? (
@@ -6007,11 +6032,10 @@ const ALL_TIERS = [...Object.keys(TIER_PRESETS), "Enrolled Course"];
    everyone, including guests -- this is the conversion page the
    quota-exhausted and locked-list popups link to. Static content for now;
    revise the copy freely, it's just plain text/JSX below. ---------- */
-// Placeholder — swap this in for your real WordPress blog URL once it's live.
-const BLOG_URL = "https://blog.example.com";
 
 function SiteFooter({ setTab, meaningDisplay }) {
   const tabLinks = [
+    { id: "blog", label: t("tab_blog", meaningDisplay) },
     { id: "premium", label: t("tab_premium", meaningDisplay) },
     { id: "about", label: t("tab_about", meaningDisplay) },
     { id: "feedback", label: t("tab_feedback", meaningDisplay) },
@@ -6044,9 +6068,6 @@ function SiteFooter({ setTab, meaningDisplay }) {
     >
       <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", gap: 28, flexWrap: "wrap", marginBottom: 18 }}>
-          <a href={BLOG_URL} target="_blank" rel="noopener noreferrer" style={linkStyle}>
-            {t("tab_blog", meaningDisplay)}
-          </a>
           {tabLinks.map((l) => (
             <button
               key={l.id}
@@ -6068,14 +6089,106 @@ function SiteFooter({ setTab, meaningDisplay }) {
 }
 
 function BlogTab({ meaningDisplay }) {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState("all");
+  const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    loadPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadPosts() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("id, title, body, category, external_link, published, created_at")
+      .eq("published", true)
+      .order("created_at", { ascending: false });
+    if (!error) setPosts(data || []);
+    setLoading(false);
+  }
+
+  const categories = [
+    { id: "all", label: t("blog_cat_all", meaningDisplay) },
+    { id: "news", label: t("blog_cat_news", meaningDisplay) },
+    { id: "resources", label: t("blog_cat_resources", meaningDisplay) },
+    { id: "founder", label: t("blog_cat_founder", meaningDisplay) },
+  ];
+  const filtered = category === "all" ? posts : posts.filter((p) => p.category === category);
+
   return (
-    <div style={{ textAlign: "center", padding: "60px 20px" }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 12 }}>
-        {t("blog_coming_soon_title", meaningDisplay)}
+    <div style={{ maxWidth: 620, margin: "0 auto" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 18, textAlign: "center" }}>
+        {t("blog_page_title", meaningDisplay)}
       </div>
-      <div style={{ fontSize: 14.5, color: COLORS.inkSoft, maxWidth: 440, margin: "0 auto", lineHeight: 1.6 }}>
-        {t("blog_coming_soon_body", meaningDisplay)}
+
+      <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", borderBottom: `1px solid ${COLORS.hairline}`, marginBottom: 24 }}>
+        {categories.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => {
+              setCategory(c.id);
+              setExpandedId(null);
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              borderBottom: `2px solid ${category === c.id ? COLORS.seal : "transparent"}`,
+              color: category === c.id ? COLORS.ink : COLORS.inkSoft,
+              fontWeight: category === c.id ? 700 : 600,
+              fontSize: 13.5,
+              padding: "8px 2px",
+              marginBottom: -1,
+              cursor: "pointer",
+            }}
+          >
+            {c.label}
+          </button>
+        ))}
       </div>
+
+      {loading ? (
+        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>{t("loading", meaningDisplay)}</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>{t("blog_empty", meaningDisplay)}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {filtered.map((post) => {
+            const isExpanded = expandedId === post.id;
+            const preview = post.body.length > 140 ? post.body.slice(0, 140).trim() + "…" : post.body;
+            return (
+              <div key={post.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 14, padding: "18px 20px" }}>
+                <div style={{ fontSize: 11, color: COLORS.metadata, marginBottom: 4 }}>
+                  {new Date(post.created_at).toLocaleDateString()}
+                </div>
+                <div style={{ fontSize: 16.5, fontWeight: 700, color: COLORS.ink, marginBottom: 8 }}>{post.title}</div>
+                <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, textAlign: "justify", whiteSpace: "pre-line" }}>
+                  {isExpanded ? post.body : preview}
+                </div>
+                {isExpanded && post.external_link && (
+                  <div style={{ marginTop: 12 }}>
+                    <a href={post.external_link} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.seal, fontWeight: 600, fontSize: 13.5 }}>
+                      {t("blog_external_link", meaningDisplay)}
+                    </a>
+                  </div>
+                )}
+                {post.body.length > 140 && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(isExpanded ? null : post.id)}
+                    style={{ background: "none", border: "none", color: COLORS.seal, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0, marginTop: 10 }}
+                  >
+                    {isExpanded ? t("blog_collapse", meaningDisplay) : t("blog_read_more", meaningDisplay)}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -6387,13 +6500,88 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
   const [feedbackList, setFeedbackList] = useState([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
 
+  // Blog post management
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [blogLoading, setBlogLoading] = useState(true);
+  const [editingBlogId, setEditingBlogId] = useState(null); // null = not editing, "new" = creating, or a post id
+  const [blogTitle, setBlogTitle] = useState("");
+  const [blogBody, setBlogBody] = useState("");
+  const [blogCategory, setBlogCategory] = useState("news");
+  const [blogLink, setBlogLink] = useState("");
+  const [blogPublished, setBlogPublished] = useState(false);
+  const [blogMessage, setBlogMessage] = useState(null);
+
   useEffect(() => {
     if (!isAdmin) return;
     loadUsers();
     loadListSettings();
     loadFeedback();
+    loadBlogPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
+
+  async function loadBlogPosts() {
+    setBlogLoading(true);
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("id, title, body, category, external_link, published, created_at")
+      .order("created_at", { ascending: false });
+    if (!error) setBlogPosts(data || []);
+    setBlogLoading(false);
+  }
+
+  function startNewBlogPost() {
+    setEditingBlogId("new");
+    setBlogTitle("");
+    setBlogBody("");
+    setBlogCategory("news");
+    setBlogLink("");
+    setBlogPublished(false);
+    setBlogMessage(null);
+  }
+
+  function startEditBlogPost(post) {
+    setEditingBlogId(post.id);
+    setBlogTitle(post.title);
+    setBlogBody(post.body);
+    setBlogCategory(post.category);
+    setBlogLink(post.external_link || "");
+    setBlogPublished(post.published);
+    setBlogMessage(null);
+  }
+
+  async function saveBlogPost() {
+    if (!blogTitle.trim() || !blogBody.trim()) {
+      setBlogMessage({ type: "error", text: t("admin_blog_need_title_body", meaningDisplay) });
+      return;
+    }
+    const payload = {
+      title: blogTitle.trim(),
+      body: blogBody.trim(),
+      category: blogCategory,
+      external_link: blogLink.trim() || null,
+      published: blogPublished,
+      updated_at: new Date().toISOString(),
+    };
+    let error;
+    if (editingBlogId === "new") {
+      ({ error } = await supabase.from("blog_posts").insert(payload));
+    } else {
+      ({ error } = await supabase.from("blog_posts").update(payload).eq("id", editingBlogId));
+    }
+    if (error) {
+      setBlogMessage({ type: "error", text: error.message });
+      return;
+    }
+    setEditingBlogId(null);
+    await loadBlogPosts();
+  }
+
+  async function deleteBlogPost(id) {
+    if (!window.confirm(t("admin_blog_confirm_delete", meaningDisplay))) return;
+    const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+    if (!error) setBlogPosts((prev) => prev.filter((p) => p.id !== id));
+  }
 
   async function loadFeedback() {
     setFeedbackLoading(true);
@@ -7011,6 +7199,97 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                 >
                   {t("admin_feedback_delete", meaningDisplay)}
                 </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            {t("admin_blog_title", meaningDisplay)}
+          </div>
+          <button type="button" onClick={startNewBlogPost} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
+            {t("admin_blog_new_post", meaningDisplay)}
+          </button>
+        </div>
+
+        {editingBlogId && (
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "14px 16px", marginBottom: 14 }}>
+            <input
+              value={blogTitle}
+              onChange={(e) => setBlogTitle(e.target.value)}
+              placeholder={t("admin_blog_title_placeholder", meaningDisplay)}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 8, fontWeight: 600 }}
+            />
+            <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+              <select value={blogCategory} onChange={(e) => setBlogCategory(e.target.value)} style={{ ...selectStyle, width: 170 }}>
+                <option value="news" style={{ background: COLORS.chipBg }}>{t("blog_cat_news", meaningDisplay)}</option>
+                <option value="resources" style={{ background: COLORS.chipBg }}>{t("blog_cat_resources", meaningDisplay)}</option>
+                <option value="founder" style={{ background: COLORS.chipBg }}>{t("blog_cat_founder", meaningDisplay)}</option>
+              </select>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: COLORS.ink, cursor: "pointer" }}>
+                <input type="checkbox" checked={blogPublished} onChange={(e) => setBlogPublished(e.target.checked)} />
+                {blogPublished ? t("admin_blog_published", meaningDisplay) : t("admin_blog_draft", meaningDisplay)}
+              </label>
+            </div>
+            <textarea
+              value={blogBody}
+              onChange={(e) => setBlogBody(e.target.value)}
+              placeholder={t("admin_blog_body_placeholder", meaningDisplay)}
+              rows={6}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", resize: "vertical", marginBottom: 8, fontFamily: "'Noto Sans', sans-serif" }}
+            />
+            <input
+              value={blogLink}
+              onChange={(e) => setBlogLink(e.target.value)}
+              placeholder={t("admin_blog_link_placeholder", meaningDisplay)}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 10 }}
+            />
+            {blogMessage && (
+              <div style={{ fontSize: 12, fontWeight: 600, color: blogMessage.type === "error" ? COLORS.error : COLORS.seal, marginBottom: 10 }}>
+                {blogMessage.text}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={saveBlogPost} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13 }}>
+                {t("admin_blog_save", meaningDisplay)}
+              </button>
+              <button type="button" onClick={() => setEditingBlogId(null)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 13 }}>
+                {t("admin_blog_cancel", meaningDisplay)}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {blogLoading ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("loading", meaningDisplay)}</div>
+        ) : blogPosts.length === 0 ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("admin_blog_none", meaningDisplay)}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {blogPosts.map((post) => (
+              <div key={post.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>{post.title}</div>
+                  <div style={{ fontSize: 11, color: post.published ? COLORS.seal : COLORS.metadata }}>
+                    {post.published ? t("admin_blog_published", meaningDisplay) : t("admin_blog_draft", meaningDisplay)} · {post.category}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button type="button" onClick={() => startEditBlogPost(post)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}>
+                    {t("admin_blog_edit", meaningDisplay)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteBlogPost(post.id)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
+                  >
+                    {t("admin_blog_delete", meaningDisplay)}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
