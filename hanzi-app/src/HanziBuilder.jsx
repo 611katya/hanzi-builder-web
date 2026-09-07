@@ -411,7 +411,8 @@ const UI_TEXT = {
   tab_play: { vi: "Ghép bộ thủ", en: "Assemble Radicals" },
   tab_flashcards: { vi: "Flashcard", en: "Flashcard" },
   tab_writing: { vi: "✍️ Luyện viết", en: "✍️ Writing Practice" },
-  tab_add: { vi: "Tạo thẻ từ mới", en: "Create New Card" },
+  tab_add: { vi: "Tạo thẻ từ mới", en: "Create New Cards" },
+  loading: { vi: "Đang tải…", en: "Loading…" },
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
   tab_vocab: { vi: "Từ vựng", en: "Vocabulary" },
@@ -434,6 +435,13 @@ const UI_TEXT = {
   play_wrong_answer: { vi: "✗ Chưa đúng. Đáp án đúng:", en: "✗ Not quite. Correct answer:" },
   play_answer_reveal: { vi: "💡 Đáp án:", en: "💡 Answer:" },
   play_correct_prefix: { vi: "✓ Chính xác!", en: "✓ Correct!" },
+  play_score: { vi: "Điểm:", en: "Score:" },
+  play_streak: { vi: "Chuỗi đúng:", en: "Streak:" },
+  play_playable_count: (n, isWord) => ({
+    vi: `${n} ${isWord ? "mục" : "chữ"} có thể học`,
+    en: `${n} ${isWord ? "item" : "character"}${n === 1 ? "" : "s"} available`,
+  }),
+  play_needs_review_suffix: { vi: "(🔁 Cần ôn lại)", en: "(🔁 Needs Review)" },
   play_undo: { vi: "Undo - Chọn lại", en: "Undo - Reselect" },
   play_show_answer: { vi: "💡 Xem đáp án", en: "💡 Show Answer" },
   play_next_char: { vi: "Chữ tiếp theo →", en: "Next Character →" },
@@ -2038,7 +2046,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />
 
         {!loaded ? (
-          <div style={{ textAlign: "center", padding: 60, color: COLORS.inkSoft }}>Đang tải…</div>
+          <div style={{ textAlign: "center", padding: 60, color: COLORS.inkSoft }}>{t("loading", meaningDisplay)}</div>
         ) : tab === "play" ? (
           <PlayTab
             characterList={characterList}
@@ -2146,7 +2154,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         ) : tab === "premium" ? (
           <PremiumTab />
         ) : tab === "admin" ? (
-          <AdminPanel isAdmin={isAdmin} allListNamesInUse={allListNamesInUse} />
+          <AdminPanel isAdmin={isAdmin} allListNamesInUse={allListNamesInUse} meaningDisplay={meaningDisplay} />
         ) : null}
       </div>
     </div>
@@ -2434,52 +2442,44 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
 
   const listPicker = (
     <div style={{ textAlign: "center", marginBottom: 16 }}>
-      <select
-        value={selectedList}
-        onChange={(e) => {
-          const next = e.target.value;
-          if (!isAdmin && next !== "Tất cả" && next !== REVIEW_LIST_VALUE && checkListAccess && !checkListAccess(next)) {
-            setLockedListName(next);
-            return;
-          }
-          setSelectedList(next);
-        }}
-        style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block" }}
-      >
-        <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
-        <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_review_list", meaningDisplay, needsReview.length)}</option>
-        {allLists.map((l) => (
-          <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-            {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
-          </option>
-        ))}
-      </select>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <select
+          value={selectedList}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (!isAdmin && next !== "Tất cả" && next !== REVIEW_LIST_VALUE && checkListAccess && !checkListAccess(next)) {
+              setLockedListName(next);
+              return;
+            }
+            setSelectedList(next);
+          }}
+          style={{ ...selectStyle, width: 220, textAlign: "center", display: "inline-block" }}
+        >
+          <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
+          <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_review_list", meaningDisplay, needsReview.length)}</option>
+          {allLists.map((l) => (
+            <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+              {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+            </option>
+          ))}
+        </select>
+
+        <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.ink }}>{t("play_difficulty_label", meaningDisplay)}</span>
+        <select
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+          style={{ ...selectStyle, width: 140, textAlign: "center", display: "inline-block" }}
+        >
+          {DIFFICULTY_LEVELS.map((lvl) => (
+            <option key={lvl.id} value={lvl.id} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+              {lvl.label}
+            </option>
+          ))}
+        </select>
+      </div>
       {lockedListName && (
         <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
       )}
-
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.ink }}>{t("play_difficulty_label", meaningDisplay)}</span>
-        {DIFFICULTY_LEVELS.map((lvl) => (
-          <button
-            key={lvl.id}
-            type="button"
-            onClick={() => setDifficulty(lvl.id)}
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              padding: "8px 18px",
-              borderRadius: 999,
-              border: `2px solid ${difficulty === lvl.id ? COLORS.seal : COLORS.grid}`,
-              background: difficulty === lvl.id ? COLORS.seal : "transparent",
-              color: difficulty === lvl.id ? "#FBF9EF" : COLORS.inkSoft,
-              cursor: "pointer",
-            }}
-          >
-            {lvl.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 
@@ -2560,11 +2560,11 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
     <div>
       {listPicker}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, fontSize: 13, color: COLORS.inkSoft }}>
-        <span>Điểm: <strong style={{ color: COLORS.ink }}>{score}</strong></span>
-        <span>Chuỗi đúng: <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
+        <span>{t("play_score", meaningDisplay)} <strong style={{ color: COLORS.ink }}>{score}</strong></span>
+        <span>{t("play_streak", meaningDisplay)} <strong style={{ color: COLORS.ink }}>{streak}</strong></span>
         <span>
-          {playable.length} {isWord || playable.some((p) => p.charGroups.length > 1) ? "mục" : "chữ"} có thể học
-          {selectedList === REVIEW_LIST_VALUE ? " (🔁 Cần ôn lại)" : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
+          {t("play_playable_count", meaningDisplay, playable.length, isWord || playable.some((p) => p.charGroups.length > 1))}
+          {selectedList === REVIEW_LIST_VALUE ? ` ${t("play_needs_review_suffix", meaningDisplay)}` : selectedList !== "Tất cả" ? ` (${selectedList})` : ""}
         </span>
       </div>
 
@@ -2877,7 +2877,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
   }
 
   if (progressMap === null) {
-    return <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 40 }}>Đang tải…</div>;
+    return <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 40 }}>{t("loading", meaningDisplay)}</div>;
   }
 
   return (
@@ -3820,7 +3820,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
                       color: COLORS.inkSoft,
                     }}
                   >
-                    Đang tải…
+                    {t("loading", meaningDisplay)}
                   </div>
                 )}
               </div>
@@ -5907,7 +5907,7 @@ function PremiumTab() {
   );
 }
 
-function AdminPanel({ isAdmin, allListNamesInUse }) {
+function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -6176,7 +6176,7 @@ function AdminPanel({ isAdmin, allListNamesInUse }) {
       )}
 
       {loading ? (
-        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>Đang tải…</div>
+        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>{t("loading", meaningDisplay)}</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map((u) => (
@@ -6334,7 +6334,7 @@ function AdminPanel({ isAdmin, allListNamesInUse }) {
         )}
 
         {listsLoading ? (
-          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>Đang tải…</div>
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("loading", meaningDisplay)}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {allListNamesInUse.map((name) => {
