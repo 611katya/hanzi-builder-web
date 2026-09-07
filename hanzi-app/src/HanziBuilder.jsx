@@ -424,6 +424,28 @@ const UI_TEXT = {
   tab_feedback: { vi: "Góp ý", en: "Feedback" },
   tab_privacy: { vi: "Privacy", en: "Privacy" },
   tab_terms: { vi: "Terms", en: "Terms" },
+
+  pricing_message: {
+    vi: "Chúng tôi luôn cố gắng mang đến những công cụ học tập tốt nhất cho cộng đồng với chi phí thấp nhất. Chúng tôi đang xây dựng bảng giá. Trong thời gian này, vui lòng liên hệ với chúng tôi nếu bạn muốn nâng cấp tài khoản — chúng tôi rất vui lòng nâng cấp miễn phí cho bạn trong giai đoạn này.",
+    en: "We try our best to provide the best learning tools to the community at the smallest cost. We are working on our pricing. In the meantime, please contact us if you want to upgrade your account. We are happy to upgrade it for free for the time being.",
+  },
+  pricing_table_title: { vi: "Bảng so sánh các gói", en: "Tier Comparison" },
+  pricing_row_lookups: { vi: "Lượt tra cứu tự động", en: "Auto-Lookups" },
+  pricing_row_vocab: { vi: "Danh sách từ vựng", en: "Vocabulary Lists" },
+  pricing_row_ads: { vi: "Quảng cáo", en: "Ads" },
+  pricing_row_rate: { vi: "Giá", en: "Rate" },
+  pricing_yes: { vi: "Có", en: "Yes" },
+  pricing_no: { vi: "Không", en: "No" },
+  pricing_tbd: { vi: "Sẽ cập nhật sau", en: "To be updated" },
+  pricing_hsk12: { vi: "New HSK 1 & 2", en: "New HSK 1 & 2" },
+  pricing_hsk34: { vi: "New HSK 3 & 4", en: "New HSK 3 & 4" },
+  pricing_hsk5: { vi: "New HSK 5", en: "New HSK 5" },
+  pricing_free_vocab: { vi: "Danh sách cơ bản", en: "Basic lists" },
+  pricing_courses_title: { vi: "Khóa học riêng", en: "Dedicated Courses" },
+  pricing_courses_body: {
+    vi: "Ngoài các gói thành viên, chúng tôi cũng tổ chức các khóa học với bộ từ vựng được biên soạn riêng cho từng khóa. Nếu bạn đang theo học một khóa cụ thể, tài khoản của bạn sẽ được cấp quyền truy cập vào danh sách từ vựng riêng của khóa đó.",
+    en: "Beyond the standard tiers, we also run dedicated courses with vocabulary lists curated specifically for each one. If you're enrolled in a particular course, your account is granted access to that course's own vocabulary lists.",
+  },
   footer_copyright: { vi: "Bản quyền © 2026 MinouQ", en: "Copyright © 2026 MinouQ" },
   blog_coming_soon_title: { vi: "Blog sắp ra mắt", en: "Blog Coming Soon" },
   blog_coming_soon_body: {
@@ -2250,7 +2272,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             userId={userId}
           />
         ) : tab === "premium" ? (
-          <PremiumTab />
+          <PremiumTab meaningDisplay={meaningDisplay} />
         ) : tab === "about" ? (
           <AboutTab meaningDisplay={meaningDisplay} />
         ) : tab === "privacy" ? (
@@ -6238,65 +6260,74 @@ function FeedbackTab({ meaningDisplay, userId }) {
   );
 }
 
-function PremiumTab() {
-  const tierCard = (name, limit, blurb) => (
-    <div
-      style={{
-        background: COLORS.card,
-        border: `1px solid ${COLORS.hairline}`,
-        borderRadius: 14,
-        padding: "16px 18px",
-        marginBottom: 10,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 4 }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: COLORS.seal, textTransform: "uppercase" }}>{name}</span>
-        <span style={{ fontSize: 12.5, color: COLORS.inkSoft }}>{limit} lượt tra cứu tự động</span>
-      </div>
-      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.5 }}>{blurb}</div>
-    </div>
-  );
+function PremiumTab({ meaningDisplay }) {
+  const tiers = ["Free", "Silver", "Titan", "Gold", "Platinum"];
+  const lookups = { Free: "100", Silver: "500", Titan: "1,000", Gold: "2,000", Platinum: "5,000" };
+  const vocab = {
+    Free: t("pricing_free_vocab", meaningDisplay),
+    Silver: t("pricing_hsk12", meaningDisplay),
+    Titan: t("pricing_hsk12", meaningDisplay),
+    Gold: t("pricing_hsk34", meaningDisplay),
+    Platinum: t("pricing_hsk5", meaningDisplay),
+  };
+  const ads = {
+    Free: t("pricing_yes", meaningDisplay),
+    Silver: t("pricing_yes", meaningDisplay),
+    Titan: t("pricing_yes", meaningDisplay),
+    Gold: t("pricing_no", meaningDisplay),
+    Platinum: t("pricing_no", meaningDisplay),
+  };
+  const rows = [
+    { label: t("pricing_row_lookups", meaningDisplay), values: lookups },
+    { label: t("pricing_row_vocab", meaningDisplay), values: vocab },
+    { label: t("pricing_row_ads", meaningDisplay), values: ads },
+    { label: t("pricing_row_rate", meaningDisplay), values: Object.fromEntries(tiers.map((tier) => [tier, t("pricing_tbd", meaningDisplay)])) },
+  ];
+
+  const cellStyle = { padding: "10px 12px", fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", borderBottom: `1px solid ${COLORS.hairline}` };
+  const headStyle = { ...cellStyle, color: COLORS.ink, fontWeight: 700, fontSize: 13 };
+  const labelCellStyle = { ...cellStyle, textAlign: "left", fontWeight: 600, color: COLORS.ink };
 
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+    <div style={{ maxWidth: 620, margin: "0 auto" }}>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
-        Thành viên trả phí & Khóa học
+        {t("tab_premium", meaningDisplay)}
       </div>
-      <div style={{ fontSize: 13, color: COLORS.inkSoft, textAlign: "center", marginBottom: 24, lineHeight: 1.6 }}>
-        Học Chữ Hán cung cấp miễn phí bộ dữ liệu cơ bản để bạn bắt đầu học chữ Hán mọi lúc. Với gói thành viên trả
-        phí, bạn sẽ được tra cứu tự động nhiều hơn và mở khóa các danh sách từ vựng chuyên sâu do chúng tôi biên
-        soạn riêng.
+      <div style={{ fontSize: 14, color: COLORS.inkSoft, textAlign: "center", marginBottom: 26, lineHeight: 1.7 }}>
+        {t("pricing_message", meaningDisplay)}
       </div>
 
       <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
-        Bảng gói thành viên
+        {t("pricing_table_title", meaningDisplay)}
       </div>
-      {tierCard("Free", "100", "Truy cập toàn bộ dữ liệu cơ bản.")}
-      {tierCard("Silver", "500", "Bao gồm các danh sách từ vựng nâng cao dành riêng cho gói Silver trở lên.")}
-      {tierCard("Titan", "2.000", "Bao gồm các danh sách từ vựng nâng cao dành riêng cho gói Titan trở lên.")}
-      {tierCard("Gold", "5.000", "Bao gồm các danh sách từ vựng nâng cao dành riêng cho gói Gold trở lên.")}
-      {tierCard("Platinum", "15.000", "Bao gồm toàn bộ danh sách từ vựng nâng cao hiện có.")}
-
-      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 20, marginBottom: 10 }}>
-        Khóa học riêng
-      </div>
-      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.6, marginBottom: 20 }}>
-        Ngoài các gói thành viên, chúng tôi cũng tổ chức các khóa học với bộ từ vựng được biên soạn riêng cho từng
-        khóa. Nếu bạn đang theo học một khóa cụ thể, tài khoản của bạn sẽ được cấp quyền truy cập vào danh sách từ
-        vựng riêng của khóa đó.
+      <div style={{ overflowX: "auto", marginBottom: 24 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
+          <thead>
+            <tr>
+              <th style={{ ...headStyle, textAlign: "left" }}></th>
+              {tiers.map((tier) => (
+                <th key={tier} style={headStyle}>{tier}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label}>
+                <td style={labelCellStyle}>{row.label}</td>
+                {tiers.map((tier) => (
+                  <td key={tier} style={cellStyle}>{row.values[tier]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
-        Cách nâng cấp
+        {t("pricing_courses_title", meaningDisplay)}
       </div>
-      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.7 }}>
-        Hiện tại, việc nâng cấp được thực hiện thủ công:
-        <ol style={{ margin: "8px 0", paddingLeft: 20 }}>
-          <li>Chuyển khoản theo thông tin: [điền thông tin chuyển khoản]</li>
-          <li>Ghi chú nội dung chuyển khoản: [email tài khoản của bạn]</li>
-          <li>Tài khoản của bạn sẽ được nâng cấp trong vòng [điền thời gian]</li>
-        </ol>
-        Mọi thắc mắc xin liên hệ: [điền email hoặc kênh liên hệ]
+      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.6 }}>
+        {t("pricing_courses_body", meaningDisplay)}
       </div>
     </div>
   );
