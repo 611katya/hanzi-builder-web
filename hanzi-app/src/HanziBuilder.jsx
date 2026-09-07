@@ -6015,8 +6015,12 @@ function SiteFooter({ setTab, meaningDisplay }) {
     { id: "premium", label: t("tab_premium", meaningDisplay) },
     { id: "about", label: t("tab_about", meaningDisplay) },
     { id: "feedback", label: t("tab_feedback", meaningDisplay) },
-    { id: "privacy", label: t("tab_privacy", meaningDisplay) },
-    { id: "terms", label: t("tab_terms", meaningDisplay) },
+    ...(meaningDisplay !== "vi"
+      ? [
+          { id: "privacy", label: t("tab_privacy", meaningDisplay) },
+          { id: "terms", label: t("tab_terms", meaningDisplay) },
+        ]
+      : []),
   ];
   const linkStyle = {
     background: "none",
@@ -6281,11 +6285,11 @@ function PremiumTab({ meaningDisplay }) {
     Platinum: t("pricing_hsk5", meaningDisplay),
   };
   const ads = {
-    Free: t("pricing_yes", meaningDisplay),
-    Silver: t("pricing_yes", meaningDisplay),
-    Titan: t("pricing_yes", meaningDisplay),
-    Gold: t("pricing_no", meaningDisplay),
-    Platinum: t("pricing_no", meaningDisplay),
+    Free: "✗",
+    Silver: "✗",
+    Titan: "✗",
+    Gold: "✓",
+    Platinum: "✓",
   };
   const rows = [
     { label: t("pricing_row_lookups", meaningDisplay), values: lookups },
@@ -6308,9 +6312,6 @@ function PremiumTab({ meaningDisplay }) {
         {t("pricing_message", meaningDisplay)}
       </div>
 
-      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
-        {t("pricing_table_title", meaningDisplay)}
-      </div>
       <div style={{ overflowX: "auto", marginBottom: 24 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
           <thead>
@@ -6329,14 +6330,15 @@ function PremiumTab({ meaningDisplay }) {
                 <td style={labelCellStyle}>{row.label}</td>
                 {tiers.map((tier) => {
                   const isAdsRow = row.label === t("pricing_row_ads", meaningDisplay);
-                  const isNo = row.values[tier] === t("pricing_no", meaningDisplay);
+                  const isYes = row.values[tier] === "✓";
                   return (
                     <td
                       key={tier}
                       style={{
                         ...cellStyle,
-                        fontWeight: isAdsRow ? 600 : 400,
-                        color: isAdsRow ? (isNo ? COLORS.seal : "#B8860B") : COLORS.inkSoft,
+                        fontWeight: isAdsRow ? 700 : 400,
+                        fontSize: isAdsRow ? 15 : 12.5,
+                        color: isAdsRow ? (isYes ? "#2E7D32" : "#C62828") : COLORS.inkSoft,
                       }}
                     >
                       {row.values[tier]}
