@@ -8795,7 +8795,7 @@ function stripHtml(html) {
 
 function RichTextEditor({ value, onChange, placeholder }) {
   const editorRef = useRef(null);
-  const lastValueRef = useRef(value);
+  const lastValueRef = useRef(null); // sentinel -- guarantees the very first sync actually runs
 
   useEffect(() => {
     // Only push external value changes into the DOM (e.g. loading a
