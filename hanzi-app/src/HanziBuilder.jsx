@@ -6216,7 +6216,7 @@ function BlogTab({ meaningDisplay }) {
                       </span>
                     </div>
                     <div
-                      style={{ fontFamily: "'Noto Serif', serif", fontSize: 19, fontWeight: 700, color: COLORS.ink, marginBottom: 8, lineHeight: 1.35 }}
+                      style={{ fontFamily: "'Noto Serif', serif", fontSize: 19, fontWeight: 700, color: COLORS.ink, marginBottom: 14, lineHeight: 1.35 }}
                       dangerouslySetInnerHTML={{ __html: enhanceCjkInHtml(post.title) }}
                     />
                     {isExpanded ? (
@@ -6238,13 +6238,15 @@ function BlogTab({ meaningDisplay }) {
                       </div>
                     )}
                     {plainText.length > 140 && (
-                      <button
-                        type="button"
-                        onClick={() => setExpandedId(isExpanded ? null : post.id)}
-                        style={{ background: "none", border: "none", color: COLORS.seal, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0, marginTop: 10 }}
-                      >
-                        {isExpanded ? t("blog_collapse", meaningDisplay) : t("blog_read_more", meaningDisplay)}
-                      </button>
+                      <div style={{ textAlign: "right" }}>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(isExpanded ? null : post.id)}
+                          style={{ background: "none", border: "none", color: COLORS.seal, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0, marginTop: 10 }}
+                        >
+                          {isExpanded ? t("blog_collapse", meaningDisplay) : t("blog_read_more", meaningDisplay)}
+                        </button>
+                      </div>
                     )}
                   </div>
                 );
