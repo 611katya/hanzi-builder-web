@@ -503,6 +503,10 @@ const UI_TEXT = {
   admin_feedback_guest: { vi: "Khách (chưa đăng nhập)", en: "Guest (not signed in)" },
 
   // Admin panel - user management
+  admin_nav_users: { vi: "Người dùng", en: "Users" },
+  admin_nav_lists: { vi: "Danh sách", en: "Lists" },
+  admin_nav_feedback: { vi: "Góp ý", en: "Feedback" },
+  admin_nav_blog: { vi: "Blog", en: "Blog" },
   admin_users_title: { vi: "Quản trị người dùng", en: "User Management" },
   admin_search_email_placeholder: { vi: "Tìm theo email…", en: "Search by email…" },
   admin_all_tiers: { vi: "Tất cả gói", en: "All Tiers" },
@@ -2176,6 +2180,9 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
           .field-row input, .field-row select { width: 100% !important; box-sizing: border-box; }
           .list-pills-row { padding-left: 0 !important; }
           .autofill-hint { padding-left: 0 !important; }
+          .side-nav-layout { flex-direction: column !important; }
+          .side-nav-menu { flex-direction: row !important; overflow-x: auto; width: 100% !important; gap: 6px !important; }
+          .side-nav-menu button { white-space: nowrap; }
         }
       `}</style>
 
@@ -6119,76 +6126,81 @@ function BlogTab({ meaningDisplay }) {
   const filtered = category === "all" ? posts : posts.filter((p) => p.category === category);
 
   return (
-    <div style={{ maxWidth: 620, margin: "0 auto" }}>
+    <div style={{ maxWidth: 680, margin: "0 auto" }}>
       <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 18, textAlign: "center" }}>
         {t("blog_page_title", meaningDisplay)}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", borderBottom: `1px solid ${COLORS.hairline}`, marginBottom: 24 }}>
-        {categories.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => {
-              setCategory(c.id);
-              setExpandedId(null);
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              borderBottom: `2px solid ${category === c.id ? COLORS.seal : "transparent"}`,
-              color: category === c.id ? COLORS.ink : COLORS.inkSoft,
-              fontWeight: category === c.id ? 700 : 600,
-              fontSize: 13.5,
-              padding: "8px 2px",
-              marginBottom: -1,
-              cursor: "pointer",
-            }}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>{t("loading", meaningDisplay)}</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>{t("blog_empty", meaningDisplay)}</div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {filtered.map((post) => {
-            const isExpanded = expandedId === post.id;
-            const preview = post.body.length > 140 ? post.body.slice(0, 140).trim() + "…" : post.body;
-            return (
-              <div key={post.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 14, padding: "18px 20px" }}>
-                <div style={{ fontSize: 11, color: COLORS.metadata, marginBottom: 4 }}>
-                  {new Date(post.created_at).toLocaleDateString()}
-                </div>
-                <div style={{ fontSize: 16.5, fontWeight: 700, color: COLORS.ink, marginBottom: 8 }}>{post.title}</div>
-                <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, textAlign: "justify", whiteSpace: "pre-line" }}>
-                  {isExpanded ? post.body : preview}
-                </div>
-                {isExpanded && post.external_link && (
-                  <div style={{ marginTop: 12 }}>
-                    <a href={post.external_link} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.seal, fontWeight: 600, fontSize: 13.5 }}>
-                      {t("blog_external_link", meaningDisplay)}
-                    </a>
-                  </div>
-                )}
-                {post.body.length > 140 && (
-                  <button
-                    type="button"
-                    onClick={() => setExpandedId(isExpanded ? null : post.id)}
-                    style={{ background: "none", border: "none", color: COLORS.seal, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0, marginTop: 10 }}
-                  >
-                    {isExpanded ? t("blog_collapse", meaningDisplay) : t("blog_read_more", meaningDisplay)}
-                  </button>
-                )}
-              </div>
-            );
-          })}
+      <div className="side-nav-layout" style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        <div className="side-nav-menu" style={{ display: "flex", flexDirection: "column", gap: 4, width: 170, flexShrink: 0 }}>
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => {
+                setCategory(c.id);
+                setExpandedId(null);
+              }}
+              style={{
+                textAlign: "left",
+                background: category === c.id ? COLORS.chipBg : "none",
+                border: "none",
+                borderLeft: `3px solid ${category === c.id ? COLORS.seal : "transparent"}`,
+                color: category === c.id ? COLORS.ink : COLORS.inkSoft,
+                fontWeight: category === c.id ? 700 : 500,
+                fontSize: 13,
+                padding: "8px 12px",
+                cursor: "pointer",
+                borderRadius: 6,
+              }}
+            >
+              {c.label}
+            </button>
+          ))}
         </div>
-      )}
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {loading ? (
+            <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>{t("loading", meaningDisplay)}</div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>{t("blog_empty", meaningDisplay)}</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {filtered.map((post) => {
+                const isExpanded = expandedId === post.id;
+                const preview = post.body.length > 140 ? post.body.slice(0, 140).trim() + "…" : post.body;
+                return (
+                  <div key={post.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 14, padding: "18px 20px" }}>
+                    <div style={{ fontSize: 11, color: COLORS.metadata, marginBottom: 4 }}>
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </div>
+                    <div style={{ fontSize: 16.5, fontWeight: 700, color: COLORS.ink, marginBottom: 8 }}>{post.title}</div>
+                    <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, textAlign: "justify", whiteSpace: "pre-line" }}>
+                      {isExpanded ? post.body : preview}
+                    </div>
+                    {isExpanded && post.external_link && (
+                      <div style={{ marginTop: 12 }}>
+                        <a href={post.external_link} target="_blank" rel="noopener noreferrer" style={{ color: COLORS.seal, fontWeight: 600, fontSize: 13.5 }}>
+                          {t("blog_external_link", meaningDisplay)}
+                        </a>
+                      </div>
+                    )}
+                    {post.body.length > 140 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(isExpanded ? null : post.id)}
+                        style={{ background: "none", border: "none", color: COLORS.seal, fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0, marginTop: 10 }}
+                      >
+                        {isExpanded ? t("blog_collapse", meaningDisplay) : t("blog_read_more", meaningDisplay)}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -6790,8 +6802,42 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
     return (u.email || "").toLowerCase().includes(q) || u.user_id.toLowerCase().includes(q);
   });
 
+  const [adminSection, setAdminSection] = useState("users");
+  const adminSections = [
+    { id: "users", label: t("admin_nav_users", meaningDisplay) },
+    { id: "lists", label: t("admin_nav_lists", meaningDisplay) },
+    { id: "feedback", label: t("admin_nav_feedback", meaningDisplay) },
+    { id: "blog", label: t("admin_nav_blog", meaningDisplay) },
+  ];
+
   return (
-    <div>
+    <div className="side-nav-layout" style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+      <div className="side-nav-menu" style={{ display: "flex", flexDirection: "column", gap: 4, width: 170, flexShrink: 0 }}>
+        {adminSections.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setAdminSection(s.id)}
+            style={{
+              textAlign: "left",
+              background: adminSection === s.id ? COLORS.chipBg : "none",
+              border: "none",
+              borderLeft: `3px solid ${adminSection === s.id ? COLORS.seal : "transparent"}`,
+              color: adminSection === s.id ? COLORS.ink : COLORS.inkSoft,
+              fontWeight: adminSection === s.id ? 700 : 500,
+              fontSize: 13,
+              padding: "8px 12px",
+              cursor: "pointer",
+              borderRadius: 6,
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+      {adminSection === "users" && (
+      <div>
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
         {t("admin_users_title", meaningDisplay)}
       </div>
@@ -6982,7 +7028,10 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
           )}
         </div>
       )}
+      </div>
+      )}
 
+      {adminSection === "lists" && (
       <div style={{ marginTop: 32, paddingTop: 22, borderTop: `1px dashed ${COLORS.grid}` }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
           {t("admin_list_mgmt_title", meaningDisplay)}
@@ -7161,7 +7210,9 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
           </div>
         )}
       </div>
+      )}
 
+      {adminSection === "feedback" && (
       <div style={{ marginTop: 28 }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
           {t("admin_feedback_title", meaningDisplay)}
@@ -7204,7 +7255,9 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
           </div>
         )}
       </div>
+      )}
 
+      {adminSection === "blog" && (
       <div style={{ marginTop: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, textTransform: "uppercase", letterSpacing: 0.8 }}>
@@ -7294,6 +7347,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
             ))}
           </div>
         )}
+      </div>
+      )}
       </div>
     </div>
   );
