@@ -418,7 +418,32 @@ const UI_TEXT = {
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
   tab_vocab: { vi: "Từ vựng", en: "Words" },
-  tab_premium: { vi: "★ Thành viên", en: "★ Membership" },
+  tab_premium: { vi: "Bảng giá", en: "Pricing" },
+  tab_blog: { vi: "Blog", en: "Blog" },
+  tab_about: { vi: "Về chúng tôi", en: "About Us" },
+  tab_feedback: { vi: "Góp ý", en: "Feedback" },
+  footer_copyright: { vi: "Bản quyền © 2026 MinouQ", en: "Copyright © 2026 MinouQ" },
+  blog_coming_soon_title: { vi: "Blog sắp ra mắt", en: "Blog Coming Soon" },
+  blog_coming_soon_body: {
+    vi: "Chúng tôi đang chuẩn bị các bài viết về mẹo học chữ Hán, bộ thủ, và phương pháp luyện viết. Quay lại sau nhé!",
+    en: "We're preparing articles on Hanzi learning tips, radicals, and writing practice methods. Check back soon!",
+  },
+  about_title: { vi: "Về MinouQ", en: "About MinouQ" },
+  about_body: {
+    vi: "MinouQ là công cụ học chữ Hán được xây dựng để giúp người học hiểu chữ Hán qua cách phân tích các bộ thành phần, thay vì học thuộc lòng. Chúng tôi tin rằng việc hiểu cấu tạo của một chữ Hán sẽ giúp việc ghi nhớ trở nên tự nhiên và bền vững hơn.",
+    en: "MinouQ is a Hanzi-learning tool built to help learners understand Chinese characters through their component structure, rather than by rote memorization. We believe that understanding how a character is built makes it easier to remember naturally and for the long term.",
+  },
+  feedback_title: { vi: "Chúng tôi rất muốn nghe ý kiến của bạn", en: "We'd Love Your Feedback" },
+  feedback_body: {
+    vi: "Bạn thấy điều gì hữu ích? Điều gì cần cải thiện? Hãy cho chúng tôi biết bên dưới.",
+    en: "What's working well? What could be better? Let us know below.",
+  },
+  feedback_placeholder: { vi: "Viết góp ý của bạn ở đây…", en: "Write your feedback here…" },
+  feedback_submit: { vi: "Gửi góp ý", en: "Submit Feedback" },
+  feedback_sending: { vi: "Đang gửi…", en: "Sending…" },
+  feedback_success: { vi: "Cảm ơn bạn đã góp ý!", en: "Thank you for your feedback!" },
+  feedback_error: { vi: "Gửi thất bại. Vui lòng thử lại.", en: "Failed to send. Please try again." },
+  feedback_empty: { vi: "Vui lòng nhập góp ý trước khi gửi.", en: "Please write something before submitting." },
   tab_admin: { vi: "⚙ Quản trị", en: "⚙ Admin" },
 
   // Header
@@ -2159,10 +2184,17 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
           />
         ) : tab === "premium" ? (
           <PremiumTab />
+        ) : tab === "blog" ? (
+          <BlogTab meaningDisplay={meaningDisplay} />
+        ) : tab === "about" ? (
+          <AboutTab meaningDisplay={meaningDisplay} />
+        ) : tab === "feedback" ? (
+          <FeedbackTab meaningDisplay={meaningDisplay} userId={userId} />
         ) : tab === "admin" ? (
           <AdminPanel isAdmin={isAdmin} allListNamesInUse={allListNamesInUse} meaningDisplay={meaningDisplay} />
         ) : null}
       </div>
+      <SiteFooter setTab={setTab} meaningDisplay={meaningDisplay} />
     </div>
   );
 }
@@ -2310,7 +2342,6 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
     { id: "radicals", label: t("tab_radicals", meaningDisplay) },
     { id: "hanzi", label: t("tab_hanzi", meaningDisplay) },
     { id: "vocab", label: t("tab_vocab", meaningDisplay) },
-    { id: "premium", label: t("tab_premium", meaningDisplay) },
   ];
   if (isAdmin) items.push({ id: "admin", label: t("tab_admin", meaningDisplay) });
   return (
@@ -5857,6 +5888,136 @@ const ALL_TIERS = [...Object.keys(TIER_PRESETS), "Enrolled Course"];
    everyone, including guests -- this is the conversion page the
    quota-exhausted and locked-list popups link to. Static content for now;
    revise the copy freely, it's just plain text/JSX below. ---------- */
+function SiteFooter({ setTab, meaningDisplay }) {
+  const links = [
+    { id: "premium", label: t("tab_premium", meaningDisplay) },
+    { id: "blog", label: t("tab_blog", meaningDisplay) },
+    { id: "about", label: t("tab_about", meaningDisplay) },
+    { id: "feedback", label: t("tab_feedback", meaningDisplay) },
+  ];
+  return (
+    <div
+      style={{
+        background: COLORS.sealDark,
+        margin: "48px -16px -48px",
+        padding: "36px 16px 30px",
+      }}
+    >
+      <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 28, flexWrap: "wrap", marginBottom: 18 }}>
+          {links.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => {
+                setTab(l.id);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#FBF9EF",
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: "pointer",
+                padding: 0,
+                opacity: 0.92,
+              }}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: "#FBF9EF", opacity: 0.6 }}>{t("footer_copyright", meaningDisplay)}</div>
+      </div>
+    </div>
+  );
+}
+
+function BlogTab({ meaningDisplay }) {
+  return (
+    <div style={{ textAlign: "center", padding: "60px 20px" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 12 }}>
+        {t("blog_coming_soon_title", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 14.5, color: COLORS.inkSoft, maxWidth: 440, margin: "0 auto", lineHeight: 1.6 }}>
+        {t("blog_coming_soon_body", meaningDisplay)}
+      </div>
+    </div>
+  );
+}
+
+function AboutTab({ meaningDisplay }) {
+  return (
+    <div style={{ padding: "20px 4px" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 14, textAlign: "center" }}>
+        {t("about_title", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 15, color: COLORS.inkSoft, lineHeight: 1.7, maxWidth: 560, margin: "0 auto" }}>
+        {t("about_body", meaningDisplay)}
+      </div>
+    </div>
+  );
+}
+
+function FeedbackTab({ meaningDisplay, userId }) {
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | done | error
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!text.trim()) {
+      setStatus("empty");
+      return;
+    }
+    setStatus("sending");
+    try {
+      const { error } = await supabase.from("feedback").insert({ message: text.trim(), user_id: userId || null });
+      if (error) throw error;
+      setStatus("done");
+      setText("");
+    } catch (err) {
+      console.error("Feedback submit failed:", err);
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 4px", textAlign: "center" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 8 }}>
+        {t("feedback_title", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20, lineHeight: 1.6 }}>
+        {t("feedback_body", meaningDisplay)}
+      </div>
+      <form onSubmit={handleSubmit}>
+        <textarea
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (status === "empty" || status === "error") setStatus("idle");
+          }}
+          placeholder={t("feedback_placeholder", meaningDisplay)}
+          rows={5}
+          style={{ ...inputStyle, width: "100%", boxSizing: "border-box", resize: "vertical", marginBottom: 12, fontFamily: "'Noto Sans', sans-serif" }}
+        />
+        <button type="submit" className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }} disabled={status === "sending"}>
+          {status === "sending" ? t("feedback_sending", meaningDisplay) : t("feedback_submit", meaningDisplay)}
+        </button>
+      </form>
+      {status === "done" && (
+        <div style={{ marginTop: 14, fontSize: 13.5, fontWeight: 600, color: COLORS.seal }}>{t("feedback_success", meaningDisplay)}</div>
+      )}
+      {status === "error" && (
+        <div style={{ marginTop: 14, fontSize: 13.5, fontWeight: 600, color: COLORS.error }}>{t("feedback_error", meaningDisplay)}</div>
+      )}
+      {status === "empty" && (
+        <div style={{ marginTop: 14, fontSize: 13.5, fontWeight: 600, color: COLORS.error }}>{t("feedback_empty", meaningDisplay)}</div>
+      )}
+    </div>
+  );
+}
+
 function PremiumTab() {
   const tierCard = (name, limit, blurb) => (
     <div
