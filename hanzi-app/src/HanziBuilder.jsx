@@ -6107,7 +6107,7 @@ function LegalPage({ title, updated, sections }) {
       {sections.map((s, i) => (
         <div key={i} style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 14.5, fontWeight: 600, color: COLORS.ink, marginBottom: 6 }}>{s.heading}</div>
-          <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, whiteSpace: "pre-line" }}>{s.body}</div>
+          <div style={{ fontSize: 14, color: COLORS.inkSoft, lineHeight: 1.7, whiteSpace: "pre-line", textAlign: "justify" }}>{s.body}</div>
         </div>
       ))}
     </div>
@@ -6308,7 +6308,7 @@ function PremiumTab({ meaningDisplay }) {
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
         {t("tab_premium", meaningDisplay)}
       </div>
-      <div style={{ fontSize: 14, color: COLORS.inkSoft, textAlign: "center", marginBottom: 26, lineHeight: 1.7 }}>
+      <div style={{ fontSize: 14, color: COLORS.inkSoft, textAlign: "justify", marginBottom: 26, lineHeight: 1.7 }}>
         {t("pricing_message", meaningDisplay)}
       </div>
 
@@ -6354,7 +6354,7 @@ function PremiumTab({ meaningDisplay }) {
       <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
         {t("pricing_courses_title", meaningDisplay)}
       </div>
-      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.6, textAlign: "justify" }}>
         {t("pricing_courses_body", meaningDisplay)}
       </div>
     </div>
