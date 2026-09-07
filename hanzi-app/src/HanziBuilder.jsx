@@ -6430,7 +6430,7 @@ function PremiumTab({ meaningDisplay }) {
 
   return (
     <div style={{ maxWidth: 620, margin: "0 auto" }}>
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.ink, marginBottom: 14, textAlign: "center" }}>
         {t("tab_premium", meaningDisplay)}
       </div>
       <div style={{ fontSize: 14, color: COLORS.inkSoft, textAlign: "justify", marginBottom: 26, lineHeight: 1.7 }}>
