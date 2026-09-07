@@ -456,7 +456,7 @@ const UI_TEXT = {
   blog_cat_all: { vi: "Tất cả", en: "All" },
   blog_cat_news: { vi: "Tin tức", en: "News" },
   blog_cat_resources: { vi: "Tài liệu miễn phí", en: "Free Resources" },
-  blog_cat_founder: { vi: "Từ nhà sáng lập", en: "From the Founder" },
+  blog_cat_founder: { vi: "Góc nhìn", en: "From the Founder" },
   blog_read_more: { vi: "Đọc tiếp →", en: "Read more →" },
   blog_collapse: { vi: "Thu gọn ↑", en: "Collapse ↑" },
   blog_external_link: { vi: "Đọc bài viết đầy đủ →", en: "Read the full article →" },
