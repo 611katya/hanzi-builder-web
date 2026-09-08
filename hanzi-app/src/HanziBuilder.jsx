@@ -898,6 +898,7 @@ const UI_TEXT = {
   radicals_set_default: { vi: "⭐ Đặt làm mặc định", en: "⭐ Set as Default" },
   radicals_stroke_count: (n) => ({ vi: `${n} nét`, en: `${n} stroke${n === "1" ? "" : "s"}` }),
   radicals_stroke_unknown: { vi: "chưa xác định số nét", en: "stroke count unknown" },
+  radicals_lists_field_label: { vi: "Danh sách", en: "Lists" },
   stroke_modal_title: { vi: "Thứ tự nét bút", en: "Stroke Order" },
   stroke_modal_replay: { vi: "▶ Xem lại", en: "▶ Replay" },
   stroke_modal_no_data: (char) => ({
@@ -953,7 +954,7 @@ function uid() {
 
 /* ---------- Supabase row <-> app object conversion ---------- */
 function rowToBushou(row) {
-  return { char: row.char, pinyin: row.pinyin, meaning: row.meaning, sv: row.sv, strokes: row.strokes };
+  return { char: row.char, pinyin: row.pinyin, meaning: row.meaning, sv: row.sv, strokes: row.strokes, lists: row.lists || [] };
 }
 function bushouToRow(b, userId) {
   return {
@@ -963,6 +964,7 @@ function bushouToRow(b, userId) {
     meaning: b.meaning,
     sv: b.sv,
     strokes: typeof b.strokes === "number" ? b.strokes : null,
+    lists: b.lists || [],
   };
 }
 function rowToChar(row) {
@@ -9059,7 +9061,15 @@ const smallXStyle = {
 /* ================= RADICALS TAB ================= */
 function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou, meaningDisplay }) {
   const [query, setQuery] = useState("");
+  const [listFilter, setListFilter] = useState("Tất cả");
+  const allLists = useMemo(() => {
+    const set = new Set();
+    bushouList.forEach((b) => (b.lists || []).forEach((l) => set.add(l)));
+    return Array.from(set).sort();
+  }, [bushouList]);
+
   const filtered = bushouList.filter((b) => {
+    if (listFilter !== "Tất cả" && !(b.lists || []).includes(listFilter)) return false;
     const q = query.trim().toLowerCase();
     if (!q) return true;
     return (
@@ -9116,13 +9126,21 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
         </p>
       </div>
 
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
+      <div style={{ textAlign: "center", marginBottom: 16, display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("radicals_search_placeholder", meaningDisplay)}
-          style={{ ...inputStyle, width: 340, textAlign: "center" }}
+          style={{ ...inputStyle, width: 280, textAlign: "center" }}
         />
+        <select value={listFilter} onChange={(e) => setListFilter(e.target.value)} style={{ ...selectStyle, width: 170 }}>
+          <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
+          {allLists.map((l) => (
+            <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+              {l}
+            </option>
+          ))}
+        </select>
       </div>
       <div style={{ fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 20 }}>
         {t("radicals_count", meaningDisplay, filtered.length, bushouList.length)}
@@ -9173,6 +9191,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
                 onPromoteBushou={onPromoteBushou}
                 onWithdrawBushou={onWithdrawBushou}
                 meaningDisplay={meaningDisplay}
+                allBushouLists={allLists}
               />
             ))}
           </div>
@@ -9186,13 +9205,15 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
    Saving just re-upserts the same char via onAddBushou (addBushouRow),
    which already overwrites on conflict — so "add" and "edit" are the same
    operation under the hood, exactly like character editing works. ---------- */
-function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromoteBushou, onWithdrawBushou, meaningDisplay }) {
+function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromoteBushou, onWithdrawBushou, meaningDisplay, allBushouLists }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   const [pinyin, setPinyin] = useState(b.pinyin);
   const [meaning, setMeaning] = useState(b.meaning);
   const [sv, setSv] = useState(b.sv);
   const [strokes, setStrokes] = useState(typeof b.strokes === "number" ? String(b.strokes) : "");
+  const [lists, setLists] = useState(b.lists || []);
+  const [listTypeahead, setListTypeahead] = useState("");
   const [defaultStatus, setDefaultStatus] = useState("idle"); // idle | working | error
 
   // A personal edit sitting on top of the official value always means
@@ -9216,7 +9237,15 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
     setMeaning(b.meaning);
     setSv(b.sv);
     setStrokes(typeof b.strokes === "number" ? String(b.strokes) : "");
+    setLists(b.lists || []);
+    setListTypeahead("");
     setMode("edit");
+  }
+
+  function addList(name) {
+    const trimmed = name.trim();
+    if (trimmed && !lists.includes(trimmed)) setLists([...lists, trimmed]);
+    setListTypeahead("");
   }
 
   function saveEdit() {
@@ -9229,6 +9258,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
         meaning: meaning.trim(),
         sv: sv.trim(),
         strokes: Number.isFinite(strokesNum) && strokesNum > 0 ? strokesNum : undefined,
+        lists,
       });
     setMode("view");
   }
@@ -9311,6 +9341,49 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
             onChange={(e) => setStrokes(e.target.value.replace(/[^0-9]/g, ""))}
             style={{ ...inputStyle, width: "100%", marginBottom: 8, fontSize: 12.5 }}
           />
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("radicals_lists_field_label", meaningDisplay)}</label>
+          {lists.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+              {lists.map((l) => (
+                <span
+                  key={l}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, background: COLORS.chipBg, border: `1px solid ${COLORS.hairline}`, borderRadius: 999, padding: "2px 8px", fontSize: 11 }}
+                >
+                  {l}
+                  <button
+                    type="button"
+                    onClick={() => setLists(lists.filter((x) => x !== l))}
+                    style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+            <input
+              value={listTypeahead}
+              onChange={(e) => setListTypeahead(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addList(listTypeahead);
+                }
+              }}
+              placeholder="vd: 1 nét… rồi Enter"
+              list="existing-bushou-lists"
+              style={{ ...inputStyle, fontSize: 11.5, padding: "5px 8px" }}
+            />
+            <datalist id="existing-bushou-lists">
+              {(allBushouLists || []).map((l) => (
+                <option key={l} value={l} />
+              ))}
+            </datalist>
+            <button type="button" onClick={() => addList(listTypeahead)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}>
+              +
+            </button>
+          </div>
           <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
             <button type="button" onClick={saveEdit} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
               Lưu
