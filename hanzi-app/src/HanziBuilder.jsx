@@ -896,6 +896,16 @@ const UI_TEXT = {
   radicals_update_default: { vi: "🔄 Cập nhật mặc định", en: "🔄 Update Default" },
   radicals_is_default: { vi: "★ Đang là mặc định", en: "★ Currently Default" },
   radicals_set_default: { vi: "⭐ Đặt làm mặc định", en: "⭐ Set as Default" },
+  radicals_stroke_count: (n) => ({ vi: `${n} nét`, en: `${n} stroke${n === "1" ? "" : "s"}` }),
+  radicals_stroke_unknown: { vi: "chưa xác định số nét", en: "stroke count unknown" },
+  stroke_modal_title: { vi: "Thứ tự nét bút", en: "Stroke Order" },
+  stroke_modal_replay: { vi: "▶ Xem lại", en: "▶ Replay" },
+  stroke_modal_no_data: (char) => ({
+    vi: `Chưa có dữ liệu nét bút cho chữ "${char}" trong nguồn dữ liệu.`,
+    en: `No stroke data available for "${char}" in the data source.`,
+  }),
+  components_breakdown_label: { vi: "Bộ thủ cấu thành", en: "Components" },
+  view_stroke_order_of: (char) => ({ vi: `Xem thứ tự nét bút của ${char}`, en: `View stroke order of ${char}` }),
 
   // Hán tự (Character list panel)
   hanzi_panel_title: { vi: "Danh sách Hán tự trong kho dữ liệu", en: "Character List in Storage" },
@@ -1430,7 +1440,7 @@ function ListLockedModal({ onClose, listName, onViewPremium }) {
    rare/side-form radicals (e.g. 忄, 扌) may not exist in that dataset;
    that's handled as a clean "no data available" message rather than a
    guess. ---------- */
-function StrokeOrderModal({ char, onClose }) {
+function StrokeOrderModal({ char, onClose, meaningDisplay }) {
   const targetRef = useRef(null);
   const writerRef = useRef(null);
   const [status, setStatus] = useState("loading"); // loading | ready | error
@@ -1526,7 +1536,7 @@ function StrokeOrderModal({ char, onClose }) {
         </button>
 
         <div style={{ fontSize: 11, color: COLORS.inkSoft, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>
-          Thứ tự nét bút
+          {t("stroke_modal_title", meaningDisplay)}
         </div>
 
         <div
@@ -1544,7 +1554,7 @@ function StrokeOrderModal({ char, onClose }) {
 
         {status === "error" && (
           <div style={{ width: 260, height: 260, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", color: COLORS.inkSoft, fontSize: 13, padding: 16 }}>
-            Chưa có dữ liệu nét bút cho chữ "{char}" trong nguồn dữ liệu.
+            {t("stroke_modal_no_data", meaningDisplay, char)}
           </div>
         )}
 
@@ -1555,7 +1565,7 @@ function StrokeOrderModal({ char, onClose }) {
           className="ghost-btn"
           style={{ ...ghostBtnStyle, marginTop: 14, opacity: status === "error" ? 0.4 : 1 }}
         >
-          ▶ Xem lại
+          {t("stroke_modal_replay", meaningDisplay)}
         </button>
       </div>
     </div>
@@ -8027,7 +8037,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
         {characterList && (
           <div style={{ borderTop: `1px dashed ${COLORS.grid}`, paddingTop: 16 }}>
             <div style={{ fontSize: 11, color: COLORS.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 12 }}>
-              Bộ thủ cấu thành
+              {t("components_breakdown_label", meaningDisplay)}
             </div>
             {Array.from(new Set(chars)).map((ch, i) => {
               const found = characterList.find((c) => c.char === ch);
@@ -8040,7 +8050,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
                     <button
                       type="button"
                       onClick={() => setStrokeChar(ch)}
-                      title={`Xem thứ tự nét bút của ${ch}`}
+                      title={t("view_stroke_order_of", meaningDisplay, ch)}
                       style={{
                         width: 20,
                         height: 20,
@@ -8081,7 +8091,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
           </div>
         )}
 
-        {strokeChar && <StrokeOrderModal char={strokeChar} onClose={() => setStrokeChar(null)} />}
+        {strokeChar && <StrokeOrderModal char={strokeChar} onClose={() => setStrokeChar(null)} meaningDisplay={meaningDisplay} />}
       </div>
     </div>
   );
@@ -8533,7 +8543,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
             </select>
           )}
 
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 4 }}>Bộ thủ cấu thành</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 4 }}>{t("components_breakdown_label", meaningDisplay)}</label>
           {components.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
               {components.map((ch, i) => (
@@ -8830,16 +8840,16 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
             className="ghost-btn"
             style={{ ...ghostBtnStyle, borderColor: COLORS.sealDark, color: COLORS.sealDark, fontSize: 12.5 }}
           >
-            ✍️ Xem thứ tự nét bút
+            {"✍️ "}{t("radicals_view_stroke_order", meaningDisplay)}
           </button>
         </div>
 
-        {strokeOrderOpen && <StrokeOrderModal char={c.char} onClose={() => setStrokeOrderOpen(false)} />}
+        {strokeOrderOpen && <StrokeOrderModal char={c.char} onClose={() => setStrokeOrderOpen(false)} meaningDisplay={meaningDisplay} />}
 
         {c.components && c.components.length > 0 && (
           <div style={{ borderTop: `1px dashed ${COLORS.grid}`, paddingTop: 16 }}>
             <div style={{ fontSize: 11, color: COLORS.inkSoft, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, marginBottom: 10 }}>
-              Bộ thủ cấu thành
+              {t("components_breakdown_label", meaningDisplay)}
             </div>
             <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
               {c.components.map((comp, i) => (
@@ -9137,7 +9147,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
               {strokeCount}
             </div>
             <div style={{ fontSize: 12.5, color: COLORS.inkSoft, letterSpacing: 0.4 }}>
-              {strokeCount === "?" ? "chưa xác định số nét" : `${strokeCount} nét`}
+              {strokeCount === "?" ? t("radicals_stroke_unknown", meaningDisplay) : t("radicals_stroke_count", meaningDisplay, strokeCount)}
             </div>
             <div style={{ flex: 1, borderBottom: `1px dashed ${COLORS.grid}` }} />
           </div>
@@ -9345,7 +9355,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
         </>
       )}
 
-      {strokeOrderOpen && <StrokeOrderModal char={b.char} onClose={() => setStrokeOrderOpen(false)} />}
+      {strokeOrderOpen && <StrokeOrderModal char={b.char} onClose={() => setStrokeOrderOpen(false)} meaningDisplay={meaningDisplay} />}
     </div>
   );
 }
