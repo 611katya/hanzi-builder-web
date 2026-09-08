@@ -1150,12 +1150,13 @@ function MeaningBoxes({ meaning, meaningVi, meaningDisplay, large }) {
 }
 
 
-function Chip({ info, onClick, disabled, big, tone }) {
+function Chip({ info, onClick, disabled, big, tone, meaningDisplay }) {
+  const tooltip = info ? `${info.pinyin} · ${info.meaning}${meaningDisplay !== "en" ? ` · SV: ${info.sv}` : ""}` : "";
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      title={info ? `${info.pinyin} · ${info.meaning} · SV: ${info.sv}` : ""}
+      title={tooltip}
       className="hanzi-chip"
       style={{
         fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
@@ -4566,7 +4567,7 @@ function AddTab({
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
               {components.map((ch, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Chip info={bushouList.find((b) => b.char === ch) || { char: ch }} />
+                  <Chip info={bushouList.find((b) => b.char === ch) || { char: ch }} meaningDisplay={meaningDisplay} />
                   <button type="button" onClick={() => removeComponent(i)} style={smallXStyle}>
                     ✕
                   </button>
@@ -8070,7 +8071,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
                   </div>
                   <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
                     {found.components.map((comp, ci) => (
-                      <Chip key={ci} info={findBushou(comp)} big disabled />
+                      <Chip key={ci} info={findBushou(comp)} big disabled meaningDisplay={meaningDisplay} />
                     ))}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 3, textAlign: "left" }}>
@@ -8080,7 +8081,8 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
                         <div key={ci} style={{ fontSize: 12, color: COLORS.inkSoft }}>
                           <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 15, color: COLORS.ink }}>{comp}</span>
                           {" — "}
-                          {info.pinyin} · {info.meaning} · HV: {info.sv}
+                          {info.pinyin} · {info.meaning}
+                          {meaningDisplay !== "en" && ` · HV: ${info.sv}`}
                         </div>
                       );
                     })}
@@ -8853,7 +8855,7 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
             </div>
             <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
               {c.components.map((comp, i) => (
-                <Chip key={i} info={findBushou(comp)} big disabled />
+                <Chip key={i} info={findBushou(comp)} big disabled meaningDisplay={meaningDisplay} />
               ))}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, textAlign: "left" }}>
@@ -8863,7 +8865,8 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
                   <div key={i} style={{ fontSize: 12.5, color: COLORS.inkSoft }}>
                     <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 16, color: COLORS.ink }}>{comp}</span>
                     {" — "}
-                    {info.pinyin} · {info.meaning} · HV: {info.sv}
+                    {info.pinyin} · {info.meaning}
+                    {meaningDisplay !== "en" && ` · HV: ${info.sv}`}
                   </div>
                 );
               })}
