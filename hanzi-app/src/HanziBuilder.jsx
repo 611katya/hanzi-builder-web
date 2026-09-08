@@ -419,6 +419,35 @@ const UI_TEXT = {
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
   tab_vocab: { vi: "Từ vựng", en: "Words" },
   tab_library: { vi: "Thư viện", en: "Library" },
+  tab_management: { vi: "Quản lý", en: "Management" },
+  mgmt_sign_in_required: { vi: "Vui lòng đăng nhập để quản lý tài khoản và thư viện của bạn.", en: "Please sign in to manage your account and library." },
+  mgmt_sign_in_button: { vi: "Đăng nhập", en: "Sign In" },
+  mgmt_account_tab: { vi: "Quản lý tài khoản", en: "Account Management" },
+  mgmt_library_tab: { vi: "Quản lý thư viện", en: "Library Management" },
+  mgmt_tier_label: { vi: "Gói hiện tại", en: "Current Tier" },
+  mgmt_lookup_usage: (used, limit) => ({ vi: `${used} / ${limit} lượt tra cứu đã dùng`, en: `${used} / ${limit} lookups used` }),
+  mgmt_course_label: { vi: "Khóa học:", en: "Course:" },
+  mgmt_upgrade_title: { vi: "Nâng cấp gói", en: "Upgrade Your Tier" },
+  mgmt_upgrade_body: {
+    vi: "Xem bảng giá chi tiết trong mục Bảng giá. Nhấn nút bên dưới để yêu cầu nâng cấp.",
+    en: "See full tier details on the Pricing page. Click below to request an upgrade.",
+  },
+  mgmt_upgrade_button: { vi: "Yêu cầu nâng cấp", en: "Request Upgrade" },
+  mgmt_my_decks_title: { vi: "Bộ sưu tập của tôi", en: "My Decks" },
+  mgmt_my_lists_title: { vi: "Danh sách của tôi", en: "My Lists" },
+  mgmt_lists_description: {
+    vi: "Đây là các danh sách bạn đã đặt tên cho chữ, từ, hoặc bộ thủ do bạn tự thêm vào. Danh sách chính thức (dùng chung) chỉ quản trị viên mới có thể sửa.",
+    en: "These are the list names you've used on characters, words, or radicals you've personally added. Shared/official lists can only be edited by an admin.",
+  },
+  mgmt_no_personal_lists: { vi: "Bạn chưa có danh sách cá nhân nào.", en: "You don't have any personal lists yet." },
+  mgmt_rename_list: { vi: "Đổi tên", en: "Rename" },
+  mgmt_delete_list: { vi: "Xóa", en: "Delete" },
+  mgmt_rename_prompt: { vi: "Tên mới cho danh sách này:", en: "New name for this list:" },
+  mgmt_confirm_delete_list: (n) => ({
+    vi: `Xóa danh sách "${n}"? Các mục bên trong sẽ không bị xóa, chỉ gỡ khỏi danh sách này.`,
+    en: `Delete list "${n}"? The items inside won't be deleted, just removed from this list.`,
+  }),
+  mgmt_item_count: (n) => ({ vi: `${n} mục`, en: `${n} item${n === 1 ? "" : "s"}` }),
   tab_premium: { vi: "Bảng giá", en: "Pricing" },
   tab_blog: { vi: "Blog", en: "Blog" },
   tab_about: { vi: "Về chúng tôi", en: "About Us" },
@@ -1844,6 +1873,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         id: d.id,
         name: d.name,
         description: d.description || "",
+        userId: d.user_id || null, // null = shared/official deck; otherwise a personal deck
         lists: byDeck.get(d.id) || [],
       }))
     );
@@ -1851,7 +1881,10 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 
   useEffect(() => {
     loadDecks();
-  }, [loadDecks]);
+    // Re-fetch on login/logout so personal decks appear/disappear correctly
+    // (RLS already scopes the query, this just re-runs it).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadDecks, userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -2427,6 +2460,22 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             meaningDisplay={meaningDisplay}
             userId={userId}
           />
+        ) : tab === "management" ? (
+          <ManagementTab
+            userId={userId}
+            isAdmin={isAdmin}
+            tier={tier}
+            lookupCount={lookupCount}
+            lookupLimit={lookupLimit}
+            courseName={courseName}
+            characterList={characterList}
+            wordList={wordList}
+            bushouList={bushouList}
+            decks={decks}
+            onDecksChanged={loadDecks}
+            meaningDisplay={meaningDisplay}
+            onRequireAuth={onRequireAuth}
+          />
         ) : tab === "premium" ? (
           <PremiumTab meaningDisplay={meaningDisplay} />
         ) : tab === "blog" ? (
@@ -2598,6 +2647,7 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
     { id: "writing", label: t("tab_writing", meaningDisplay) },
     { id: "add", label: t("tab_add", meaningDisplay) },
     { id: "library", label: t("tab_library", meaningDisplay) },
+    { id: "management", label: t("tab_management", meaningDisplay) },
   ];
   if (isAdmin) items.push({ id: "admin", label: t("tab_admin", meaningDisplay) });
   return (
@@ -9589,6 +9639,439 @@ const smallXStyle = {
 };
 
 /* ================= RADICALS TAB ================= */
+function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, courseName, characterList, wordList, bushouList, decks, onDecksChanged, meaningDisplay, onRequireAuth }) {
+  const [subTab, setSubTab] = useState("account"); // account | library
+
+  if (!userId) {
+    return (
+      <div style={{ textAlign: "center", padding: "60px 20px" }}>
+        <div style={{ fontSize: 15, color: COLORS.inkSoft, marginBottom: 16 }}>{t("mgmt_sign_in_required", meaningDisplay)}</div>
+        <button type="button" onClick={() => onRequireAuth && onRequireAuth()} className="seal-btn" style={sealBtnStyle}>
+          {t("mgmt_sign_in_button", meaningDisplay)}
+        </button>
+      </div>
+    );
+  }
+
+  const subTabs = [
+    { id: "account", label: t("mgmt_account_tab", meaningDisplay) },
+    { id: "library", label: t("mgmt_library_tab", meaningDisplay) },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", borderBottom: `1px solid ${COLORS.hairline}`, marginBottom: 22 }}>
+        {subTabs.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setSubTab(s.id)}
+            style={{
+              background: "none",
+              border: "none",
+              borderBottom: `2px solid ${subTab === s.id ? COLORS.seal : "transparent"}`,
+              color: subTab === s.id ? COLORS.ink : COLORS.inkSoft,
+              fontWeight: subTab === s.id ? 700 : 600,
+              fontSize: 14,
+              padding: "8px 2px",
+              marginBottom: -1,
+              cursor: "pointer",
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === "account" ? (
+        <AccountManagementTab tier={tier} lookupCount={lookupCount} lookupLimit={lookupLimit} courseName={courseName} meaningDisplay={meaningDisplay} />
+      ) : (
+        <LibraryManagementTab
+          userId={userId}
+          isAdmin={isAdmin}
+          characterList={characterList}
+          wordList={wordList}
+          bushouList={bushouList}
+          decks={decks}
+          onDecksChanged={onDecksChanged}
+          meaningDisplay={meaningDisplay}
+        />
+      )}
+    </div>
+  );
+}
+
+function AccountManagementTab({ tier, lookupCount, lookupLimit, courseName, meaningDisplay }) {
+  const tiers = ["Free", "Silver", "Titan", "Gold", "Platinum"];
+  const currentIndex = tiers.indexOf(tier || "Free");
+  const higherTiers = tiers.slice(currentIndex + 1);
+
+  return (
+    <div style={{ maxWidth: 480, margin: "0 auto" }}>
+      <div style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 14, padding: "20px 22px", marginBottom: 20 }}>
+        <div style={{ fontSize: 11, color: COLORS.metadata, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 }}>
+          {t("mgmt_tier_label", meaningDisplay)}
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.seal, marginBottom: 12 }}>{tier || "Free"}</div>
+        <div style={{ fontSize: 13, color: COLORS.inkSoft, marginBottom: courseName ? 4 : 0 }}>
+          {t("mgmt_lookup_usage", meaningDisplay, lookupCount ?? 0, lookupLimit ?? 100)}
+        </div>
+        {courseName && (
+          <div style={{ fontSize: 13, color: COLORS.inkSoft }}>{t("mgmt_course_label", meaningDisplay)} {courseName}</div>
+        )}
+      </div>
+
+      {higherTiers.length > 0 && (
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.ink, marginBottom: 8, textAlign: "center" }}>
+            {t("mgmt_upgrade_title", meaningDisplay)}
+          </div>
+          <div style={{ fontSize: 13, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16, lineHeight: 1.6 }}>
+            {t("mgmt_upgrade_body", meaningDisplay)}
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+            {higherTiers.map((tName) => (
+              <div
+                key={tName}
+                style={{
+                  border: `1.5px solid ${COLORS.seal}`,
+                  borderRadius: 10,
+                  padding: "8px 16px",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  color: COLORS.seal,
+                }}
+              >
+                {tName}
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: "center", marginTop: 18 }}>
+            <a
+              href="mailto:hello@minouq.com?subject=Upgrade%20request"
+              className="seal-btn"
+              style={{ ...sealBtnStyle, textDecoration: "none", display: "inline-block" }}
+            >
+              {t("mgmt_upgrade_button", meaningDisplay)}
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LibraryManagementTab({ userId, isAdmin, characterList, wordList, bushouList, decks, onDecksChanged, meaningDisplay }) {
+  const myDecks = (decks || []).filter((d) => d.userId === userId);
+
+  // Personal deck editor -- same shape as the admin deck editor, but every
+  // deck this creates is tagged with user_id, and only decks this user owns
+  // ever show up here (myDecks above, filtered client-side; RLS also
+  // enforces this server-side regardless).
+  const [editingDeckId, setEditingDeckId] = useState(null);
+  const [deckName, setDeckName] = useState("");
+  const [deckLists, setDeckLists] = useState([]);
+  const [deckAddType, setDeckAddType] = useState("char");
+  const [deckAddList, setDeckAddList] = useState("");
+  const [deckMessage, setDeckMessage] = useState(null);
+
+  const availableListsByType = {
+    char: Array.from(new Set((characterList || []).flatMap((c) => getLists(c)))).sort((a, b) => a.localeCompare(b, "vi")),
+    word: Array.from(new Set((wordList || []).flatMap((w) => w.lists || []))).sort((a, b) => a.localeCompare(b, "vi")),
+    bushou: Array.from(new Set((bushouList || []).flatMap((b) => b.lists || []))).sort((a, b) => {
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.localeCompare(b, "vi");
+    }),
+  };
+
+  function startNewDeck() {
+    setEditingDeckId("new");
+    setDeckName("");
+    setDeckLists([]);
+    setDeckAddType("char");
+    setDeckAddList("");
+    setDeckMessage(null);
+  }
+
+  function startEditDeck(deck) {
+    setEditingDeckId(deck.id);
+    setDeckName(deck.name);
+    setDeckLists(deck.lists || []);
+    setDeckAddType("char");
+    setDeckAddList("");
+    setDeckMessage(null);
+  }
+
+  function addDeckList() {
+    if (!deckAddList) return;
+    if (deckLists.some((l) => l.content_type === deckAddType && l.list_name === deckAddList)) return;
+    setDeckLists([...deckLists, { content_type: deckAddType, list_name: deckAddList }]);
+    setDeckAddList("");
+  }
+
+  function removeDeckList(contentType, listName) {
+    setDeckLists(deckLists.filter((l) => !(l.content_type === contentType && l.list_name === listName)));
+  }
+
+  async function saveDeck() {
+    if (!deckName.trim()) {
+      setDeckMessage({ type: "error", text: t("admin_deck_need_name", meaningDisplay) });
+      return;
+    }
+    let deckId = editingDeckId;
+    if (editingDeckId === "new") {
+      const { data, error } = await supabase.from("decks").insert({ name: deckName.trim(), user_id: userId }).select().single();
+      if (error) {
+        setDeckMessage({ type: "error", text: error.message });
+        return;
+      }
+      deckId = data.id;
+    } else {
+      const { error } = await supabase.from("decks").update({ name: deckName.trim() }).eq("id", editingDeckId);
+      if (error) {
+        setDeckMessage({ type: "error", text: error.message });
+        return;
+      }
+      await supabase.from("deck_lists").delete().eq("deck_id", editingDeckId);
+    }
+    if (deckLists.length > 0) {
+      const { error } = await supabase
+        .from("deck_lists")
+        .insert(deckLists.map((l) => ({ deck_id: deckId, content_type: l.content_type, list_name: l.list_name })));
+      if (error) {
+        setDeckMessage({ type: "error", text: error.message });
+        return;
+      }
+    }
+    setEditingDeckId(null);
+    if (onDecksChanged) onDecksChanged();
+  }
+
+  async function deleteDeck(id) {
+    if (!window.confirm(t("admin_deck_confirm_delete", meaningDisplay))) return;
+    const { error } = await supabase.from("decks").delete().eq("id", id);
+    if (!error && onDecksChanged) onDecksChanged();
+  }
+
+  // Personal lists -- derived from this user's own custom_* rows only,
+  // fetched fresh here rather than from the merged characterList/wordList/
+  // bushouList props, so official/shared items never appear as "mine".
+  const [myLists, setMyLists] = useState(null); // null = loading
+  const CUSTOM_TABLES = [
+    { table: "custom_characters", key: "char" },
+    { table: "custom_words", key: "word" },
+    { table: "custom_bushou", key: "char" },
+  ];
+
+  useEffect(() => {
+    loadMyLists();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  async function loadMyLists() {
+    setMyLists(null);
+    const results = await Promise.all(
+      CUSTOM_TABLES.map(({ table, key }) => supabase.from(table).select(`${key}, lists`).eq("user_id", userId))
+    );
+    const counts = new Map();
+    results.forEach((res) => {
+      (res.data || []).forEach((row) => {
+        (row.lists || []).forEach((l) => counts.set(l, (counts.get(l) || 0) + 1));
+      });
+    });
+    setMyLists(
+      Array.from(counts.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => a.name.localeCompare(b.name, "vi"))
+    );
+  }
+
+  async function bulkRenameList(oldName, newName) {
+    for (const { table, key } of CUSTOM_TABLES) {
+      const { data, error } = await supabase.from(table).select(`${key}, lists`).eq("user_id", userId).contains("lists", [oldName]);
+      if (error || !data) continue;
+      for (const row of data) {
+        const newLists = row.lists.map((l) => (l === oldName ? newName : l));
+        await supabase.from(table).update({ lists: newLists }).eq("user_id", userId).eq(key, row[key]);
+      }
+    }
+    await loadMyLists();
+  }
+
+  async function bulkDeleteList(name) {
+    for (const { table, key } of CUSTOM_TABLES) {
+      const { data, error } = await supabase.from(table).select(`${key}, lists`).eq("user_id", userId).contains("lists", [name]);
+      if (error || !data) continue;
+      for (const row of data) {
+        const newLists = row.lists.filter((l) => l !== name);
+        await supabase.from(table).update({ lists: newLists }).eq("user_id", userId).eq(key, row[key]);
+      }
+    }
+    await loadMyLists();
+  }
+
+  function handleRenameList(name) {
+    const next = window.prompt(t("mgmt_rename_prompt", meaningDisplay), name);
+    if (!next || !next.trim() || next.trim() === name) return;
+    bulkRenameList(name, next.trim());
+  }
+
+  function handleDeleteList(name) {
+    if (!window.confirm(t("mgmt_confirm_delete_list", meaningDisplay, name))) return;
+    bulkDeleteList(name);
+  }
+
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      {/* Personal decks */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, textTransform: "uppercase", letterSpacing: 0.8 }}>
+          {t("mgmt_my_decks_title", meaningDisplay)}
+        </div>
+        <button type="button" onClick={startNewDeck} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
+          {t("admin_deck_new", meaningDisplay)}
+        </button>
+      </div>
+
+      {editingDeckId && (
+        <div style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "14px 16px", marginBottom: 14 }}>
+          <input
+            value={deckName}
+            onChange={(e) => setDeckName(e.target.value)}
+            placeholder={t("admin_deck_name_placeholder", meaningDisplay)}
+            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 10, fontWeight: 600 }}
+          />
+
+          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 6 }}>{t("admin_deck_included_lists", meaningDisplay)}</div>
+          {deckLists.length === 0 ? (
+            <div style={{ fontSize: 12, color: COLORS.metadata, marginBottom: 10 }}>{t("admin_deck_none_included", meaningDisplay)}</div>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+              {deckLists.map((l) => (
+                <span
+                  key={`${l.content_type}:${l.list_name}`}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, background: COLORS.chipBg, border: `1px solid ${COLORS.hairline}`, borderRadius: 999, padding: "3px 9px", fontSize: 11.5 }}
+                >
+                  <span style={{ color: COLORS.seal, fontWeight: 600 }}>
+                    {l.content_type === "char" ? t("admin_deck_type_char", meaningDisplay) : l.content_type === "word" ? t("admin_deck_type_word", meaningDisplay) : t("admin_deck_type_bushou", meaningDisplay)}
+                  </span>
+                  · {l.content_type === "bushou" ? displayListName(l.list_name, meaningDisplay) : l.list_name}
+                  <button
+                    type="button"
+                    onClick={() => removeDeckList(l.content_type, l.list_name)}
+                    style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+            <select value={deckAddType} onChange={(e) => { setDeckAddType(e.target.value); setDeckAddList(""); }} style={{ ...selectStyle, width: 130 }}>
+              <option value="char" style={{ background: COLORS.chipBg }}>{t("admin_deck_type_char", meaningDisplay)}</option>
+              <option value="word" style={{ background: COLORS.chipBg }}>{t("admin_deck_type_word", meaningDisplay)}</option>
+              <option value="bushou" style={{ background: COLORS.chipBg }}>{t("admin_deck_type_bushou", meaningDisplay)}</option>
+            </select>
+            <select value={deckAddList} onChange={(e) => setDeckAddList(e.target.value)} style={{ ...selectStyle, width: 180 }}>
+              <option value="" style={{ background: COLORS.chipBg }}>{t("admin_deck_choose_list", meaningDisplay)}</option>
+              {(availableListsByType[deckAddType] || []).map((l) => (
+                <option key={l} value={l} style={{ background: COLORS.chipBg }}>
+                  {deckAddType === "bushou" ? displayListName(l, meaningDisplay) : l}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={addDeckList} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 12px", fontSize: 12 }}>
+              {t("admin_deck_add", meaningDisplay)}
+            </button>
+          </div>
+
+          {deckMessage && (
+            <div style={{ fontSize: 12, fontWeight: 600, color: deckMessage.type === "error" ? COLORS.error : COLORS.seal, marginBottom: 10 }}>
+              {deckMessage.text}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={saveDeck} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13 }}>
+              {t("admin_deck_save", meaningDisplay)}
+            </button>
+            <button type="button" onClick={() => setEditingDeckId(null)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 13 }}>
+              {t("admin_deck_cancel", meaningDisplay)}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {myDecks.length === 0 ? (
+        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 16, fontSize: 13 }}>{t("admin_deck_none", meaningDisplay)}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
+          {myDecks.map((d) => (
+            <div key={d.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>📦 {d.name}</div>
+                <div style={{ fontSize: 11, color: COLORS.metadata }}>{t("admin_deck_list_count", meaningDisplay, (d.lists || []).length)}</div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button type="button" onClick={() => startEditDeck(d)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}>
+                  {t("admin_deck_edit", meaningDisplay)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteDeck(d.id)}
+                  className="ghost-btn"
+                  style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
+                >
+                  {t("admin_deck_delete", meaningDisplay)}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Personal lists */}
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
+        {t("mgmt_my_lists_title", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 12, color: COLORS.inkSoft, marginBottom: 14, lineHeight: 1.5 }}>{t("mgmt_lists_description", meaningDisplay)}</div>
+
+      {myLists === null ? (
+        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 16 }}>{t("loading", meaningDisplay)}</div>
+      ) : myLists.length === 0 ? (
+        <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 16, fontSize: 13 }}>{t("mgmt_no_personal_lists", meaningDisplay)}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {myLists.map((l) => (
+            <div key={l.name} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>{l.name}</div>
+                <div style={{ fontSize: 11, color: COLORS.metadata }}>{t("mgmt_item_count", meaningDisplay, l.count)}</div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button type="button" onClick={() => handleRenameList(l.name)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}>
+                  {t("mgmt_rename_list", meaningDisplay)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteList(l.name)}
+                  className="ghost-btn"
+                  style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
+                >
+                  {t("mgmt_delete_list", meaningDisplay)}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LibraryTab(props) {
   const {
     bushouList, characterList, wordList, meaningDisplay,
