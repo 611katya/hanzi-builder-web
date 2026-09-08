@@ -6196,7 +6196,7 @@ function BlogTab({ meaningDisplay }) {
                       padding: "18px 20px",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
                       <span
                         style={{
                           fontSize: 10.5,
@@ -6216,7 +6216,7 @@ function BlogTab({ meaningDisplay }) {
                       </span>
                     </div>
                     <div
-                      style={{ fontFamily: "'Noto Serif', serif", fontSize: 19, fontWeight: 700, color: COLORS.ink, marginBottom: 14, lineHeight: 1.35 }}
+                      style={{ fontFamily: "'Noto Serif', serif", fontSize: 19, fontWeight: 700, color: COLORS.ink, marginBottom: 20, lineHeight: 1.35 }}
                       dangerouslySetInnerHTML={{ __html: enhanceCjkInHtml(post.title) }}
                     />
                     {isExpanded ? (
