@@ -1151,7 +1151,11 @@ function MeaningBoxes({ meaning, meaningVi, meaningDisplay, large }) {
 
 
 function Chip({ info, onClick, disabled, big, tone, meaningDisplay }) {
-  const tooltip = info ? `${info.pinyin} · ${info.meaning}${meaningDisplay !== "en" ? ` · SV: ${info.sv}` : ""}` : "";
+  const tooltip = info
+    ? [info.pinyin, meaningDisplay !== "vi" ? info.meaning : null, meaningDisplay !== "en" ? `SV: ${info.sv}` : null]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
   return (
     <button
       onClick={onClick}
@@ -8047,7 +8051,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
                 <div key={i} style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 13, color: COLORS.ink, marginBottom: 8, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                     <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18 }}>{ch}</span>
-                    <span>({found.pinyin} · {found.meaning})</span>
+                    <span>({found.pinyin}{meaningDisplay !== "vi" ? ` · ${found.meaning}` : ""})</span>
                     <button
                       type="button"
                       onClick={() => setStrokeChar(ch)}
@@ -8081,7 +8085,8 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
                         <div key={ci} style={{ fontSize: 12, color: COLORS.inkSoft }}>
                           <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 15, color: COLORS.ink }}>{comp}</span>
                           {" — "}
-                          {info.pinyin} · {info.meaning}
+                          {info.pinyin}
+                          {meaningDisplay !== "vi" && ` · ${info.meaning}`}
                           {meaningDisplay !== "en" && ` · HV: ${info.sv}`}
                         </div>
                       );
@@ -8865,7 +8870,8 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
                   <div key={i} style={{ fontSize: 12.5, color: COLORS.inkSoft }}>
                     <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 16, color: COLORS.ink }}>{comp}</span>
                     {" — "}
-                    {info.pinyin} · {info.meaning}
+                    {info.pinyin}
+                    {meaningDisplay !== "vi" && ` · ${info.meaning}`}
                     {meaningDisplay !== "en" && ` · HV: ${info.sv}`}
                   </div>
                 );
@@ -9318,7 +9324,9 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
         <>
           <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 30, color: COLORS.ink }}>{b.char}</div>
           <div style={{ fontSize: 12.5, color: COLORS.sealDark, marginTop: 4 }}>{b.pinyin}</div>
-          <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{b.meaning}</div>
+          {meaningDisplay !== "vi" && (
+            <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginTop: 2 }}>{b.meaning}</div>
+          )}
           {meaningDisplay !== "en" && (
             <div style={{ fontSize: 11.5, color: COLORS.bamboo, marginTop: 2, fontWeight: 600 }}>HV: {b.sv}</div>
           )}
