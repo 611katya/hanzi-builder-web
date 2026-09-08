@@ -611,6 +611,8 @@ const UI_TEXT = {
   // Flashcard
   fc_title: { vi: "Ôn tập bằng thẻ ghi nhớ", en: "Review with Flashcards" },
   fc_all_lists: { vi: "Tất cả danh sách", en: "All lists" },
+  fc_content_words: { vi: "Chữ & Từ", en: "Characters & Words" },
+  fc_content_radicals: { vi: "Bộ thủ", en: "Radicals" },
   fc_due_today: (n) => ({ vi: `${n} thẻ cần ôn hôm nay`, en: `${n} cards due today` }),
   fc_start: { vi: "Bắt đầu", en: "Start" },
   fc_progress: (reviewed, remaining) => ({
@@ -2268,6 +2270,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             userId={userId}
             characterList={characterList}
             wordList={wordList}
+            bushouList={bushouList}
             isAdmin={isAdmin}
             checkListAccess={checkListAccess}
             onRequireAuth={onRequireAuth}
@@ -2968,7 +2971,8 @@ function updateSM2(progress, rating) {
 }
 
 /* ================= FLASHCARDS TAB ================= */
-function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAccess, onRequireAuth, onViewPremium, meaningDisplay }) {
+function FlashcardsTab({ userId, characterList, wordList, bushouList, isAdmin, checkListAccess, onRequireAuth, onViewPremium, meaningDisplay }) {
+  const [contentType, setContentType] = useState("words"); // words = characters+words, radicals = bushou
   const [selectedList, setSelectedList] = useState("Tất cả");
   const [lockedListName, setLockedListName] = useState(null);
   const [progressMap, setProgressMap] = useState(null); // null = loading
@@ -2980,10 +2984,21 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
 
   const allLists = useMemo(() => {
     const set = new Set();
+    if (contentType === "radicals") {
+      (bushouList || []).forEach((b) => (b.lists || []).forEach((l) => set.add(l.trim())));
+      return Array.from(set).sort((a, b) => {
+        const numA = parseInt(a, 10);
+        const numB = parseInt(b, 10);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        if (!isNaN(numA)) return -1;
+        if (!isNaN(numB)) return 1;
+        return a.localeCompare(b, "vi");
+      });
+    }
     characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
     wordList.forEach((w) => (w.lists || []).forEach((l) => set.add(l.trim())));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
-  }, [characterList, wordList]);
+  }, [characterList, wordList, bushouList, contentType]);
 
   useEffect(() => {
     if (!userId) {
@@ -3009,6 +3024,14 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
     if (!progressMap) return 0;
     const todayStr = new Date().toISOString().slice(0, 10);
     let count = 0;
+    if (contentType === "radicals") {
+      (bushouList || []).forEach((b) => {
+        if (selectedList !== "Tất cả" && !(b.lists || []).some((l) => l.trim() === selectedList)) return;
+        const p = progressMap.get(`bushou:${b.char}`);
+        if (!p || p.due_date <= todayStr) count += 1;
+      });
+      return count;
+    }
     characterList.forEach((c) => {
       if (selectedList !== "Tất cả" && !getLists(c).some((l) => l.trim() === selectedList)) return;
       const p = progressMap.get(`char:${c.char}`);
@@ -3020,7 +3043,12 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
       if (!p || p.due_date <= todayStr) count += 1;
     });
     return count;
-  }, [progressMap, characterList, wordList, selectedList]);
+  }, [progressMap, characterList, wordList, bushouList, contentType, selectedList]);
+
+  function handleContentTypeChange(next) {
+    setContentType(next);
+    setSelectedList("Tất cả");
+  }
 
   function handleListChange(next) {
     if (!isAdmin && next !== "Tất cả" && checkListAccess && !checkListAccess(next)) {
@@ -3033,16 +3061,24 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
   function startSession() {
     const todayStr = new Date().toISOString().slice(0, 10);
     const cards = [];
-    characterList.forEach((c) => {
-      if (selectedList !== "Tất cả" && !getLists(c).some((l) => l.trim() === selectedList)) return;
-      const p = progressMap.get(`char:${c.char}`);
-      if (!p || p.due_date <= todayStr) cards.push({ type: "char", key: c.char, data: c, progress: p || null });
-    });
-    wordList.forEach((w) => {
-      if (selectedList !== "Tất cả" && !(w.lists || []).some((l) => l.trim() === selectedList)) return;
-      const p = progressMap.get(`word:${w.word}`);
-      if (!p || p.due_date <= todayStr) cards.push({ type: "word", key: w.word, data: w, progress: p || null });
-    });
+    if (contentType === "radicals") {
+      (bushouList || []).forEach((b) => {
+        if (selectedList !== "Tất cả" && !(b.lists || []).some((l) => l.trim() === selectedList)) return;
+        const p = progressMap.get(`bushou:${b.char}`);
+        if (!p || p.due_date <= todayStr) cards.push({ type: "bushou", key: b.char, data: b, progress: p || null });
+      });
+    } else {
+      characterList.forEach((c) => {
+        if (selectedList !== "Tất cả" && !getLists(c).some((l) => l.trim() === selectedList)) return;
+        const p = progressMap.get(`char:${c.char}`);
+        if (!p || p.due_date <= todayStr) cards.push({ type: "char", key: c.char, data: c, progress: p || null });
+      });
+      wordList.forEach((w) => {
+        if (selectedList !== "Tất cả" && !(w.lists || []).some((l) => l.trim() === selectedList)) return;
+        const p = progressMap.get(`word:${w.word}`);
+        if (!p || p.due_date <= todayStr) cards.push({ type: "word", key: w.word, data: w, progress: p || null });
+      });
+    }
     const shuffled = shuffle(cards);
     setQueue(shuffled.slice(1));
     setCurrent(shuffled[0] || null);
@@ -3109,6 +3145,41 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
             {t("fc_title", meaningDisplay)}
           </div>
 
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 14 }}>
+            <button
+              type="button"
+              onClick={() => handleContentTypeChange("words")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 999,
+                border: `1.5px solid ${contentType === "words" ? COLORS.seal : COLORS.hairline}`,
+                background: contentType === "words" ? COLORS.seal : "transparent",
+                color: contentType === "words" ? "#FBF9EF" : COLORS.inkSoft,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {t("fc_content_words", meaningDisplay)}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleContentTypeChange("radicals")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 999,
+                border: `1.5px solid ${contentType === "radicals" ? COLORS.seal : COLORS.hairline}`,
+                background: contentType === "radicals" ? COLORS.seal : "transparent",
+                color: contentType === "radicals" ? "#FBF9EF" : COLORS.inkSoft,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {t("fc_content_radicals", meaningDisplay)}
+            </button>
+          </div>
+
           <select
             value={selectedList}
             onChange={(e) => handleListChange(e.target.value)}
@@ -3117,7 +3188,7 @@ function FlashcardsTab({ userId, characterList, wordList, isAdmin, checkListAcce
             <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("fc_all_lists", meaningDisplay)}</option>
             {allLists.map((l) => (
               <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : contentType === "radicals" ? displayListName(l, meaningDisplay) : l}
               </option>
             ))}
           </select>
