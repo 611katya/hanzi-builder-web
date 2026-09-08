@@ -2367,6 +2367,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         ) : tab === "writing" ? (
           <WritingPracticeTab
             characterList={characterList}
+            bushouList={bushouList}
+            decks={decks}
             isAdmin={isAdmin}
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
@@ -3455,8 +3457,10 @@ const ratingBtnStyle = {
    here. No login required and no API cost: this never calls our lookup
    functions, HanziWriter fetches character stroke data from its own
    public source. ---------- */
-function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPremium, meaningDisplay }) {
+function WritingPracticeTab({ characterList, bushouList, decks, isAdmin, checkListAccess, onViewPremium, meaningDisplay }) {
+  const [contentType, setContentType] = useState("chars"); // chars | radicals | deck
   const [selectedList, setSelectedList] = useState("Tất cả");
+  const [selectedDeckId, setSelectedDeckId] = useState(decks && decks[0] ? decks[0].id : "");
   const [lockedListName, setLockedListName] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [previewPage, setPreviewPage] = useState(0);
@@ -3499,13 +3503,37 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
   const allLists = useMemo(() => {
     const set = new Set();
+    if (contentType === "radicals") {
+      (bushouList || []).forEach((b) => (b.lists || []).forEach((l) => set.add(l.trim())));
+      return Array.from(set).sort((a, b) => {
+        const numA = parseInt(a, 10);
+        const numB = parseInt(b, 10);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        if (!isNaN(numA)) return -1;
+        if (!isNaN(numB)) return 1;
+        return a.localeCompare(b, "vi");
+      });
+    }
     characterList.forEach((c) => getLists(c).forEach((l) => set.add(l.trim())));
     return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
-  }, [characterList]);
+  }, [characterList, bushouList, contentType]);
 
-  const previewChars = useMemo(() => {
+  const selectedDeck = (decks || []).find((d) => d.id === selectedDeckId) || null;
+
+  // The pool of practiceable items for the current content-type selection --
+  // used by both the preview grid and starting a session, so they always
+  // agree on what's actually available.
+  function getPool() {
+    if (contentType === "deck") {
+      return resolveDeckItems(selectedDeck, { characterList, wordList: [], bushouList }).map((item) => item.data);
+    }
+    if (contentType === "radicals") {
+      return (bushouList || []).filter((b) => selectedList === "Tất cả" || (b.lists || []).some((l) => l.trim() === selectedList));
+    }
     return characterList.filter((c) => selectedList === "Tất cả" || getLists(c).some((l) => l.trim() === selectedList));
-  }, [characterList, selectedList]);
+  }
+
+  const previewChars = useMemo(() => getPool(), [characterList, bushouList, decks, contentType, selectedList, selectedDeckId]);
 
   const previewTotalPages = Math.max(1, Math.ceil(previewChars.length / PREVIEW_PER_PAGE));
   const previewPageItems = previewChars.slice(previewPage * PREVIEW_PER_PAGE, (previewPage + 1) * PREVIEW_PER_PAGE);
@@ -3513,10 +3541,17 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
-    return characterList
+    const source = contentType === "radicals" ? bushouList || [] : characterList;
+    return source
       .filter((c) => c.char.includes(q) || c.pinyin.toLowerCase().includes(q) || c.meaning.toLowerCase().includes(q))
       .slice(0, 8);
-  }, [searchQuery, characterList]);
+  }, [searchQuery, characterList, bushouList, contentType]);
+
+  function handleContentTypeChange(next) {
+    setContentType(next);
+    setSelectedList("Tất cả");
+    setPreviewPage(0);
+  }
 
   function handleListChange(next) {
     if (!isAdmin && next !== "Tất cả" && checkListAccess && !checkListAccess(next)) {
@@ -3536,7 +3571,10 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
       return;
     }
     setSelectedList(next);
-    const items = characterList.filter((c) => next === "Tất cả" || getLists(c).some((l) => l.trim() === next));
+    const items =
+      contentType === "radicals"
+        ? (bushouList || []).filter((b) => next === "Tất cả" || (b.lists || []).some((l) => l.trim() === next))
+        : characterList.filter((c) => next === "Tất cả" || getLists(c).some((l) => l.trim() === next));
     if (items.length === 0) return;
     setStatus("loading");
     setRevealOn(false);
@@ -3545,9 +3583,7 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
   }
 
   function startSession() {
-    const items = characterList.filter(
-      (c) => selectedList === "Tất cả" || getLists(c).some((l) => l.trim() === selectedList)
-    );
+    const items = getPool();
     if (items.length === 0) return;
     setStatus("loading");
     setRevealOn(false);
@@ -3972,6 +4008,59 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
             {t("wp_title", meaningDisplay)}
           </div>
 
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
+            <button
+              type="button"
+              onClick={() => handleContentTypeChange("chars")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 999,
+                border: `1.5px solid ${contentType === "chars" ? COLORS.seal : COLORS.hairline}`,
+                background: contentType === "chars" ? COLORS.seal : "transparent",
+                color: contentType === "chars" ? "#FBF9EF" : COLORS.inkSoft,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {t("fc_content_words", meaningDisplay)}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleContentTypeChange("radicals")}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 999,
+                border: `1.5px solid ${contentType === "radicals" ? COLORS.seal : COLORS.hairline}`,
+                background: contentType === "radicals" ? COLORS.seal : "transparent",
+                color: contentType === "radicals" ? "#FBF9EF" : COLORS.inkSoft,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {t("fc_content_radicals", meaningDisplay)}
+            </button>
+            {decks && decks.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleContentTypeChange("deck")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  border: `1.5px solid ${contentType === "deck" ? COLORS.seal : COLORS.hairline}`,
+                  background: contentType === "deck" ? COLORS.seal : "transparent",
+                  color: contentType === "deck" ? "#FBF9EF" : COLORS.inkSoft,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                📦 {t("fc_content_deck", meaningDisplay)}
+              </button>
+            )}
+          </div>
+
           <div style={{ marginBottom: 14 }}>
             <input
               value={searchQuery}
@@ -4008,18 +4097,32 @@ function WritingPracticeTab({ characterList, isAdmin, checkListAccess, onViewPre
 
           <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 10 }}>{t("wp_or_by_list", meaningDisplay)}</div>
 
-          <select
-            value={selectedList}
-            onChange={(e) => handleListChange(e.target.value)}
-            style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
-          >
-            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("wp_all_lists", meaningDisplay)}</option>
-            {allLists.map((l) => (
-              <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
-              </option>
-            ))}
-          </select>
+          {contentType === "deck" ? (
+            <select
+              value={selectedDeckId}
+              onChange={(e) => setSelectedDeckId(e.target.value)}
+              style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
+            >
+              {(decks || []).map((d) => (
+                <option key={d.id} value={d.id} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              value={selectedList}
+              onChange={(e) => handleListChange(e.target.value)}
+              style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
+            >
+              <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("wp_all_lists", meaningDisplay)}</option>
+              {allLists.map((l) => (
+                <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : contentType === "radicals" ? displayListName(l, meaningDisplay) : l}
+                </option>
+              ))}
+            </select>
+          )}
 
           {previewChars.length > 0 && (
             <div style={{ marginBottom: 20 }}>
