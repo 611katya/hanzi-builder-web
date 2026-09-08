@@ -8735,6 +8735,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         🔍
       </button>
 
+      {(isAdmin || hasOverride || !isOfficial) && (
       <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
         <button
           type="button"
@@ -8768,6 +8769,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
           ✕
         </button>
       </div>
+      )}
 
       <div
         onClick={() => setZoomed(true)}
@@ -9319,7 +9321,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
         </button>
       )}
 
-      {mode !== "edit" && (
+      {mode !== "edit" && (isAdmin || hasOverride || !isOfficial) && (
         <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
           <button
             type="button"
@@ -10824,7 +10826,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
         </button>
       )}
 
-      {mode === "view" && (
+      {mode === "view" && (isAdmin || hasOverride || !isOfficial) && (
         <button
           type="button"
           onClick={startEdit}
