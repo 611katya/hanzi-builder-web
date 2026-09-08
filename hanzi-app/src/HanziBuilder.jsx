@@ -888,6 +888,14 @@ const UI_TEXT = {
     vi: `${filtered} / ${total} bộ thủ và bộ thành phần · sắp xếp theo số nét · bấm ✎ để sửa`,
     en: `${filtered} / ${total} radicals and components · sorted by stroke count · click ✎ to edit`,
   }),
+  radicals_view_stroke_order: { vi: "Xem thứ tự nét bút", en: "View stroke order" },
+  radicals_set_default_tooltip: { vi: "Đặt/cập nhật làm dữ liệu mặc định cho mọi người dùng mới", en: "Set/update as default data for all new users" },
+  radicals_withdraw_tooltip: { vi: "Bấm để gỡ khỏi dữ liệu mặc định", en: "Click to remove from default data" },
+  radicals_working: { vi: "Đang xử lý…", en: "Working…" },
+  radicals_error_retry: { vi: "✕ Lỗi, thử lại", en: "✕ Error, retry" },
+  radicals_update_default: { vi: "🔄 Cập nhật mặc định", en: "🔄 Update Default" },
+  radicals_is_default: { vi: "★ Đang là mặc định", en: "★ Currently Default" },
+  radicals_set_default: { vi: "⭐ Đặt làm mặc định", en: "⭐ Set as Default" },
 
   // Hán tự (Character list panel)
   hanzi_panel_title: { vi: "Danh sách Hán tự trong kho dữ liệu", en: "Character List in Storage" },
@@ -9221,7 +9229,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
         <button
           type="button"
           onClick={() => setStrokeOrderOpen(true)}
-          title="Xem thứ tự nét bút"
+          title={t("radicals_view_stroke_order", meaningDisplay)}
           style={{
             position: "absolute",
             top: 6,
@@ -9308,8 +9316,8 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
               disabled={defaultStatus === "working"}
               title={
                 hasOverride || !isOfficial
-                  ? "Đặt/cập nhật làm dữ liệu mặc định cho mọi người dùng mới"
-                  : "Bấm để gỡ khỏi dữ liệu mặc định"
+                  ? t("radicals_set_default_tooltip", meaningDisplay)
+                  : t("radicals_withdraw_tooltip", meaningDisplay)
               }
               style={{
                 marginTop: 6,
@@ -9324,14 +9332,14 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
               }}
             >
               {defaultStatus === "working"
-                ? "Đang xử lý…"
+                ? t("radicals_working", meaningDisplay)
                 : defaultStatus === "error"
-                ? "✕ Lỗi, thử lại"
+                ? t("radicals_error_retry", meaningDisplay)
                 : hasOverride && isOfficial
-                ? "🔄 Cập nhật mặc định"
+                ? t("radicals_update_default", meaningDisplay)
                 : !hasOverride && isOfficial
-                ? "★ Đang là mặc định"
-                : "⭐ Đặt làm mặc định"}
+                ? t("radicals_is_default", meaningDisplay)
+                : t("radicals_set_default", meaningDisplay)}
             </button>
           )}
         </>
