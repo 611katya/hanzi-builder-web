@@ -948,6 +948,20 @@ function t(key, meaningDisplay, ...args) {
   return val;
 }
 
+// Radical list names like "1 nét" / "11-17 nét" are stored as literal data
+// values (same as any other list name, e.g. "HSK1"), not routed through the
+// t() dictionary. This translates just that one predictable pattern for
+// display in English mode, without touching the underlying stored value --
+// filtering by list still works correctly since the real name is unchanged.
+function displayListName(name, meaningDisplay) {
+  if (meaningDisplay !== "en") return name;
+  const range = name.match(/^(\d+)-(\d+) nét$/);
+  if (range) return `${range[1]}-${range[2]} strokes`;
+  const single = name.match(/^(\d+) nét$/);
+  if (single) return `${single[1]} stroke${single[1] === "1" ? "" : "s"}`;
+  return name;
+}
+
 function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -9065,7 +9079,16 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
   const allLists = useMemo(() => {
     const set = new Set();
     bushouList.forEach((b) => (b.lists || []).forEach((l) => set.add(l)));
-    return Array.from(set).sort();
+    // Numeric-first sort so "10 nét" / "11-17 nét" land after "9 nét"
+    // instead of a plain alphabetical sort putting "10" right after "1".
+    return Array.from(set).sort((a, b) => {
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      if (!isNaN(numA)) return -1;
+      if (!isNaN(numB)) return 1;
+      return a.localeCompare(b);
+    });
   }, [bushouList]);
 
   const filtered = bushouList.filter((b) => {
@@ -9137,7 +9160,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
           <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
           {allLists.map((l) => (
             <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-              {l}
+              {displayListName(l, meaningDisplay)}
             </option>
           ))}
         </select>
