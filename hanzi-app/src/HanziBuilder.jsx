@@ -440,6 +440,11 @@ const UI_TEXT = {
     en: "These are the list names you've used on characters, words, or radicals you've personally added. Shared/official lists can only be edited by an admin.",
   },
   mgmt_no_personal_lists: { vi: "Bạn chưa có danh sách cá nhân nào.", en: "You don't have any personal lists yet." },
+  mgmt_make_public: { vi: "Đặt công khai", en: "Make Public" },
+  mgmt_confirm_make_public: {
+    vi: "Đặt bộ sưu tập này thành công khai? Mọi người dùng sẽ có thể xem và sử dụng.",
+    en: "Make this deck public? Every user will be able to see and use it.",
+  },
   mgmt_rename_list: { vi: "Đổi tên", en: "Rename" },
   mgmt_delete_list: { vi: "Xóa", en: "Delete" },
   mgmt_rename_prompt: { vi: "Tên mới cho danh sách này:", en: "New name for this list:" },
@@ -544,6 +549,23 @@ const UI_TEXT = {
   admin_nav_lists: { vi: "Danh sách", en: "Lists" },
   admin_nav_feedback: { vi: "Góp ý", en: "Feedback" },
   admin_nav_blog: { vi: "Blog", en: "Blog" },
+  admin_nav_userlib: { vi: "Thư viện người dùng", en: "User Libraries" },
+  admin_lib_search_placeholder: { vi: "Tìm người dùng theo email…", en: "Search for a user by email…" },
+  admin_lib_viewing_banner: (email) => ({ vi: `Đang xem thư viện của ${email} — chỉ xem, không phải của bạn`, en: `Viewing ${email}'s library — read-only, not yours` }),
+  admin_lib_exit: { vi: "✕ Thoát", en: "✕ Exit" },
+  admin_lib_copy: { vi: "Sao chép", en: "Copy" },
+  admin_lib_copy_list: { vi: "Sao chép cả danh sách", en: "Copy entire list" },
+  admin_lib_copy_deck: { vi: "Sao chép bộ sưu tập", en: "Copy deck" },
+  admin_lib_copy_done: { vi: "Đã sao chép vào thư viện của bạn.", en: "Copied to your library." },
+  admin_lib_copy_error: { vi: "Không thể sao chép.", en: "Could not copy." },
+  admin_lib_copy_list_done: (n, total) => ({ vi: `Đã sao chép ${n}/${total} mục.`, en: `Copied ${n}/${total} items.` }),
+  admin_lib_copy_deck_done: (n) => ({ vi: `Đã sao chép bộ sưu tập cùng ${n} mục.`, en: `Copied the deck along with ${n} items.` }),
+  admin_lib_no_content: { vi: "Người dùng này chưa có nội dung nào.", en: "This user hasn't added anything yet." },
+  admin_lib_chars_title: { vi: "Hán tự của họ", en: "Their Characters" },
+  admin_lib_words_title: { vi: "Từ vựng của họ", en: "Their Words" },
+  admin_lib_bushou_title: { vi: "Bộ thủ của họ", en: "Their Radicals" },
+  admin_lib_decks_title: { vi: "Bộ sưu tập của họ", en: "Their Decks" },
+  admin_lib_lists_in: { vi: "Danh sách:", en: "Lists:" },
   admin_nav_suggestions: { vi: "Đề xuất", en: "Suggestions" },
   admin_suggestions_title: { vi: "Đề xuất chỉnh sửa từ người dùng", en: "User Revision Suggestions" },
   admin_suggestion_filter_all: { vi: "Tất cả", en: "All" },
@@ -2519,6 +2541,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             bushouList={bushouList}
             decks={decks}
             onDecksChanged={loadDecks}
+            userId={userId}
           />
         ) : null}
       </div>
@@ -6790,7 +6813,7 @@ function PremiumTab({ meaningDisplay }) {
   );
 }
 
-function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList, wordList, bushouList, decks, onDecksChanged }) {
+function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList, wordList, bushouList, decks, onDecksChanged, userId }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -7008,6 +7031,122 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     if (!window.confirm(t("admin_deck_confirm_delete", meaningDisplay))) return;
     const { error } = await supabase.from("decks").delete().eq("id", id);
     if (!error && onDecksChanged) onDecksChanged();
+  }
+
+  // User library browsing & copying
+  const [libSearchQuery, setLibSearchQuery] = useState("");
+  const [libSelectedUser, setLibSelectedUser] = useState(null); // { user_id, email }
+  const [libUserChars, setLibUserChars] = useState(null);
+  const [libUserWords, setLibUserWords] = useState(null);
+  const [libUserBushou, setLibUserBushou] = useState(null);
+  const [libUserDecks, setLibUserDecks] = useState(null);
+  const [libLoading, setLibLoading] = useState(false);
+  const [libCopyMessage, setLibCopyMessage] = useState(null);
+  const [libUsersList, setLibUsersList] = useState([]);
+
+  useEffect(() => {
+    // A small dedicated user search for this feature, separate from the
+    // Users tab's own state, so the two sections don't interfere.
+    (async () => {
+      const { data } = await supabase.from("profiles").select("user_id, email").order("email");
+      setLibUsersList(data || []);
+    })();
+  }, []);
+
+  const libSearchResults =
+    libSearchQuery.trim().length > 0
+      ? libUsersList.filter((u) => (u.email || "").toLowerCase().includes(libSearchQuery.trim().toLowerCase())).slice(0, 8)
+      : [];
+
+  async function selectLibUser(user) {
+    setLibSelectedUser(user);
+    setLibSearchQuery("");
+    setLibCopyMessage(null);
+    setLibLoading(true);
+    const [charsRes, wordsRes, bushouRes, decksRes, deckListsRes] = await Promise.all([
+      supabase.from("custom_characters").select("*").eq("user_id", user.user_id),
+      supabase.from("custom_words").select("*").eq("user_id", user.user_id),
+      supabase.from("custom_bushou").select("*").eq("user_id", user.user_id),
+      supabase.from("decks").select("*").eq("user_id", user.user_id),
+      supabase.from("deck_lists").select("*"),
+    ]);
+    setLibUserChars((charsRes.data || []).map(rowToChar));
+    setLibUserWords((wordsRes.data || []).map(rowToWord));
+    setLibUserBushou((bushouRes.data || []).map(rowToBushou));
+    const byDeck = new Map();
+    (deckListsRes.data || []).forEach((row) => {
+      if (!byDeck.has(row.deck_id)) byDeck.set(row.deck_id, []);
+      byDeck.get(row.deck_id).push({ content_type: row.content_type, list_name: row.list_name });
+    });
+    setLibUserDecks((decksRes.data || []).map((d) => ({ id: d.id, name: d.name, lists: byDeck.get(d.id) || [] })));
+    setLibLoading(false);
+  }
+
+  function exitLibView() {
+    setLibSelectedUser(null);
+    setLibUserChars(null);
+    setLibUserWords(null);
+    setLibUserBushou(null);
+    setLibUserDecks(null);
+    setLibCopyMessage(null);
+  }
+
+  async function copyOneItem(contentType, item) {
+    const table = contentType === "char" ? "custom_characters" : contentType === "word" ? "custom_words" : "custom_bushou";
+    const toRow = contentType === "char" ? charToRow : contentType === "word" ? wordToRow : bushouToRow;
+    const row = {
+      ...toRow(item, userId),
+      copied_from_user_id: libSelectedUser.user_id,
+      copied_from_email: libSelectedUser.email,
+    };
+    const { error } = await supabase.from(table).upsert(row, { onConflict: contentType === "word" ? "user_id,word" : "user_id,char" });
+    return !error;
+  }
+
+  async function copyItem(contentType, item) {
+    const ok = await copyOneItem(contentType, item);
+    setLibCopyMessage({ type: ok ? "success" : "error", text: ok ? t("admin_lib_copy_done", meaningDisplay) : t("admin_lib_copy_error", meaningDisplay) });
+  }
+
+  async function copyList(contentType, listName) {
+    const source = contentType === "char" ? libUserChars : contentType === "word" ? libUserWords : libUserBushou;
+    const matches = (source || []).filter((item) =>
+      contentType === "word" ? (item.lists || []).includes(listName) : (item.lists || []).includes(listName)
+    );
+    let successCount = 0;
+    for (const item of matches) {
+      if (await copyOneItem(contentType, item)) successCount += 1;
+    }
+    setLibCopyMessage({ type: "success", text: t("admin_lib_copy_list_done", meaningDisplay, successCount, matches.length) });
+  }
+
+  async function copyDeck(deck) {
+    const seen = new Set();
+    let copiedCount = 0;
+    for (const { content_type, list_name } of deck.lists || []) {
+      const source = content_type === "char" ? libUserChars : content_type === "word" ? libUserWords : libUserBushou;
+      const matches = (source || []).filter((item) => (item.lists || []).includes(list_name));
+      for (const item of matches) {
+        const key = `${content_type}:${item.char || item.word}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (await copyOneItem(content_type, item)) copiedCount += 1;
+      }
+    }
+    const { error } = await supabase.from("decks").insert({
+      name: deck.name,
+      user_id: userId,
+      copied_from_user_id: libSelectedUser.user_id,
+      copied_from_email: libSelectedUser.email,
+    });
+    if (!error) {
+      const { data: newDeck } = await supabase.from("decks").select("id").eq("user_id", userId).eq("name", deck.name).order("created_at", { ascending: false }).limit(1).single();
+      if (newDeck && deck.lists.length > 0) {
+        await supabase.from("deck_lists").insert(deck.lists.map((l) => ({ deck_id: newDeck.id, content_type: l.content_type, list_name: l.list_name })));
+      }
+    }
+    if (onDecksChanged) onDecksChanged();
+    setLibCopyMessage({ type: error ? "error" : "success", text: error ? t("admin_lib_copy_error", meaningDisplay) : t("admin_lib_copy_deck_done", meaningDisplay, copiedCount) });
   }
 
   // Card revision suggestions
@@ -7251,6 +7390,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     { id: "users", label: t("admin_nav_users", meaningDisplay) },
     { id: "lists", label: t("admin_nav_lists", meaningDisplay) },
     { id: "decks", label: t("admin_nav_decks", meaningDisplay) },
+    { id: "userlib", label: t("admin_nav_userlib", meaningDisplay) },
     { id: "suggestions", label: t("admin_nav_suggestions", meaningDisplay) },
     { id: "feedback", label: t("admin_nav_feedback", meaningDisplay) },
     { id: "blog", label: t("admin_nav_blog", meaningDisplay) },
@@ -7817,6 +7957,167 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+      )}
+
+      {adminSection === "userlib" && (
+      <div style={{ marginTop: 28 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+          {t("admin_nav_userlib", meaningDisplay)}
+        </div>
+
+        {!libSelectedUser ? (
+          <div style={{ maxWidth: 360, margin: "0 auto" }}>
+            <input
+              value={libSearchQuery}
+              onChange={(e) => setLibSearchQuery(e.target.value)}
+              placeholder={t("admin_lib_search_placeholder", meaningDisplay)}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
+            />
+            {libSearchResults.length > 0 && (
+              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                {libSearchResults.map((u) => (
+                  <button
+                    key={u.user_id}
+                    type="button"
+                    onClick={() => selectLibUser(u)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, textAlign: "left", padding: "8px 12px", fontSize: 13 }}
+                  >
+                    {u.email}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+                background: "rgba(184,134,11,0.12)",
+                border: `1.5px solid ${COLORS.gold}`,
+                borderRadius: 10,
+                padding: "10px 16px",
+                marginBottom: 18,
+              }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.gold }}>
+                {t("admin_lib_viewing_banner", meaningDisplay, libSelectedUser.email)}
+              </span>
+              <button type="button" onClick={exitLibView} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 12px", fontSize: 12 }}>
+                {t("admin_lib_exit", meaningDisplay)}
+              </button>
+            </div>
+
+            {libCopyMessage && (
+              <div style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: libCopyMessage.type === "error" ? COLORS.error : COLORS.seal, marginBottom: 16 }}>
+                {libCopyMessage.text}
+              </div>
+            )}
+
+            {libLoading ? (
+              <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("loading", meaningDisplay)}</div>
+            ) : (
+              <div style={{ maxWidth: 560, margin: "0 auto" }}>
+                {[
+                  { type: "char", title: t("admin_lib_chars_title", meaningDisplay), data: libUserChars },
+                  { type: "word", title: t("admin_lib_words_title", meaningDisplay), data: libUserWords },
+                  { type: "bushou", title: t("admin_lib_bushou_title", meaningDisplay), data: libUserBushou },
+                ].map(({ type, title, data }) => {
+                  const listNames = Array.from(new Set((data || []).flatMap((item) => item.lists || [])));
+                  return (
+                    <div key={type} style={{ marginBottom: 26 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                        {title}
+                      </div>
+                      {(!data || data.length === 0) ? (
+                        <div style={{ fontSize: 12.5, color: COLORS.inkSoft }}>{t("admin_lib_no_content", meaningDisplay)}</div>
+                      ) : (
+                        <>
+                          {listNames.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, alignItems: "center" }}>
+                              <span style={{ fontSize: 11.5, color: COLORS.inkSoft }}>{t("admin_lib_lists_in", meaningDisplay)}</span>
+                              {listNames.map((l) => (
+                                <button
+                                  key={l}
+                                  type="button"
+                                  onClick={() => copyList(type, l)}
+                                  title={t("admin_lib_copy_list", meaningDisplay)}
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    color: COLORS.seal,
+                                    background: COLORS.chipBg,
+                                    border: `1px solid ${COLORS.hairline}`,
+                                    borderRadius: 999,
+                                    padding: "3px 10px",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {type === "bushou" ? displayListName(l, meaningDisplay) : l} ⬇
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {data.map((item) => (
+                              <div
+                                key={item.char || item.word}
+                                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}
+                              >
+                                <div style={{ fontSize: 12.5, color: COLORS.ink }}>
+                                  <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontWeight: 700, marginRight: 6 }}>
+                                    {item.char || item.word}
+                                  </span>
+                                  {item.pinyin} · {item.meaning}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => copyItem(type, item)}
+                                  className="ghost-btn"
+                                  style={{ ...ghostBtnStyle, padding: "3px 10px", fontSize: 11 }}
+                                >
+                                  {t("admin_lib_copy", meaningDisplay)}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                    {t("admin_lib_decks_title", meaningDisplay)}
+                  </div>
+                  {(!libUserDecks || libUserDecks.length === 0) ? (
+                    <div style={{ fontSize: 12.5, color: COLORS.inkSoft }}>{t("admin_lib_no_content", meaningDisplay)}</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {libUserDecks.map((d) => (
+                        <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}>
+                          <div style={{ fontSize: 12.5, color: COLORS.ink }}>
+                            📦 {d.name} <span style={{ color: COLORS.metadata }}>({t("admin_deck_list_count", meaningDisplay, (d.lists || []).length)})</span>
+                          </div>
+                          <button type="button" onClick={() => copyDeck(d)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "3px 10px", fontSize: 11 }}>
+                            {t("admin_lib_copy_deck", meaningDisplay)}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -9948,6 +10249,12 @@ function LibraryManagementTab({ userId, isAdmin, characterList, wordList, bushou
     if (!error && onDecksChanged) onDecksChanged();
   }
 
+  async function makeDeckPublic(id) {
+    if (!window.confirm(t("mgmt_confirm_make_public", meaningDisplay))) return;
+    const { error } = await supabase.from("decks").update({ user_id: null }).eq("id", id);
+    if (!error && onDecksChanged) onDecksChanged();
+  }
+
   // Personal lists -- derived from this user's own custom_* rows only,
   // fetched fresh here rather than from the merged characterList/wordList/
   // bushouList props, so official/shared items never appear as "mine".
@@ -10109,6 +10416,16 @@ function LibraryManagementTab({ userId, isAdmin, characterList, wordList, bushou
                 <div style={{ fontSize: 11, color: COLORS.metadata }}>{t("admin_deck_list_count", meaningDisplay, (d.lists || []).length)}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => makeDeckPublic(d.id)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5, borderColor: COLORS.gold, color: COLORS.gold }}
+                  >
+                    {t("mgmt_make_public", meaningDisplay)}
+                  </button>
+                )}
                 <button type="button" onClick={() => startEditDeck(d)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}>
                   {t("admin_deck_edit", meaningDisplay)}
                 </button>
