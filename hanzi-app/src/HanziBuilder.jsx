@@ -448,6 +448,10 @@ const UI_TEXT = {
     en: `Delete list "${n}"? The items inside won't be deleted, just removed from this list.`,
   }),
   mgmt_item_count: (n) => ({ vi: `${n} mục`, en: `${n} item${n === 1 ? "" : "s"}` }),
+  suggest_revision_button: { vi: "Đề xuất chỉnh sửa", en: "Suggest a revision" },
+  suggest_revision_placeholder: { vi: "Thông tin này sai hoặc thiếu điều gì?", en: "What's wrong or missing here?" },
+  suggest_revision_submit: { vi: "Gửi đề xuất", en: "Submit" },
+  suggest_revision_thanks: { vi: "Cảm ơn bạn! Chúng tôi sẽ xem xét.", en: "Thanks! We'll take a look." },
   tab_premium: { vi: "Bảng giá", en: "Pricing" },
   tab_blog: { vi: "Blog", en: "Blog" },
   tab_about: { vi: "Về chúng tôi", en: "About Us" },
@@ -540,6 +544,23 @@ const UI_TEXT = {
   admin_nav_lists: { vi: "Danh sách", en: "Lists" },
   admin_nav_feedback: { vi: "Góp ý", en: "Feedback" },
   admin_nav_blog: { vi: "Blog", en: "Blog" },
+  admin_nav_suggestions: { vi: "Đề xuất", en: "Suggestions" },
+  admin_suggestions_title: { vi: "Đề xuất chỉnh sửa từ người dùng", en: "User Revision Suggestions" },
+  admin_suggestion_filter_all: { vi: "Tất cả", en: "All" },
+  admin_suggestion_status_new: { vi: "Mới", en: "New" },
+  admin_suggestion_status_read: { vi: "Đã đọc", en: "Read" },
+  admin_suggestion_status_revised: { vi: "Đã sửa theo đề xuất", en: "Revised as Suggested" },
+  admin_suggestion_status_ignored: { vi: "Bỏ qua", en: "Ignored" },
+  admin_suggestion_none: { vi: "Không có đề xuất nào.", en: "No suggestions here." },
+  admin_suggestion_unknown_item: { vi: "(không tìm thấy mục này)", en: "(item not found)" },
+  admin_suggestion_no_email: { vi: "không có email", en: "no email" },
+  admin_suggestion_type_char: { vi: "Hán tự", en: "Character" },
+  admin_suggestion_type_word: { vi: "Từ vựng", en: "Word" },
+  admin_suggestion_type_bushou: { vi: "Bộ thủ", en: "Radical" },
+  admin_suggestion_confirm_delete: { vi: "Xóa đề xuất này?", en: "Delete this suggestion?" },
+  admin_suggestion_mark_read: { vi: "Đánh dấu đã đọc", en: "Mark Read" },
+  admin_suggestion_mark_revised: { vi: "Đã sửa theo đề xuất", en: "Mark Revised" },
+  admin_suggestion_mark_ignored: { vi: "Bỏ qua", en: "Ignore" },
   admin_nav_decks: { vi: "Bộ sưu tập", en: "Decks" },
   admin_deck_title: { vi: "Quản lý bộ sưu tập", en: "Deck Management" },
   admin_deck_new: { vi: "+ Bộ sưu tập mới", en: "+ New Deck" },
@@ -6813,6 +6834,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     loadListSettings();
     loadFeedback();
     loadBlogPosts();
+    loadSuggestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
@@ -6986,6 +7008,35 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     if (!window.confirm(t("admin_deck_confirm_delete", meaningDisplay))) return;
     const { error } = await supabase.from("decks").delete().eq("id", id);
     if (!error && onDecksChanged) onDecksChanged();
+  }
+
+  // Card revision suggestions
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [suggestionStatusFilter, setSuggestionStatusFilter] = useState("new");
+
+  async function loadSuggestions() {
+    setSuggestionsLoading(true);
+    const { data, error } = await supabase.from("card_suggestions").select("*").order("created_at", { ascending: false });
+    if (!error) setSuggestions(data || []);
+    setSuggestionsLoading(false);
+  }
+
+  function findSuggestionItem(s) {
+    const list = s.content_type === "char" ? characterList : s.content_type === "word" ? wordList : bushouList;
+    if (s.content_type === "word") return (list || []).find((w) => w.word === s.item_key);
+    return (list || []).find((x) => x.char === s.item_key);
+  }
+
+  async function setSuggestionStatus(id, status) {
+    const { error } = await supabase.from("card_suggestions").update({ status }).eq("id", id);
+    if (!error) setSuggestions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+  }
+
+  async function deleteSuggestion(id) {
+    if (!window.confirm(t("admin_suggestion_confirm_delete", meaningDisplay))) return;
+    const { error } = await supabase.from("card_suggestions").delete().eq("id", id);
+    if (!error) setSuggestions((prev) => prev.filter((s) => s.id !== id));
   }
 
   async function loadFeedback() {
@@ -7200,6 +7251,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     { id: "users", label: t("admin_nav_users", meaningDisplay) },
     { id: "lists", label: t("admin_nav_lists", meaningDisplay) },
     { id: "decks", label: t("admin_nav_decks", meaningDisplay) },
+    { id: "suggestions", label: t("admin_nav_suggestions", meaningDisplay) },
     { id: "feedback", label: t("admin_nav_feedback", meaningDisplay) },
     { id: "blog", label: t("admin_nav_blog", meaningDisplay) },
   ];
@@ -7765,6 +7817,120 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+      )}
+
+      {adminSection === "suggestions" && (
+      <div style={{ marginTop: 28 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+          {t("admin_suggestions_title", meaningDisplay)}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+          {["all", "new", "read", "revised", "ignored"].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSuggestionStatusFilter(s)}
+              style={{
+                padding: "5px 12px",
+                borderRadius: 999,
+                border: `1.5px solid ${suggestionStatusFilter === s ? COLORS.seal : COLORS.hairline}`,
+                background: suggestionStatusFilter === s ? COLORS.seal : "transparent",
+                color: suggestionStatusFilter === s ? "#FBF9EF" : COLORS.inkSoft,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {s === "all"
+                ? t("admin_suggestion_filter_all", meaningDisplay)
+                : s === "new"
+                ? t("admin_suggestion_status_new", meaningDisplay)
+                : s === "read"
+                ? t("admin_suggestion_status_read", meaningDisplay)
+                : s === "revised"
+                ? t("admin_suggestion_status_revised", meaningDisplay)
+                : t("admin_suggestion_status_ignored", meaningDisplay)}
+            </button>
+          ))}
+        </div>
+
+        {suggestionsLoading ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("loading", meaningDisplay)}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {suggestions
+              .filter((s) => suggestionStatusFilter === "all" || s.status === suggestionStatusFilter)
+              .map((s) => {
+                const item = findSuggestionItem(s);
+                const typeLabel =
+                  s.content_type === "char"
+                    ? t("admin_suggestion_type_char", meaningDisplay)
+                    : s.content_type === "word"
+                    ? t("admin_suggestion_type_word", meaningDisplay)
+                    : t("admin_suggestion_type_bushou", meaningDisplay);
+                const statusColor =
+                  s.status === "new" ? COLORS.error : s.status === "read" ? COLORS.gold : s.status === "revised" ? COLORS.seal : COLORS.metadata;
+                const statusLabel =
+                  s.status === "new"
+                    ? t("admin_suggestion_status_new", meaningDisplay)
+                    : s.status === "read"
+                    ? t("admin_suggestion_status_read", meaningDisplay)
+                    : s.status === "revised"
+                    ? t("admin_suggestion_status_revised", meaningDisplay)
+                    : t("admin_suggestion_status_ignored", meaningDisplay);
+                return (
+                  <div key={s.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderLeft: `3px solid ${statusColor}`, borderRadius: 11, padding: "14px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: COLORS.ink }}>
+                        <span style={{ color: COLORS.seal }}>{typeLabel}</span>
+                        {" · "}
+                        {item ? (
+                          <>
+                            <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif" }}>{item.char || item.word}</span>
+                            {" ("}{item.pinyin}{" · "}{item.meaning}{")"}
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif" }}>{s.item_key}</span>
+                            {" "}{t("admin_suggestion_unknown_item", meaningDisplay)}
+                          </>
+                        )}
+                      </span>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, color: statusColor, textTransform: "uppercase" }}>{statusLabel}</span>
+                    </div>
+                    <div style={{ fontSize: 13.5, color: COLORS.ink, lineHeight: 1.5, marginBottom: 6, whiteSpace: "pre-wrap" }}>{s.message}</div>
+                    <div style={{ fontSize: 11, color: COLORS.metadata, marginBottom: 10 }}>
+                      {s.email || t("admin_suggestion_no_email", meaningDisplay)} · {new Date(s.created_at).toLocaleString()}
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <button type="button" onClick={() => setSuggestionStatus(s.id, "read")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5 }}>
+                        {t("admin_suggestion_mark_read", meaningDisplay)}
+                      </button>
+                      <button type="button" onClick={() => setSuggestionStatus(s.id, "revised")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, borderColor: COLORS.seal, color: COLORS.seal }}>
+                        {t("admin_suggestion_mark_revised", meaningDisplay)}
+                      </button>
+                      <button type="button" onClick={() => setSuggestionStatus(s.id, "ignored")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5 }}>
+                        {t("admin_suggestion_mark_ignored", meaningDisplay)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteSuggestion(s.id)}
+                        className="ghost-btn"
+                        style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
+                      >
+                        {t("admin_blog_delete", meaningDisplay)}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            {suggestions.filter((s) => suggestionStatusFilter === "all" || s.status === suggestionStatusFilter).length === 0 && (
+              <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("admin_suggestion_none", meaningDisplay)}</div>
+            )}
           </div>
         )}
       </div>
@@ -8377,7 +8543,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
       )}
 
       {zoomed && (
-        <WordZoomModal w={w} characterList={characterList} findBushou={findBushou} onClose={() => setZoomed(false)} meaningDisplay={meaningDisplay} />
+        <WordZoomModal w={w} characterList={characterList} findBushou={findBushou} onClose={() => setZoomed(false)} meaningDisplay={meaningDisplay} isOfficial={isOfficial} />
       )}
     </div>
   );
@@ -8386,7 +8552,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
 /* ---------- Full-screen study view for one word: one mizige box per
    character (same idea as the Play tab's multi-box build area), plus
    pinyin/meaning/Hán Việt and each character's own bushou breakdown. ---------- */
-function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }) {
+function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay, isOfficial }) {
   const chars = Array.from(w.word);
   const boxSize = chars.length <= 2 ? 130 : chars.length === 3 ? 100 : 80;
   const [strokeChar, setStrokeChar] = useState(null);
@@ -8524,6 +8690,11 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay }
         )}
 
         {strokeChar && <StrokeOrderModal char={strokeChar} onClose={() => setStrokeChar(null)} meaningDisplay={meaningDisplay} />}
+        {isOfficial && (
+          <div style={{ marginTop: 16, textAlign: "center" }}>
+            <SuggestRevisionButton contentType="word" itemKey={w.word} meaningDisplay={meaningDisplay} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -9186,7 +9357,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
         </>
       )}
 
-      {zoomed && <CharacterZoomModal c={c} findBushou={findBushou} onClose={() => setZoomed(false)} meaningDisplay={meaningDisplay} />}
+      {zoomed && <CharacterZoomModal c={c} findBushou={findBushou} onClose={() => setZoomed(false)} meaningDisplay={meaningDisplay} isOfficial={isOfficial} />}
     </div>
   );
 }
@@ -9194,7 +9365,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
 /* ---------- Full-screen study view for one character: big glyph in the
    same mizige grid used during Play, plus pinyin/meaning/Hán Việt and each
    component's own details, all at a much larger size than the card. ---------- */
-function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
+function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay, isOfficial }) {
   const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   return (
     <div
@@ -9304,8 +9475,87 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay }) {
             </div>
           </div>
         )}
+        {isOfficial && (
+          <div style={{ marginTop: 16, textAlign: "center" }}>
+            <SuggestRevisionButton contentType="char" itemKey={c.char} meaningDisplay={meaningDisplay} />
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// A small, collapsible "flag an issue" control for shared/official cards.
+// Expands into a short message box in place, rather than opening another
+// modal on top of one that may already be open (e.g. inside a zoom modal).
+function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | done | error
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!message.trim()) return;
+    setStatus("sending");
+    try {
+      const { error } = await supabase.from("card_suggestions").insert({
+        content_type: contentType,
+        item_key: itemKey,
+        message: message.trim(),
+        email: email.trim() || null,
+      });
+      if (error) throw error;
+      setStatus("done");
+      setMessage("");
+      setEmail("");
+    } catch (err) {
+      console.error("Could not submit suggestion:", err);
+      setStatus("error");
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        style={{ background: "none", border: "none", color: COLORS.metadata, fontSize: 11, cursor: "pointer", padding: 0, textDecoration: "underline" }}
+      >
+        🚩 {t("suggest_revision_button", meaningDisplay)}
+      </button>
+    );
+  }
+
+  if (status === "done") {
+    return <div style={{ fontSize: 11.5, color: COLORS.seal, fontWeight: 600 }}>{t("suggest_revision_thanks", meaningDisplay)}</div>;
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ marginTop: 4 }}>
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder={t("suggest_revision_placeholder", meaningDisplay)}
+        rows={2}
+        style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, resize: "vertical", marginBottom: 4 }}
+      />
+      <input
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder={t("feedback_email_placeholder", meaningDisplay)}
+        style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, marginBottom: 6 }}
+      />
+      <div style={{ display: "flex", gap: 6 }}>
+        <button type="submit" className="seal-btn" style={{ ...sealBtnStyle, padding: "4px 12px", fontSize: 11.5 }} disabled={status === "sending"}>
+          {status === "sending" ? t("feedback_sending", meaningDisplay) : t("suggest_revision_submit", meaningDisplay)}
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "4px 12px", fontSize: 11.5 }}>
+          {t("admin_deck_cancel", meaningDisplay)}
+        </button>
+      </div>
+      {status === "error" && <div style={{ fontSize: 11, color: COLORS.error, marginTop: 4 }}>{t("feedback_error", meaningDisplay)}</div>}
+    </form>
   );
 }
 
@@ -10393,6 +10643,11 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
                 ? t("radicals_is_default", meaningDisplay)
                 : t("radicals_set_default", meaningDisplay)}
             </button>
+          )}
+          {isOfficial && (
+            <div style={{ marginTop: 6 }}>
+              <SuggestRevisionButton contentType="bushou" itemKey={b.char} meaningDisplay={meaningDisplay} />
+            </div>
           )}
         </>
       )}
