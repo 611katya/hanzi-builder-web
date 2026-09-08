@@ -418,6 +418,7 @@ const UI_TEXT = {
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
   tab_vocab: { vi: "Từ vựng", en: "Words" },
+  tab_library: { vi: "Thư viện", en: "Library" },
   tab_premium: { vi: "Bảng giá", en: "Pricing" },
   tab_blog: { vi: "Blog", en: "Blog" },
   tab_about: { vi: "Về chúng tôi", en: "About Us" },
@@ -2395,48 +2396,32 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             }}
             meaningDisplay={meaningDisplay}
           />
-        ) : tab === "radicals" ? (
-          <RadicalsTab
+        ) : tab === "library" ? (
+          <LibraryTab
             bushouList={bushouList}
+            characterList={characterList}
+            wordList={wordList}
             onAddBushou={addBushouRow}
-            isAdmin={isAdmin}
             officialBushouKeys={officialBushouKeys}
             overrideBushouKeys={overrideBushouKeys}
             onPromoteBushou={promoteBushouToDefault}
             onWithdrawBushou={withdrawBushouFromDefault}
-            meaningDisplay={meaningDisplay}
-          />
-        ) : tab === "hanzi" ? (
-          <CharacterListPanel
-            characterList={characterList}
-            bushouList={bushouList}
             onDeleteCharacter={deleteCharacterRow}
             onDeleteCharacterFromOfficial={deleteCharacterFromOfficial}
             onUpdateCharacter={updateCharacterRow}
-            onAddBushou={addBushouRow}
-            isAdmin={isAdmin}
             officialCharKeys={officialCharKeys}
             overrideCharKeys={overrideCharKeys}
             onPromoteCharacter={promoteCharacterToDefault}
             onWithdrawCharacter={withdrawCharacterFromDefault}
-            checkListAccess={checkListAccess}
-            onViewPremium={() => setTab("premium")}
-            meaningDisplay={meaningDisplay}
-            userId={userId}
-          />
-        ) : tab === "vocab" ? (
-          <WordListPanel
-            wordList={wordList}
-            characterList={characterList}
             findBushou={findBushou}
             onAddWord={addWordRow}
             onDeleteWord={deleteWordRow}
             onDeleteWordFromOfficial={deleteWordFromOfficial}
-            isAdmin={isAdmin}
             officialWordKeys={officialWordKeys}
             overrideWordKeys={overrideWordKeys}
             onPromoteWord={promoteWordToDefault}
             onWithdrawWord={withdrawWordFromDefault}
+            isAdmin={isAdmin}
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
@@ -2612,9 +2597,7 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
     { id: "flashcards", label: t("tab_flashcards", meaningDisplay) },
     { id: "writing", label: t("tab_writing", meaningDisplay) },
     { id: "add", label: t("tab_add", meaningDisplay) },
-    { id: "radicals", label: t("tab_radicals", meaningDisplay) },
-    { id: "hanzi", label: t("tab_hanzi", meaningDisplay) },
-    { id: "vocab", label: t("tab_vocab", meaningDisplay) },
+    { id: "library", label: t("tab_library", meaningDisplay) },
   ];
   if (isAdmin) items.push({ id: "admin", label: t("tab_admin", meaningDisplay) });
   return (
@@ -9606,6 +9589,99 @@ const smallXStyle = {
 };
 
 /* ================= RADICALS TAB ================= */
+function LibraryTab(props) {
+  const {
+    bushouList, characterList, wordList, meaningDisplay,
+    onAddBushou, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou,
+    onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter,
+    findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord,
+    isAdmin, checkListAccess, onViewPremium, userId,
+  } = props;
+  const [subTab, setSubTab] = useState("radicals"); // radicals | hanzi | vocab
+
+  const subTabs = [
+    { id: "radicals", label: t("tab_radicals", meaningDisplay) },
+    { id: "hanzi", label: t("tab_hanzi", meaningDisplay) },
+    { id: "vocab", label: t("tab_vocab", meaningDisplay) },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", borderBottom: `1px solid ${COLORS.hairline}`, marginBottom: 22 }}>
+        {subTabs.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => setSubTab(s.id)}
+            style={{
+              background: "none",
+              border: "none",
+              borderBottom: `2px solid ${subTab === s.id ? COLORS.seal : "transparent"}`,
+              color: subTab === s.id ? COLORS.ink : COLORS.inkSoft,
+              fontWeight: subTab === s.id ? 700 : 600,
+              fontSize: 14,
+              padding: "8px 2px",
+              marginBottom: -1,
+              cursor: "pointer",
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === "radicals" ? (
+        <RadicalsTab
+          bushouList={bushouList}
+          onAddBushou={onAddBushou}
+          isAdmin={isAdmin}
+          officialBushouKeys={officialBushouKeys}
+          overrideBushouKeys={overrideBushouKeys}
+          onPromoteBushou={onPromoteBushou}
+          onWithdrawBushou={onWithdrawBushou}
+          meaningDisplay={meaningDisplay}
+        />
+      ) : subTab === "hanzi" ? (
+        <CharacterListPanel
+          characterList={characterList}
+          bushouList={bushouList}
+          onDeleteCharacter={onDeleteCharacter}
+          onDeleteCharacterFromOfficial={onDeleteCharacterFromOfficial}
+          onUpdateCharacter={onUpdateCharacter}
+          onAddBushou={onAddBushou}
+          isAdmin={isAdmin}
+          officialCharKeys={officialCharKeys}
+          overrideCharKeys={overrideCharKeys}
+          onPromoteCharacter={onPromoteCharacter}
+          onWithdrawCharacter={onWithdrawCharacter}
+          checkListAccess={checkListAccess}
+          onViewPremium={onViewPremium}
+          meaningDisplay={meaningDisplay}
+          userId={userId}
+        />
+      ) : (
+        <WordListPanel
+          wordList={wordList}
+          characterList={characterList}
+          findBushou={findBushou}
+          onAddWord={onAddWord}
+          onDeleteWord={onDeleteWord}
+          onDeleteWordFromOfficial={onDeleteWordFromOfficial}
+          isAdmin={isAdmin}
+          officialWordKeys={officialWordKeys}
+          overrideWordKeys={overrideWordKeys}
+          onPromoteWord={onPromoteWord}
+          onWithdrawWord={onWithdrawWord}
+          checkListAccess={checkListAccess}
+          onViewPremium={onViewPremium}
+          meaningDisplay={meaningDisplay}
+          userId={userId}
+        />
+      )}
+    </div>
+  );
+}
+
 function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou, meaningDisplay }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
