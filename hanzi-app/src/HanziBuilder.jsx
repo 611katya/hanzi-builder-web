@@ -7351,8 +7351,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                   </button>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: "1 1 200px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "minmax(160px, 1fr) 130px 90px auto", gap: 10, alignItems: "center" }}>
+                  <div style={{ fontSize: 13, color: COLORS.ink, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={u.email || u.user_id}>
                     {u.email || u.user_id}
                     {u.is_admin && <span style={{ marginLeft: 6, fontSize: 10.5, color: COLORS.gold }}>(admin)</span>}
                     {u.disabled && (
@@ -7372,47 +7372,49 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: COLORS.sealDark, minWidth: 60 }}>
+                  <div style={{ fontSize: 12, color: COLORS.sealDark }}>
                     {u.tier || "Free"}
                     {u.tier === "Enrolled Course" && u.course_name && (
                       <span style={{ color: COLORS.inkSoft, fontWeight: 500 }}> · {u.course_name}</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: COLORS.inkSoft, minWidth: 80 }}>
+                  <div style={{ fontSize: 12, color: COLORS.inkSoft }}>
                     {u.lookup_count ?? 0} / {u.lookup_limit ?? 100}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => startEdit(u)}
-                    className="ghost-btn"
-                    style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
-                  >
-                    {t("admin_edit", meaningDisplay)}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => resetUsage(u.user_id)}
-                    className="ghost-btn"
-                    style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
-                  >
-                    {t("admin_reset_to_zero", meaningDisplay)}
-                  </button>
-                  {!u.is_admin && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end" }}>
                     <button
                       type="button"
-                      onClick={() => toggleDisabled(u)}
+                      onClick={() => startEdit(u)}
                       className="ghost-btn"
-                      style={{
-                        ...ghostBtnStyle,
-                        padding: "5px 10px",
-                        fontSize: 11.5,
-                        borderColor: u.disabled ? COLORS.bamboo : COLORS.error,
-                        color: u.disabled ? COLORS.bamboo : COLORS.error,
-                      }}
+                      style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
                     >
-                      {u.disabled ? t("admin_reenable", meaningDisplay) : t("admin_disable", meaningDisplay)}
+                      {t("admin_edit", meaningDisplay)}
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => resetUsage(u.user_id)}
+                      className="ghost-btn"
+                      style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}
+                    >
+                      {t("admin_reset_to_zero", meaningDisplay)}
+                    </button>
+                    {!u.is_admin && (
+                      <button
+                        type="button"
+                        onClick={() => toggleDisabled(u)}
+                        className="ghost-btn"
+                        style={{
+                          ...ghostBtnStyle,
+                          padding: "5px 10px",
+                          fontSize: 11.5,
+                          borderColor: u.disabled ? COLORS.bamboo : COLORS.error,
+                          color: u.disabled ? COLORS.bamboo : COLORS.error,
+                        }}
+                      >
+                        {u.disabled ? t("admin_reenable", meaningDisplay) : t("admin_disable", meaningDisplay)}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
