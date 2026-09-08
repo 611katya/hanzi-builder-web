@@ -446,7 +446,7 @@ const UI_TEXT = {
     vi: "Ngoài các gói thành viên, chúng tôi cũng tổ chức các khóa học với bộ từ vựng được biên soạn riêng cho từng khóa. Nếu bạn đang theo học một khóa cụ thể, tài khoản của bạn sẽ được cấp quyền truy cập vào danh sách từ vựng riêng của khóa đó.",
     en: "Beyond the standard tiers, we also run dedicated courses with vocabulary lists curated specifically for each one. If you're enrolled in a particular course, your account is granted access to that course's own vocabulary lists.",
   },
-  footer_copyright: { vi: "Bản quyền © 2026 MinouQ", en: "Copyright © 2026 MinouQ" },
+  footer_copyright: { vi: "Bản quyền © 2026 MinouQ · deploy check OK", en: "Copyright © 2026 MinouQ · deploy check OK" },
   blog_coming_soon_title: { vi: "Blog sắp ra mắt", en: "Blog Coming Soon" },
   blog_coming_soon_body: {
     vi: "Chúng tôi đang chuẩn bị các bài viết về mẹo học chữ Hán, bộ thủ, và phương pháp luyện viết. Quay lại sau nhé!",
