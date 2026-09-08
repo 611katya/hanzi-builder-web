@@ -510,6 +510,26 @@ const UI_TEXT = {
   admin_nav_lists: { vi: "Danh sách", en: "Lists" },
   admin_nav_feedback: { vi: "Góp ý", en: "Feedback" },
   admin_nav_blog: { vi: "Blog", en: "Blog" },
+  admin_nav_decks: { vi: "Bộ sưu tập", en: "Decks" },
+  admin_deck_title: { vi: "Quản lý bộ sưu tập", en: "Deck Management" },
+  admin_deck_new: { vi: "+ Bộ sưu tập mới", en: "+ New Deck" },
+  admin_deck_name_placeholder: { vi: "Tên bộ sưu tập", en: "Deck name" },
+  admin_deck_description_placeholder: { vi: "Mô tả (tùy chọn)", en: "Description (optional)" },
+  admin_deck_included_lists: { vi: "Danh sách được gộp vào:", en: "Lists included:" },
+  admin_deck_none_included: { vi: "Chưa có danh sách nào.", en: "No lists added yet." },
+  admin_deck_type_char: { vi: "Hán tự", en: "Characters" },
+  admin_deck_type_word: { vi: "Từ vựng", en: "Words" },
+  admin_deck_type_bushou: { vi: "Bộ thủ", en: "Radicals" },
+  admin_deck_choose_list: { vi: "— Chọn danh sách —", en: "— Choose a list —" },
+  admin_deck_add: { vi: "+ Thêm", en: "+ Add" },
+  admin_deck_save: { vi: "Lưu bộ sưu tập", en: "Save Deck" },
+  admin_deck_cancel: { vi: "Hủy", en: "Cancel" },
+  admin_deck_edit: { vi: "Sửa", en: "Edit" },
+  admin_deck_delete: { vi: "Xóa", en: "Delete" },
+  admin_deck_none: { vi: "Chưa có bộ sưu tập nào.", en: "No decks yet." },
+  admin_deck_need_name: { vi: "Vui lòng nhập tên bộ sưu tập.", en: "Please enter a deck name." },
+  admin_deck_confirm_delete: { vi: "Xóa bộ sưu tập này? Các danh sách bên trong sẽ không bị xóa.", en: "Delete this deck? The lists inside it won't be deleted." },
+  admin_deck_list_count: (n) => ({ vi: `${n} danh sách`, en: `${n} list${n === 1 ? "" : "s"}` }),
   admin_users_title: { vi: "Quản trị người dùng", en: "User Management" },
   admin_search_email_placeholder: { vi: "Tìm theo email…", en: "Search by email…" },
   admin_all_tiers: { vi: "Tất cả gói", en: "All Tiers" },
@@ -613,6 +633,7 @@ const UI_TEXT = {
   fc_all_lists: { vi: "Tất cả danh sách", en: "All lists" },
   fc_content_words: { vi: "Chữ & Từ", en: "Characters & Words" },
   fc_content_radicals: { vi: "Bộ thủ", en: "Radicals" },
+  fc_content_deck: { vi: "Bộ sưu tập", en: "Deck" },
   fc_due_today: (n) => ({ vi: `${n} thẻ cần ôn hôm nay`, en: `${n} cards due today` }),
   fc_start: { vi: "Bắt đầu", en: "Start" },
   fc_progress: (reviewed, remaining) => ({
@@ -1068,6 +1089,42 @@ function getLists(c) {
   if (Array.isArray(c.lists) && c.lists.length > 0) return c.lists;
   if (c.list && typeof c.list === "string") return [c.list];
   return ["Chưa phân loại"];
+}
+
+// A deck bundles together (content_type, list_name) pairs rather than
+// storing items directly -- this resolves that bundle into the actual pool
+// of practiceable items at study time, tagged with their type so progress
+// tracking (which already namespaces by "char:x" / "word:x" / "bushou:x")
+// stays correctly separated even when a deck mixes all three types.
+function resolveDeckItems(deck, { characterList, wordList, bushouList }) {
+  if (!deck) return [];
+  const items = [];
+  const seen = new Set(); // avoid duplicates if multiple bundled lists overlap
+  (deck.lists || []).forEach(({ content_type, list_name }) => {
+    if (content_type === "char") {
+      characterList.forEach((c) => {
+        if (getLists(c).includes(list_name) && !seen.has(`char:${c.char}`)) {
+          seen.add(`char:${c.char}`);
+          items.push({ type: "char", key: c.char, data: c });
+        }
+      });
+    } else if (content_type === "word") {
+      wordList.forEach((w) => {
+        if ((w.lists || []).includes(list_name) && !seen.has(`word:${w.word}`)) {
+          seen.add(`word:${w.word}`);
+          items.push({ type: "word", key: w.word, data: w });
+        }
+      });
+    } else if (content_type === "bushou") {
+      (bushouList || []).forEach((b) => {
+        if ((b.lists || []).includes(list_name) && !seen.has(`bushou:${b.char}`)) {
+          seen.add(`bushou:${b.char}`);
+          items.push({ type: "bushou", key: b.char, data: b });
+        }
+      });
+    }
+  });
+  return items;
 }
 
 /* ---------- Mizige (米字格) target grid — the signature element ---------- */
@@ -1672,6 +1729,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const [officialBushou, setOfficialBushou] = useState(null); // null = not loaded yet
   const [officialChars, setOfficialChars] = useState(null);
   const [officialWords, setOfficialWords] = useState(null);
+  const [decks, setDecks] = useState([]); // [{ id, name, description, lists: [{content_type, list_name}] }]
   const [isAdmin, setIsAdmin] = useState(false);
   const [lookupCount, setLookupCount] = useState(0);
   const [lookupLimit, setLookupLimit] = useState(100);
@@ -1765,6 +1823,34 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       cancelled = true;
     };
   }, []);
+
+  const loadDecks = useCallback(async () => {
+    const [decksRes, listsRes] = await Promise.all([
+      supabase.from("decks").select("*").order("name"),
+      supabase.from("deck_lists").select("*"),
+    ]);
+    if (decksRes.error || listsRes.error) {
+      console.error("Could not load decks:", decksRes.error || listsRes.error);
+      return;
+    }
+    const byDeck = new Map();
+    (listsRes.data || []).forEach((row) => {
+      if (!byDeck.has(row.deck_id)) byDeck.set(row.deck_id, []);
+      byDeck.get(row.deck_id).push({ content_type: row.content_type, list_name: row.list_name });
+    });
+    setDecks(
+      (decksRes.data || []).map((d) => ({
+        id: d.id,
+        name: d.name,
+        description: d.description || "",
+        lists: byDeck.get(d.id) || [],
+      }))
+    );
+  }, []);
+
+  useEffect(() => {
+    loadDecks();
+  }, [loadDecks]);
 
   useEffect(() => {
     if (!userId) {
@@ -2271,6 +2357,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             characterList={characterList}
             wordList={wordList}
             bushouList={bushouList}
+            decks={decks}
             isAdmin={isAdmin}
             checkListAccess={checkListAccess}
             onRequireAuth={onRequireAuth}
@@ -2366,7 +2453,16 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         ) : tab === "feedback" ? (
           <FeedbackTab meaningDisplay={meaningDisplay} userId={userId} />
         ) : tab === "admin" ? (
-          <AdminPanel isAdmin={isAdmin} allListNamesInUse={allListNamesInUse} meaningDisplay={meaningDisplay} />
+          <AdminPanel
+            isAdmin={isAdmin}
+            allListNamesInUse={allListNamesInUse}
+            meaningDisplay={meaningDisplay}
+            characterList={characterList}
+            wordList={wordList}
+            bushouList={bushouList}
+            decks={decks}
+            onDecksChanged={loadDecks}
+          />
         ) : null}
       </div>
       <SiteFooter setTab={setTab} meaningDisplay={meaningDisplay} />
@@ -2971,9 +3067,10 @@ function updateSM2(progress, rating) {
 }
 
 /* ================= FLASHCARDS TAB ================= */
-function FlashcardsTab({ userId, characterList, wordList, bushouList, isAdmin, checkListAccess, onRequireAuth, onViewPremium, meaningDisplay }) {
-  const [contentType, setContentType] = useState("words"); // words = characters+words, radicals = bushou
+function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isAdmin, checkListAccess, onRequireAuth, onViewPremium, meaningDisplay }) {
+  const [contentType, setContentType] = useState("words"); // words = characters+words, radicals = bushou, deck = a saved deck
   const [selectedList, setSelectedList] = useState("Tất cả");
+  const [selectedDeckId, setSelectedDeckId] = useState(decks && decks[0] ? decks[0].id : "");
   const [lockedListName, setLockedListName] = useState(null);
   const [progressMap, setProgressMap] = useState(null); // null = loading
   const [queue, setQueue] = useState([]);
@@ -2981,6 +3078,8 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, isAdmin, c
   const [flipped, setFlipped] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionStats, setSessionStats] = useState({ reviewed: 0, again: 0 });
+
+  const selectedDeck = (decks || []).find((d) => d.id === selectedDeckId) || null;
 
   const allLists = useMemo(() => {
     const set = new Set();
@@ -3024,6 +3123,13 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, isAdmin, c
     if (!progressMap) return 0;
     const todayStr = new Date().toISOString().slice(0, 10);
     let count = 0;
+    if (contentType === "deck") {
+      resolveDeckItems(selectedDeck, { characterList, wordList, bushouList }).forEach((item) => {
+        const p = progressMap.get(`${item.type}:${item.key}`);
+        if (!p || p.due_date <= todayStr) count += 1;
+      });
+      return count;
+    }
     if (contentType === "radicals") {
       (bushouList || []).forEach((b) => {
         if (selectedList !== "Tất cả" && !(b.lists || []).some((l) => l.trim() === selectedList)) return;
@@ -3043,7 +3149,7 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, isAdmin, c
       if (!p || p.due_date <= todayStr) count += 1;
     });
     return count;
-  }, [progressMap, characterList, wordList, bushouList, contentType, selectedList]);
+  }, [progressMap, characterList, wordList, bushouList, contentType, selectedList, selectedDeck]);
 
   function handleContentTypeChange(next) {
     setContentType(next);
@@ -3061,7 +3167,12 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, isAdmin, c
   function startSession() {
     const todayStr = new Date().toISOString().slice(0, 10);
     const cards = [];
-    if (contentType === "radicals") {
+    if (contentType === "deck") {
+      resolveDeckItems(selectedDeck, { characterList, wordList, bushouList }).forEach((item) => {
+        const p = progressMap.get(`${item.type}:${item.key}`);
+        if (!p || p.due_date <= todayStr) cards.push({ type: item.type, key: item.key, data: item.data, progress: p || null });
+      });
+    } else if (contentType === "radicals") {
       (bushouList || []).forEach((b) => {
         if (selectedList !== "Tất cả" && !(b.lists || []).some((l) => l.trim() === selectedList)) return;
         const p = progressMap.get(`bushou:${b.char}`);
@@ -3178,20 +3289,52 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, isAdmin, c
             >
               {t("fc_content_radicals", meaningDisplay)}
             </button>
+            {decks && decks.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleContentTypeChange("deck")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  border: `1.5px solid ${contentType === "deck" ? COLORS.seal : COLORS.hairline}`,
+                  background: contentType === "deck" ? COLORS.seal : "transparent",
+                  color: contentType === "deck" ? "#FBF9EF" : COLORS.inkSoft,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                📦 {t("fc_content_deck", meaningDisplay)}
+              </button>
+            )}
           </div>
 
-          <select
-            value={selectedList}
-            onChange={(e) => handleListChange(e.target.value)}
-            style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
-          >
-            <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("fc_all_lists", meaningDisplay)}</option>
-            {allLists.map((l) => (
-              <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : contentType === "radicals" ? displayListName(l, meaningDisplay) : l}
-              </option>
-            ))}
-          </select>
+          {contentType === "deck" ? (
+            <select
+              value={selectedDeckId}
+              onChange={(e) => setSelectedDeckId(e.target.value)}
+              style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
+            >
+              {(decks || []).map((d) => (
+                <option key={d.id} value={d.id} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              value={selectedList}
+              onChange={(e) => handleListChange(e.target.value)}
+              style={{ ...selectStyle, width: 260, textAlign: "center", display: "inline-block", marginBottom: 16 }}
+            >
+              <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("fc_all_lists", meaningDisplay)}</option>
+              {allLists.map((l) => (
+                <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
+                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : contentType === "radicals" ? displayListName(l, meaningDisplay) : l}
+                </option>
+              ))}
+            </select>
+          )}
 
           <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20 }}>
             {t("fc_due_today", meaningDisplay, dueCount)}
@@ -6649,7 +6792,7 @@ function PremiumTab({ meaningDisplay }) {
   );
 }
 
-function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
+function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList, wordList, bushouList, decks, onDecksChanged }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -6768,6 +6911,104 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
     if (!error) {
       setBlogPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, published: nextPublished } : p)));
     }
+  }
+
+  // Deck management
+  const [editingDeckId, setEditingDeckId] = useState(null); // null = not editing, "new" = creating, or a deck id
+  const [deckName, setDeckName] = useState("");
+  const [deckDescription, setDeckDescription] = useState("");
+  const [deckLists, setDeckLists] = useState([]); // [{content_type, list_name}]
+  const [deckAddType, setDeckAddType] = useState("char");
+  const [deckAddList, setDeckAddList] = useState("");
+  const [deckMessage, setDeckMessage] = useState(null);
+
+  const availableListsByType = {
+    char: Array.from(new Set((characterList || []).flatMap((c) => getLists(c)))).sort((a, b) => a.localeCompare(b, "vi")),
+    word: Array.from(new Set((wordList || []).flatMap((w) => w.lists || []))).sort((a, b) => a.localeCompare(b, "vi")),
+    bushou: Array.from(new Set((bushouList || []).flatMap((b) => b.lists || []))).sort((a, b) => {
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.localeCompare(b, "vi");
+    }),
+  };
+
+  function startNewDeck() {
+    setEditingDeckId("new");
+    setDeckName("");
+    setDeckDescription("");
+    setDeckLists([]);
+    setDeckAddType("char");
+    setDeckAddList("");
+    setDeckMessage(null);
+  }
+
+  function startEditDeck(deck) {
+    setEditingDeckId(deck.id);
+    setDeckName(deck.name);
+    setDeckDescription(deck.description || "");
+    setDeckLists(deck.lists || []);
+    setDeckAddType("char");
+    setDeckAddList("");
+    setDeckMessage(null);
+  }
+
+  function addDeckList() {
+    if (!deckAddList) return;
+    if (deckLists.some((l) => l.content_type === deckAddType && l.list_name === deckAddList)) return;
+    setDeckLists([...deckLists, { content_type: deckAddType, list_name: deckAddList }]);
+    setDeckAddList("");
+  }
+
+  function removeDeckList(contentType, listName) {
+    setDeckLists(deckLists.filter((l) => !(l.content_type === contentType && l.list_name === listName)));
+  }
+
+  async function saveDeck() {
+    if (!deckName.trim()) {
+      setDeckMessage({ type: "error", text: t("admin_deck_need_name", meaningDisplay) });
+      return;
+    }
+    let deckId = editingDeckId;
+    if (editingDeckId === "new") {
+      const { data, error } = await supabase
+        .from("decks")
+        .insert({ name: deckName.trim(), description: deckDescription.trim() || null })
+        .select()
+        .single();
+      if (error) {
+        setDeckMessage({ type: "error", text: error.message });
+        return;
+      }
+      deckId = data.id;
+    } else {
+      const { error } = await supabase
+        .from("decks")
+        .update({ name: deckName.trim(), description: deckDescription.trim() || null })
+        .eq("id", editingDeckId);
+      if (error) {
+        setDeckMessage({ type: "error", text: error.message });
+        return;
+      }
+      await supabase.from("deck_lists").delete().eq("deck_id", editingDeckId);
+    }
+    if (deckLists.length > 0) {
+      const { error } = await supabase
+        .from("deck_lists")
+        .insert(deckLists.map((l) => ({ deck_id: deckId, content_type: l.content_type, list_name: l.list_name })));
+      if (error) {
+        setDeckMessage({ type: "error", text: error.message });
+        return;
+      }
+    }
+    setEditingDeckId(null);
+    if (onDecksChanged) onDecksChanged();
+  }
+
+  async function deleteDeck(id) {
+    if (!window.confirm(t("admin_deck_confirm_delete", meaningDisplay))) return;
+    const { error } = await supabase.from("decks").delete().eq("id", id);
+    if (!error && onDecksChanged) onDecksChanged();
   }
 
   async function loadFeedback() {
@@ -6981,6 +7222,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
   const adminSections = [
     { id: "users", label: t("admin_nav_users", meaningDisplay) },
     { id: "lists", label: t("admin_nav_lists", meaningDisplay) },
+    { id: "decks", label: t("admin_nav_decks", meaningDisplay) },
     { id: "feedback", label: t("admin_nav_feedback", meaningDisplay) },
     { id: "blog", label: t("admin_nav_blog", meaningDisplay) },
   ];
@@ -7425,6 +7667,123 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay }) {
                 >
                   {t("admin_feedback_delete", meaningDisplay)}
                 </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      )}
+
+      {adminSection === "decks" && (
+      <div style={{ marginTop: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, textTransform: "uppercase", letterSpacing: 0.8 }}>
+            {t("admin_deck_title", meaningDisplay)}
+          </div>
+          <button type="button" onClick={startNewDeck} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
+            {t("admin_deck_new", meaningDisplay)}
+          </button>
+        </div>
+
+        {editingDeckId && (
+          <div style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "14px 16px", marginBottom: 14 }}>
+            <input
+              value={deckName}
+              onChange={(e) => setDeckName(e.target.value)}
+              placeholder={t("admin_deck_name_placeholder", meaningDisplay)}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 8, fontWeight: 600 }}
+            />
+            <input
+              value={deckDescription}
+              onChange={(e) => setDeckDescription(e.target.value)}
+              placeholder={t("admin_deck_description_placeholder", meaningDisplay)}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 10 }}
+            />
+
+            <div style={{ fontSize: 11.5, color: COLORS.inkSoft, marginBottom: 6 }}>{t("admin_deck_included_lists", meaningDisplay)}</div>
+            {deckLists.length === 0 ? (
+              <div style={{ fontSize: 12, color: COLORS.metadata, marginBottom: 10 }}>{t("admin_deck_none_included", meaningDisplay)}</div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                {deckLists.map((l) => (
+                  <span
+                    key={`${l.content_type}:${l.list_name}`}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, background: COLORS.chipBg, border: `1px solid ${COLORS.hairline}`, borderRadius: 999, padding: "3px 9px", fontSize: 11.5 }}
+                  >
+                    <span style={{ color: COLORS.seal, fontWeight: 600 }}>
+                      {l.content_type === "char" ? t("admin_deck_type_char", meaningDisplay) : l.content_type === "word" ? t("admin_deck_type_word", meaningDisplay) : t("admin_deck_type_bushou", meaningDisplay)}
+                    </span>
+                    · {l.content_type === "bushou" ? displayListName(l.list_name, meaningDisplay) : l.list_name}
+                    <button
+                      type="button"
+                      onClick={() => removeDeckList(l.content_type, l.list_name)}
+                      style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+              <select value={deckAddType} onChange={(e) => { setDeckAddType(e.target.value); setDeckAddList(""); }} style={{ ...selectStyle, width: 130 }}>
+                <option value="char" style={{ background: COLORS.chipBg }}>{t("admin_deck_type_char", meaningDisplay)}</option>
+                <option value="word" style={{ background: COLORS.chipBg }}>{t("admin_deck_type_word", meaningDisplay)}</option>
+                <option value="bushou" style={{ background: COLORS.chipBg }}>{t("admin_deck_type_bushou", meaningDisplay)}</option>
+              </select>
+              <select value={deckAddList} onChange={(e) => setDeckAddList(e.target.value)} style={{ ...selectStyle, width: 180 }}>
+                <option value="" style={{ background: COLORS.chipBg }}>{t("admin_deck_choose_list", meaningDisplay)}</option>
+                {(availableListsByType[deckAddType] || []).map((l) => (
+                  <option key={l} value={l} style={{ background: COLORS.chipBg }}>
+                    {deckAddType === "bushou" ? displayListName(l, meaningDisplay) : l}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={addDeckList} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 12px", fontSize: 12 }}>
+                {t("admin_deck_add", meaningDisplay)}
+              </button>
+            </div>
+
+            {deckMessage && (
+              <div style={{ fontSize: 12, fontWeight: 600, color: deckMessage.type === "error" ? COLORS.error : COLORS.seal, marginBottom: 10 }}>
+                {deckMessage.text}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={saveDeck} className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 16px", fontSize: 13 }}>
+                {t("admin_deck_save", meaningDisplay)}
+              </button>
+              <button type="button" onClick={() => setEditingDeckId(null)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "8px 16px", fontSize: 13 }}>
+                {t("admin_deck_cancel", meaningDisplay)}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(decks || []).length === 0 ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("admin_deck_none", meaningDisplay)}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(decks || []).map((d) => (
+              <div key={d.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>📦 {d.name}</div>
+                  <div style={{ fontSize: 11, color: COLORS.metadata }}>{t("admin_deck_list_count", meaningDisplay, (d.lists || []).length)}</div>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button type="button" onClick={() => startEditDeck(d)} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5 }}>
+                    {t("admin_deck_edit", meaningDisplay)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteDeck(d.id)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "5px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
+                  >
+                    {t("admin_deck_delete", meaningDisplay)}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
