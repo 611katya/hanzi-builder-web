@@ -476,6 +476,11 @@ const UI_TEXT = {
   pricing_yes: { vi: "Có", en: "Yes" },
   pricing_no: { vi: "Không", en: "No" },
   pricing_tbd: { vi: "Sẽ cập nhật sau", en: "To be updated" },
+  pricing_lookup_explainer_title: { vi: "Lượt tra cứu được tính như thế nào?", en: "What counts as a lookup?" },
+  pricing_lookup_explainer_body: {
+    vi: "Một lượt tra cứu chỉ bị trừ khi bạn tra một chữ Hán hoặc từ vựng MỚI mà hệ thống AI của chúng tôi chưa từng phân tích trước đó. Nếu chữ hoặc từ đó đã có sẵn trong kho dữ liệu công khai (do chúng tôi hoặc người dùng khác đã thêm vào), bạn sẽ nhận được kết quả ngay lập tức và hoàn toàn miễn phí — không bị trừ vào số lượt tra cứu của bạn.",
+    en: "A lookup is only deducted when you look up a new character or word that our AI system hasn't already analyzed. If that character or word already exists in our shared public data (added by us or by another user), you get the result instantly and completely free — it does not use up any of your lookup allowance.",
+  },
   pricing_hsk12: { vi: "New HSK 1 & 2", en: "New HSK 1 & 2" },
   pricing_hsk34: { vi: "New HSK 3 & 4", en: "New HSK 3 & 4" },
   pricing_hsk5: { vi: "New HSK 5", en: "New HSK 5" },
@@ -6729,30 +6734,19 @@ function FeedbackTab({ meaningDisplay, userId }) {
 }
 
 function PremiumTab({ meaningDisplay }) {
-  const tiers = ["Free", "Silver", "Titan", "Gold", "Platinum"];
-  const lookups = { Free: "100", Silver: "500", Titan: "1,000", Gold: "2,000", Platinum: "5,000" };
-  const vocab = {
-    Free: t("pricing_free_vocab", meaningDisplay),
-    Silver: t("pricing_hsk12", meaningDisplay),
-    Titan: t("pricing_hsk12", meaningDisplay),
-    Gold: t("pricing_hsk34", meaningDisplay),
-    Platinum: t("pricing_hsk5", meaningDisplay),
-  };
+  const tiers = ["Free", "Premium"];
+  const lookups = { Free: "1,000", Premium: "5,000" };
   const ads = {
     Free: t("pricing_yes", meaningDisplay),
-    Silver: t("pricing_yes", meaningDisplay),
-    Titan: t("pricing_yes", meaningDisplay),
-    Gold: t("pricing_no", meaningDisplay),
-    Platinum: t("pricing_no", meaningDisplay),
+    Premium: t("pricing_no", meaningDisplay),
   };
   const rows = [
     { label: t("pricing_row_lookups", meaningDisplay), values: lookups },
-    { label: t("pricing_row_vocab", meaningDisplay), values: vocab },
     { label: t("pricing_row_ads", meaningDisplay), values: ads },
     { label: t("pricing_row_rate", meaningDisplay), values: Object.fromEntries(tiers.map((tier) => [tier, t("pricing_tbd", meaningDisplay)])) },
   ];
 
-  const tierColors = { Free: COLORS.metadata, Silver: "#7B8794", Titan: COLORS.seal, Gold: "#B8860B", Platinum: "#6B4C9A" };
+  const tierColors = { Free: COLORS.metadata, Premium: COLORS.seal };
   const cellStyle = { padding: "10px 12px", fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", borderBottom: `1px solid ${COLORS.hairline}` };
   const headStyle = { ...cellStyle, fontWeight: 700, fontSize: 13, borderBottom: "none" };
   const labelCellStyle = { ...cellStyle, textAlign: "left", fontWeight: 600, color: COLORS.ink };
@@ -6766,8 +6760,8 @@ function PremiumTab({ meaningDisplay }) {
         {t("pricing_message", meaningDisplay)}
       </div>
 
-      <div style={{ overflowX: "auto", marginBottom: 24 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
+      <div style={{ overflowX: "auto", marginBottom: 20 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", maxWidth: 380, margin: "0 auto" }}>
           <thead>
             <tr>
               <th style={{ ...headStyle, textAlign: "left" }}></th>
@@ -6802,6 +6796,15 @@ function PremiumTab({ meaningDisplay }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 12, padding: "16px 18px", marginBottom: 24 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+          {t("pricing_lookup_explainer_title", meaningDisplay)}
+        </div>
+        <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.6, textAlign: "justify" }}>
+          {t("pricing_lookup_explainer_body", meaningDisplay)}
+        </div>
       </div>
 
       <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
