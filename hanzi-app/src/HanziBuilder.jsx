@@ -1085,6 +1085,7 @@ function t(key, meaningDisplay, ...args) {
 // filtering by list still works correctly since the real name is unchanged.
 function displayListName(name, meaningDisplay) {
   if (meaningDisplay !== "en") return name;
+  if (name === "Chưa phân loại") return "Uncategorized";
   const range = name.match(/^(\d+)-(\d+) nét$/);
   if (range) return `${range[1]}-${range[2]} strokes`;
   const single = name.match(/^(\d+) nét$/);
@@ -2879,7 +2880,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_review_list", meaningDisplay, needsReview.length)}</option>
           {allLists.map((l) => (
             <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-              {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+              {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : displayListName(l, meaningDisplay)}
             </option>
           ))}
         </select>
@@ -3443,7 +3444,7 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
               <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("fc_all_lists", meaningDisplay)}</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : contentType === "radicals" ? displayListName(l, meaningDisplay) : l}
+                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : displayListName(l, meaningDisplay)}
                 </option>
               ))}
             </select>
@@ -4229,7 +4230,7 @@ function WritingPracticeTab({ characterList, bushouList, decks, isAdmin, checkLi
               <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("wp_all_lists", meaningDisplay)}</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : contentType === "radicals" ? displayListName(l, meaningDisplay) : l}
+                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : displayListName(l, meaningDisplay)}
                 </option>
               ))}
             </select>
@@ -4312,7 +4313,7 @@ function WritingPracticeTab({ characterList, bushouList, decks, isAdmin, checkLi
               <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("wp_all_lists", meaningDisplay)}</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : displayListName(l, meaningDisplay)}
                 </option>
               ))}
             </select>
@@ -8792,7 +8793,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
               <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
               {allLists.map((l) => (
                 <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+                  {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : displayListName(l, meaningDisplay)}
                 </option>
               ))}
             </select>
@@ -9024,7 +9025,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
                 }}
               >
                 {selectedLists.includes(l) ? "✓ " : ""}
-                {l}
+                {displayListName(l, meaningDisplay)}
               </button>
             ))}
           </div>
@@ -9458,7 +9459,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
             <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
             {allLists.map((l) => (
               <option key={l} value={l} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
-                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : l}
+                {!isAdmin && checkListAccess && !checkListAccess(l) ? `🔒 ${l}` : displayListName(l, meaningDisplay)}
               </option>
             ))}
           </select>
