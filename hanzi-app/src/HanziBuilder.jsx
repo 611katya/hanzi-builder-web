@@ -3308,7 +3308,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
             }
             setSelectedList(next);
           }}
-          style={{ ...selectStyle, width: 220, textAlign: "center", display: "inline-block" }}
+          style={{ ...selectStyle, width: 220, textAlign: "center", display: "inline-block", height: 44, boxSizing: "border-box" }}
         >
           <option value="Tất cả" style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_all_lists", meaningDisplay)}</option>
           <option value={REVIEW_LIST_VALUE} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>{t("play_review_list", meaningDisplay, needsReview.length)}</option>
@@ -3326,7 +3326,7 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           <select
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value)}
-            style={{ ...selectStyle, width: 140, textAlign: "center", display: "inline-block" }}
+            style={{ ...selectStyle, width: 140, textAlign: "center", display: "inline-block", height: 44, boxSizing: "border-box" }}
           >
             {DIFFICULTY_LEVELS.map((lvl) => (
               <option key={lvl.id} value={lvl.id} style={{ background: COLORS.chipBg, color: COLORS.ink, fontWeight: 700 }}>
@@ -3346,11 +3346,14 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
             color: "#FBF9EF",
             fontWeight: 700,
             fontSize: 14,
-            padding: "9px 16px",
-            lineHeight: "normal",
+            padding: "0 16px",
+            height: 44,
+            boxSizing: "border-box",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             cursor: "pointer",
             alignSelf: "flex-end",
-            boxSizing: "border-box",
           }}
         >
           + {t("tab_add", meaningDisplay)}
