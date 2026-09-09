@@ -411,9 +411,9 @@ const COLORS = {
 const UI_TEXT = {
   // Tab bar
   tab_home: { vi: "Trang chủ", en: "Home" },
-  home_headline: { vi: "Bạn muốn học Hán tự thế nào hôm nay?", en: "How do you want to study Hanzi today?" },
+  home_headline: { vi: "Bạn muốn học chữ Hán bằng cách nào?", en: "How do you want to study Hanzi today?" },
   home_subtext: {
-    vi: "Luyện tập bộ thủ, ôn flashcard, và rèn luyện viết tay — tất cả trong một nơi.",
+    vi: "Luyện tập bộ thủ, ôn flashcard, và luyện viết tay — tất cả tại đây.",
     en: "Practice radicals, review flashcards, and master handwriting — all in one place.",
   },
   home_signup_button: { vi: "Đăng ký miễn phí", en: "Sign up for free" },
@@ -2952,8 +2952,8 @@ function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
       if (!target || !a || !b) return;
       target.style.transition = "none";
       target.style.opacity = "0.2";
-      a.style.transition = "none"; a.style.left = "8px"; a.style.top = "56px"; a.style.fontSize = "20px"; a.style.opacity = "1";
-      b.style.transition = "none"; b.style.left = "72px"; b.style.top = "56px"; b.style.fontSize = "20px"; b.style.opacity = "1";
+      a.style.transition = "none"; a.style.left = "8px"; a.style.top = "56px"; a.style.fontSize = "18px"; a.style.opacity = "1";
+      b.style.transition = "none"; b.style.left = "50px"; b.style.top = "56px"; b.style.fontSize = "18px"; b.style.opacity = "1";
       decoys.forEach((d) => d && (d.style.opacity = "1"));
 
       const t1 = setTimeout(() => {
@@ -2989,11 +2989,13 @@ function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
       <div style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_play", meaningDisplay)}</div>
       <div style={{ position: "relative", height: 110 }}>
         <div ref={targetRef} style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 38, color: "#FBF9EF", opacity: 0.2, textAlign: "center", transition: "opacity 0.4s ease" }}>好</div>
-        <div ref={aRef} style={{ position: "absolute", top: 56, left: 8, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5", transition: "all 0.6s ease" }}>女</div>
-        <div ref={(el) => (decoyRefs.current[0] = el)} style={{ position: "absolute", top: 56, left: 40, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>木</div>
-        <div ref={bRef} style={{ position: "absolute", top: 56, left: 72, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5", transition: "all 0.6s ease" }}>子</div>
-        <div ref={(el) => (decoyRefs.current[1] = el)} style={{ position: "absolute", top: 56, left: 104, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>口</div>
-        <div ref={(el) => (decoyRefs.current[2] = el)} style={{ position: "absolute", top: 56, left: 136, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>水</div>
+        <div ref={aRef} style={{ position: "absolute", top: 56, left: 8, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5", transition: "all 0.6s ease" }}>女</div>
+        <div ref={(el) => (decoyRefs.current[0] = el)} style={{ position: "absolute", top: 56, left: 29, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>木</div>
+        <div ref={bRef} style={{ position: "absolute", top: 56, left: 50, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5", transition: "all 0.6s ease" }}>子</div>
+        <div ref={(el) => (decoyRefs.current[1] = el)} style={{ position: "absolute", top: 56, left: 71, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>口</div>
+        <div ref={(el) => (decoyRefs.current[2] = el)} style={{ position: "absolute", top: 56, left: 92, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>水</div>
+        <div ref={(el) => (decoyRefs.current[3] = el)} style={{ position: "absolute", top: 56, left: 113, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>手</div>
+        <div ref={(el) => (decoyRefs.current[4] = el)} style={{ position: "absolute", top: 56, left: 134, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>心</div>
       </div>
       <div style={{ fontSize: 11, color: "#E1F0F5" }}>{t("home_card_radicals_desc", meaningDisplay)}</div>
     </div>
