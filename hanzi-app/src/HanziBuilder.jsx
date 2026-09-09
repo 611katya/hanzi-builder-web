@@ -8782,8 +8782,9 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         🔍
       </button>
 
-      {(isAdmin || hasOverride || !isOfficial) && (
       <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
+        {(isAdmin || hasOverride || !isOfficial) && (
+        <>
         <button
           type="button"
           onClick={startEdit}
@@ -8815,8 +8816,12 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         >
           ✕
         </button>
+        </>
+        )}
+        {isOfficial && (
+          <SuggestRevisionButton contentType="word" itemKey={w.word} meaningDisplay={meaningDisplay} compact />
+        )}
       </div>
-      )}
 
       <div
         onClick={() => setZoomed(true)}
@@ -9368,8 +9373,10 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
         </button>
       )}
 
-      {mode !== "edit" && (isAdmin || hasOverride || !isOfficial) && (
+      {mode !== "edit" && (
         <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
+          {(isAdmin || hasOverride || !isOfficial) && (
+            <>
           <button
             type="button"
             onClick={startEdit}
@@ -9408,6 +9415,11 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           >
             ✕
           </button>
+            </>
+          )}
+          {isOfficial && (
+            <SuggestRevisionButton contentType="char" itemKey={c.char} meaningDisplay={meaningDisplay} compact />
+          )}
         </div>
       )}
 
@@ -9838,14 +9850,15 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay, isOfficial
 // A small, collapsible "flag an issue" control for shared/official cards.
 // Expands into a short message box in place, rather than opening another
 // modal on top of one that may already be open (e.g. inside a zoom modal).
-function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
+function SuggestRevisionButton({ contentType, itemKey, meaningDisplay, compact }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [isGuest, setIsGuest] = useState(null); // null = still checking
   const [status, setStatus] = useState("idle"); // idle | sending | done | error
 
-  async function handleOpen() {
+  async function handleOpen(e) {
+    if (e) e.stopPropagation();
     setOpen(true);
     const {
       data: { user },
@@ -9881,6 +9894,29 @@ function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
   }
 
   if (!open) {
+    if (compact) {
+      return (
+        <button
+          type="button"
+          onClick={handleOpen}
+          title={t("suggest_revision_button", meaningDisplay)}
+          style={{
+            width: 20,
+            height: 20,
+            lineHeight: "18px",
+            padding: 0,
+            fontSize: 11,
+            border: `1px solid ${COLORS.hairline}`,
+            borderRadius: "50%",
+            background: COLORS.chipBg,
+            color: COLORS.error,
+            cursor: "pointer",
+          }}
+        >
+          🚩
+        </button>
+      );
+    }
     return (
       <button
         type="button"
@@ -9893,11 +9929,29 @@ function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
   }
 
   if (status === "done") {
-    return <div style={{ fontSize: 11.5, color: COLORS.seal, fontWeight: 600 }}>{t("suggest_revision_thanks", meaningDisplay)}</div>;
+    return (
+      <div
+        style={
+          compact
+            ? { position: "absolute", top: 28, right: 6, zIndex: 5, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "8px 10px", width: 180, boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }
+            : {}
+        }
+      >
+        <div style={{ fontSize: 11.5, color: COLORS.seal, fontWeight: 600 }}>{t("suggest_revision_thanks", meaningDisplay)}</div>
+      </div>
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginTop: 4 }}>
+    <form
+      onSubmit={handleSubmit}
+      onClick={(e) => compact && e.stopPropagation()}
+      style={
+        compact
+          ? { position: "absolute", top: 28, right: 6, zIndex: 5, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "10px", width: 190, boxShadow: "0 2px 8px rgba(0,0,0,0.12)", textAlign: "left" }
+          : { marginTop: 4 }
+      }
+    >
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
