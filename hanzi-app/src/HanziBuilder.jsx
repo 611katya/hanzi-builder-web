@@ -3340,10 +3340,10 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
           type="button"
           onClick={goToAddNewCards}
           style={{
-            border: `1.5px solid ${COLORS.gold}`,
-            borderRadius: 999,
-            background: "transparent",
-            color: COLORS.gold,
+            border: `1px solid ${COLORS.gold}`,
+            borderRadius: 11,
+            background: COLORS.gold,
+            color: "#FBF9EF",
             fontWeight: 700,
             fontSize: 13,
             padding: "9px 16px",
