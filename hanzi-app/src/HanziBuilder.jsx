@@ -453,7 +453,7 @@ const UI_TEXT = {
     en: `Delete list "${n}"? The items inside won't be deleted, just removed from this list.`,
   }),
   mgmt_item_count: (n) => ({ vi: `${n} mục`, en: `${n} item${n === 1 ? "" : "s"}` }),
-  suggest_revision_button: { vi: "Đề xuất chỉnh sửa", en: "Suggest a revision" },
+  suggest_revision_button: { vi: "Đề xuất chỉnh sửa cho quản trị viên", en: "Suggest a revision to admin" },
   suggest_revision_placeholder: { vi: "Thông tin này sai hoặc thiếu điều gì?", en: "What's wrong or missing here?" },
   suggest_revision_submit: { vi: "Gửi đề xuất", en: "Submit" },
   suggest_revision_thanks: { vi: "Cảm ơn bạn! Chúng tôi sẽ xem xét.", en: "Thanks! We'll take a look." },
@@ -565,7 +565,8 @@ const UI_TEXT = {
   admin_lib_words_title: { vi: "Từ vựng của họ", en: "Their Words" },
   admin_lib_bushou_title: { vi: "Bộ thủ của họ", en: "Their Radicals" },
   admin_lib_decks_title: { vi: "Bộ sưu tập của họ", en: "Their Decks" },
-  admin_lib_lists_in: { vi: "Danh sách:", en: "Lists:" },
+  admin_lib_lists_in: { vi: "Danh sách:", en: "List:" },
+  admin_lib_unlisted: { vi: "Chưa phân loại", en: "Not in any list" },
   admin_nav_suggestions: { vi: "Đề xuất", en: "Suggestions" },
   admin_suggestions_title: { vi: "Đề xuất chỉnh sửa từ người dùng", en: "User Revision Suggestions" },
   admin_suggestion_filter_all: { vi: "Tất cả", en: "All" },
@@ -8031,64 +8032,106 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                   { type: "word", title: t("admin_lib_words_title", meaningDisplay), data: libUserWords },
                   { type: "bushou", title: t("admin_lib_bushou_title", meaningDisplay), data: libUserBushou },
                 ].map(({ type, title, data }) => {
-                  const listNames = Array.from(new Set((data || []).flatMap((item) => item.lists || [])));
+                  const listNames = Array.from(new Set((data || []).flatMap((item) => item.lists || []))).sort((a, b) => {
+                    if (type === "bushou") {
+                      const numA = parseInt(a, 10);
+                      const numB = parseInt(b, 10);
+                      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+                    }
+                    return a.localeCompare(b, "vi");
+                  });
+                  const unlisted = (data || []).filter((item) => !item.lists || item.lists.length === 0);
                   return (
                     <div key={type} style={{ marginBottom: 26 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
                         {title}
                       </div>
                       {(!data || data.length === 0) ? (
                         <div style={{ fontSize: 12.5, color: COLORS.inkSoft }}>{t("admin_lib_no_content", meaningDisplay)}</div>
                       ) : (
                         <>
-                          {listNames.length > 0 && (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, alignItems: "center" }}>
-                              <span style={{ fontSize: 11.5, color: COLORS.inkSoft }}>{t("admin_lib_lists_in", meaningDisplay)}</span>
-                              {listNames.map((l) => (
-                                <button
-                                  key={l}
-                                  type="button"
-                                  onClick={() => copyList(type, l)}
-                                  title={t("admin_lib_copy_list", meaningDisplay)}
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 600,
-                                    color: COLORS.seal,
-                                    background: COLORS.chipBg,
-                                    border: `1px solid ${COLORS.hairline}`,
-                                    borderRadius: 999,
-                                    padding: "3px 10px",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  {type === "bushou" ? displayListName(l, meaningDisplay) : l} ⬇
-                                </button>
-                              ))}
+                          {listNames.map((listName) => {
+                            const itemsInList = data.filter((item) => (item.lists || []).includes(listName));
+                            return (
+                              <div key={listName} style={{ marginBottom: 14 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.seal }}>
+                                    {t("admin_lib_lists_in", meaningDisplay)} {type === "bushou" ? displayListName(listName, meaningDisplay) : listName}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyList(type, listName)}
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      color: COLORS.seal,
+                                      background: COLORS.chipBg,
+                                      border: `1px solid ${COLORS.hairline}`,
+                                      borderRadius: 999,
+                                      padding: "3px 10px",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    {t("admin_lib_copy_list", meaningDisplay)}
+                                  </button>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                  {itemsInList.map((item) => (
+                                    <div
+                                      key={item.char || item.word}
+                                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}
+                                    >
+                                      <div style={{ fontSize: 12.5, color: COLORS.ink }}>
+                                        <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontWeight: 700, marginRight: 6 }}>
+                                          {item.char || item.word}
+                                        </span>
+                                        {item.pinyin} · {item.meaning}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => copyItem(type, item)}
+                                        className="ghost-btn"
+                                        style={{ ...ghostBtnStyle, padding: "3px 10px", fontSize: 11 }}
+                                      >
+                                        {t("admin_lib_copy", meaningDisplay)}
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {unlisted.length > 0 && (
+                            <div style={{ marginBottom: 14 }}>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.metadata, marginBottom: 6 }}>
+                                {t("admin_lib_unlisted", meaningDisplay)}
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                {unlisted.map((item) => (
+                                  <div
+                                    key={item.char || item.word}
+                                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}
+                                  >
+                                    <div style={{ fontSize: 12.5, color: COLORS.ink }}>
+                                      <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontWeight: 700, marginRight: 6 }}>
+                                        {item.char || item.word}
+                                      </span>
+                                      {item.pinyin} · {item.meaning}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyItem(type, item)}
+                                      className="ghost-btn"
+                                      style={{ ...ghostBtnStyle, padding: "3px 10px", fontSize: 11 }}
+                                    >
+                                      {t("admin_lib_copy", meaningDisplay)}
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            {data.map((item) => (
-                              <div
-                                key={item.char || item.word}
-                                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}
-                              >
-                                <div style={{ fontSize: 12.5, color: COLORS.ink }}>
-                                  <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontWeight: 700, marginRight: 6 }}>
-                                    {item.char || item.word}
-                                  </span>
-                                  {item.pinyin} · {item.meaning}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => copyItem(type, item)}
-                                  className="ghost-btn"
-                                  style={{ ...ghostBtnStyle, padding: "3px 10px", fontSize: 11 }}
-                                >
-                                  {t("admin_lib_copy", meaningDisplay)}
-                                </button>
-                              </div>
-                            ))}
-                          </div>
                         </>
                       )}
                     </div>
