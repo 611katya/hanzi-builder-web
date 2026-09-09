@@ -432,7 +432,7 @@ const UI_TEXT = {
     vi: "Xem bảng giá chi tiết trong mục Bảng giá. Nhấn nút bên dưới để yêu cầu nâng cấp.",
     en: "See full tier details on the Pricing page. Click below to request an upgrade.",
   },
-  mgmt_upgrade_button: { vi: "Yêu cầu nâng cấp", en: "Request Upgrade" },
+  mgmt_upgrade_button: { vi: "Nâng cấp lên Premium", en: "Upgrade to Premium" },
   mgmt_my_decks_title: { vi: "Bộ sưu tập của tôi", en: "My Decks" },
   mgmt_my_lists_title: { vi: "Danh sách của tôi", en: "My Lists" },
   mgmt_lists_description: {
@@ -9841,15 +9841,25 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay, isOfficial
 function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [isGuest, setIsGuest] = useState(null); // null = still checking
   const [status, setStatus] = useState("idle"); // idle | sending | done | error
+
+  async function handleOpen() {
+    setOpen(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    setIsGuest(!user);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!message.trim()) return;
     setStatus("sending");
     try {
-      // Signed-in users' email comes straight from their account, not a
-      // manually-typed field -- guests submit with no email attached.
+      // Signed-in users' email comes straight from their account. Guests
+      // get an optional field, since there's no account email to pull.
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -9857,12 +9867,13 @@ function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
         content_type: contentType,
         item_key: itemKey,
         message: message.trim(),
-        email: user ? user.email : null,
+        email: user ? user.email : guestEmail.trim() || null,
         user_id: user ? user.id : null,
       });
       if (error) throw error;
       setStatus("done");
       setMessage("");
+      setGuestEmail("");
     } catch (err) {
       console.error("Could not submit suggestion:", err);
       setStatus("error");
@@ -9873,7 +9884,7 @@ function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         style={{ background: "none", border: "none", color: COLORS.metadata, fontSize: 11, cursor: "pointer", padding: 0, textDecoration: "underline" }}
       >
         🚩 {t("suggest_revision_button", meaningDisplay)}
@@ -9892,8 +9903,16 @@ function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
         onChange={(e) => setMessage(e.target.value)}
         placeholder={t("suggest_revision_placeholder", meaningDisplay)}
         rows={2}
-        style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, resize: "vertical", marginBottom: 6 }}
+        style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, resize: "vertical", marginBottom: isGuest ? 4 : 6 }}
       />
+      {isGuest && (
+        <input
+          value={guestEmail}
+          onChange={(e) => setGuestEmail(e.target.value)}
+          placeholder={t("feedback_email_placeholder", meaningDisplay)}
+          style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, marginBottom: 6 }}
+        />
+      )}
       <div style={{ display: "flex", gap: 6 }}>
         <button type="submit" className="seal-btn" style={{ ...sealBtnStyle, padding: "4px 12px", fontSize: 11.5 }} disabled={status === "sending"}>
           {status === "sending" ? t("feedback_sending", meaningDisplay) : t("suggest_revision_submit", meaningDisplay)}
@@ -10170,24 +10189,7 @@ function AccountManagementTab({ tier, lookupCount, lookupLimit, courseName, mean
           <div style={{ fontSize: 13, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16, lineHeight: 1.6 }}>
             {t("mgmt_upgrade_body", meaningDisplay)}
           </div>
-          <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-            {higherTiers.map((tName) => (
-              <div
-                key={tName}
-                style={{
-                  border: `1.5px solid ${COLORS.seal}`,
-                  borderRadius: 10,
-                  padding: "8px 16px",
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  color: COLORS.seal,
-                }}
-              >
-                {tName}
-              </div>
-            ))}
-          </div>
-          <div style={{ textAlign: "center", marginTop: 18 }}>
+          <div style={{ textAlign: "center" }}>
             <a
               href="mailto:hello@minouq.com?subject=Upgrade%20request"
               className="seal-btn"
