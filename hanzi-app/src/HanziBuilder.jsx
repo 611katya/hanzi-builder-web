@@ -3345,10 +3345,12 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
             background: COLORS.gold,
             color: "#FBF9EF",
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 14,
             padding: "9px 16px",
+            lineHeight: "normal",
             cursor: "pointer",
             alignSelf: "flex-end",
+            boxSizing: "border-box",
           }}
         >
           + {t("tab_add", meaningDisplay)}
