@@ -410,6 +410,20 @@ const COLORS = {
    ============================================================ */
 const UI_TEXT = {
   // Tab bar
+  tab_home: { vi: "Trang chủ", en: "Home" },
+  home_headline: { vi: "Bạn muốn học Hán tự thế nào hôm nay?", en: "How do you want to study Hanzi today?" },
+  home_subtext: {
+    vi: "Luyện tập bộ thủ, ôn flashcard, và rèn luyện viết tay — tất cả trong một nơi.",
+    en: "Practice radicals, review flashcards, and master handwriting — all in one place.",
+  },
+  home_signup_button: { vi: "Đăng ký miễn phí", en: "Sign up for free" },
+  home_status_lookups: (used, limit) => ({ vi: `${used}/${limit} lượt tra cứu đã dùng kỳ này`, en: `${used}/${limit} lookups used this period` }),
+  home_card_radicals_desc: { vi: "Ghép chữ từ bộ thủ →", en: "Build characters from parts →" },
+  home_card_flashcards_desc: { vi: "Ôn tập theo phương pháp lặp lại →", en: "Spaced-repetition review →" },
+  home_card_writing_desc: { vi: "Luyện thứ tự nét bút →", en: "Practice stroke order →" },
+  home_hw_step_trace: { vi: "1. Nối điểm", en: "1. Trace" },
+  home_hw_step_recall: { vi: "2. Nhớ lại", en: "2. Recall" },
+  home_hw_step_reveal: { vi: "3. Đáp án", en: "3. Reveal" },
   tab_play: { vi: "Ghép bộ thủ", en: "Combine Radicals" },
   tab_flashcards: { vi: "Flashcard", en: "Flashcards" },
   tab_writing: { vi: "✍️ Luyện viết", en: "✍️ Handwriting" },
@@ -1840,7 +1854,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const [deletedChars, setDeletedChars] = useState([]);
   const [needsReview, setNeedsReview] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState("play");
+  const [tab, setTab] = useState("home");
 
   // The shared default data, loaded from Supabase for EVERYONE (including
   // guests, via public SELECT policies) so admin corrections go live for
@@ -2482,6 +2496,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         .rich-text-editor:empty:before { content: attr(data-placeholder); color: ${COLORS.metadata}; }
         .rich-text-editor a { color: ${COLORS.seal}; }
         .cjk-enhanced { font-family: 'KaiTi', 'STKaiti', 'Kaiti SC', 'Noto Serif SC', serif; font-size: 1.2em; }
+        .home-feature-card { cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+        .home-feature-card:hover { transform: scale(1.05); box-shadow: 0 6px 18px rgba(0,0,0,0.15); }
         ::selection { background: ${COLORS.gold}55; }
         @media (max-width: 480px) {
           .field-row { flex-direction: column; align-items: flex-start !important; gap: 4px !important; }
@@ -2508,6 +2524,16 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 
         {!loaded ? (
           <div style={{ textAlign: "center", padding: 60, color: COLORS.inkSoft }}>{t("loading", meaningDisplay)}</div>
+        ) : tab === "home" ? (
+          <HomeTab
+            setTab={setTab}
+            userId={userId}
+            tier={tier}
+            lookupCount={lookupCount}
+            lookupLimit={lookupLimit}
+            onRequireAuth={onRequireAuth}
+            meaningDisplay={meaningDisplay}
+          />
         ) : tab === "play" ? (
           <PlayTab
             characterList={characterList}
@@ -2786,6 +2812,7 @@ function MeaningDisplayToggle({ value, onChange }) {
 
 function Tabs({ tab, setTab, isAdmin, meaningDisplay, unreadForUser, unreadForAdmin }) {
   const items = [
+    { id: "home", label: t("tab_home", meaningDisplay) },
     { id: "play", label: t("tab_play", meaningDisplay) },
     { id: "flashcards", label: t("tab_flashcards", meaningDisplay) },
     { id: "writing", label: t("tab_writing", meaningDisplay) },
@@ -2854,6 +2881,315 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay, unreadForUser, unreadForAd
 
 /* ================= PLAY TAB ================= */
 const REVIEW_LIST_VALUE = "__needs_review__";
+
+function HomeTab({ setTab, userId, tier, lookupCount, lookupLimit, onRequireAuth, meaningDisplay }) {
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontSize: 30, fontWeight: 800, color: COLORS.ink, lineHeight: 1.25, marginBottom: 12 }}>
+        {t("home_headline", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 14.5, color: COLORS.inkSoft, maxWidth: 420, margin: "0 auto 22px", lineHeight: 1.6 }}>
+        {t("home_subtext", meaningDisplay)}
+      </div>
+
+      {!userId ? (
+        <button
+          type="button"
+          onClick={() => onRequireAuth && onRequireAuth()}
+          style={{
+            background: COLORS.seal,
+            color: "#FBF9EF",
+            border: "none",
+            borderRadius: 999,
+            padding: "11px 30px",
+            fontSize: 14.5,
+            fontWeight: 700,
+            cursor: "pointer",
+            marginBottom: 32,
+          }}
+        >
+          {t("home_signup_button", meaningDisplay)}
+        </button>
+      ) : (
+        <div style={{ marginBottom: 32 }}>
+          <span
+            style={{
+              display: "inline-block",
+              border: `1px solid ${COLORS.grid}`,
+              borderRadius: 999,
+              padding: "7px 16px",
+              fontSize: 12.5,
+              color: COLORS.inkSoft,
+            }}
+          >
+            <span style={{ fontWeight: 700, color: COLORS.seal }}>{tier || "Free"}</span>
+            {" · "}
+            {t("home_status_lookups", meaningDisplay, lookupCount ?? 0, lookupLimit ?? 1000)}
+          </span>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
+        <CombineRadicalsPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
+        <FlashcardsPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
+        <HandwritingPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
+      </div>
+    </div>
+  );
+}
+
+function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
+  const targetRef = useRef(null);
+  const aRef = useRef(null);
+  const bRef = useRef(null);
+  const decoyRefs = useRef([]);
+
+  useEffect(() => {
+    const CYCLE = 8200;
+    function run() {
+      const target = targetRef.current, a = aRef.current, b = bRef.current;
+      const decoys = decoyRefs.current;
+      if (!target || !a || !b) return;
+      target.style.transition = "none";
+      target.style.opacity = "0.2";
+      a.style.transition = "none"; a.style.left = "0px"; a.style.top = "56px"; a.style.fontSize = "20px"; a.style.opacity = "1";
+      b.style.transition = "none"; b.style.left = "64px"; b.style.top = "56px"; b.style.fontSize = "20px"; b.style.opacity = "1";
+      decoys.forEach((d) => d && (d.style.opacity = "1"));
+
+      const t1 = setTimeout(() => {
+        a.style.transition = "all 0.7s ease"; b.style.transition = "all 0.7s ease";
+        a.style.left = "65px"; a.style.top = "6px"; a.style.fontSize = "18px";
+        b.style.left = "92px"; b.style.top = "6px"; b.style.fontSize = "18px";
+        decoys.forEach((d) => { if (d) { d.style.transition = "opacity 0.5s ease"; d.style.opacity = "0.35"; } });
+      }, 900);
+      const t2 = setTimeout(() => {
+        a.style.opacity = "0"; b.style.opacity = "0";
+        target.style.transition = "opacity 0.4s ease"; target.style.opacity = "1";
+      }, 1900);
+      const t3 = setTimeout(() => decoys.forEach((d) => d && (d.style.opacity = "1")), 5200);
+      return [t1, t2, t3];
+    }
+    let timeouts = run();
+    const interval = setInterval(() => {
+      timeouts.forEach(clearTimeout);
+      timeouts = run();
+    }, CYCLE);
+    return () => {
+      clearInterval(interval);
+      timeouts.forEach(clearTimeout);
+    };
+  }, []);
+
+  return (
+    <div
+      className="home-feature-card"
+      onClick={() => setTab("play")}
+      style={{ background: COLORS.seal, borderRadius: 14, padding: 18, height: 220, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_play", meaningDisplay)}</div>
+      <div style={{ position: "relative", height: 110 }}>
+        <div ref={targetRef} style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 38, color: "#FBF9EF", opacity: 0.2, textAlign: "center", transition: "opacity 0.4s ease" }}>好</div>
+        <div ref={aRef} style={{ position: "absolute", top: 56, left: 0, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5", transition: "all 0.6s ease" }}>女</div>
+        <div ref={(el) => (decoyRefs.current[0] = el)} style={{ position: "absolute", top: 56, left: 32, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>木</div>
+        <div ref={bRef} style={{ position: "absolute", top: 56, left: 64, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5", transition: "all 0.6s ease" }}>子</div>
+        <div ref={(el) => (decoyRefs.current[1] = el)} style={{ position: "absolute", top: 56, left: 96, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>口</div>
+        <div ref={(el) => (decoyRefs.current[2] = el)} style={{ position: "absolute", top: 56, left: 128, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>水</div>
+      </div>
+      <div style={{ fontSize: 11, color: "#E1F0F5" }}>{t("home_card_radicals_desc", meaningDisplay)}</div>
+    </div>
+  );
+}
+
+function FlashcardsPreviewCard({ setTab, meaningDisplay }) {
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    const CYCLE = 8200;
+    function run() {
+      const c = cardRef.current;
+      if (!c) return;
+      c.style.transform = "rotateY(180deg)";
+      const timeout = setTimeout(() => { c.style.transform = "rotateY(0deg)"; }, 4500);
+      return timeout;
+    }
+    let timeout = run();
+    const interval = setInterval(() => {
+      clearTimeout(timeout);
+      timeout = run();
+    }, CYCLE);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  return (
+    <div
+      className="home-feature-card"
+      onClick={() => setTab("flashcards")}
+      style={{ background: "#54697A", borderRadius: 14, padding: 18, height: 220, display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_flashcards", meaningDisplay)}</div>
+      <div style={{ display: "flex", justifyContent: "center", perspective: 400 }}>
+        <div ref={cardRef} style={{ width: 74, height: 56, position: "relative", transformStyle: "preserve-3d", transition: "transform 0.7s ease" }}>
+          <div style={{ position: "absolute", inset: 0, background: "#FBF9EF", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", backfaceVisibility: "hidden", fontSize: 11, color: "#3A4A56", fontWeight: 700 }}>hǎo</div>
+          <div style={{ position: "absolute", inset: 0, background: "#FBF9EF", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", backfaceVisibility: "hidden", transform: "rotateY(180deg)", fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 26, color: "#3A4A56" }}>好</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: "#E3E9EC" }}>{t("home_card_flashcards_desc", meaningDisplay)}</div>
+    </div>
+  );
+}
+
+function HandwritingPreviewCard({ setTab, meaningDisplay }) {
+  const labelRef = useRef(null);
+  const dotsRef = useRef(null);
+  const svgRef = useRef(null);
+  const glyphRef = useRef(null);
+  const strokeRefs = useRef({});
+  const dashLen = { 1: "34.5", 2: "24.5", 3: "33.5", 4: "40.5" };
+
+  useEffect(() => {
+    const CYCLE = 8200;
+
+    function setRef(prefix, n, el) {
+      strokeRefs.current[`${prefix}-${n}`] = el;
+    }
+    function getRef(prefix, n) {
+      return strokeRefs.current[`${prefix}-${n}`];
+    }
+
+    function resetAll() {
+      if (dotsRef.current) dotsRef.current.style.opacity = "0";
+      if (svgRef.current) svgRef.current.style.opacity = "1";
+      if (glyphRef.current) glyphRef.current.style.opacity = "0";
+      ["trace", "recall", "reveal"].forEach((p) => {
+        [1, 2, 3, 4].forEach((n) => {
+          const el = getRef(p, n);
+          if (!el) return;
+          el.style.transition = "none";
+          el.style.opacity = "0";
+          el.style.strokeDashoffset = dashLen[n];
+        });
+      });
+    }
+
+    function drawSet(prefix, startDelay, gap, dur, timeouts) {
+      [1, 2, 3, 4].forEach((n, i) => {
+        const el = getRef(prefix, n);
+        if (!el) return;
+        timeouts.push(
+          setTimeout(() => {
+            el.style.opacity = "1";
+            el.style.transition = `stroke-dashoffset ${dur}ms ease`;
+            void el.getBoundingClientRect();
+            el.style.strokeDashoffset = "0";
+          }, startDelay + i * gap)
+        );
+      });
+    }
+    function fadeOut(prefix) {
+      [1, 2, 3, 4].forEach((n) => {
+        const el = getRef(prefix, n);
+        if (el) el.style.opacity = "0";
+      });
+    }
+
+    function run() {
+      resetAll();
+      const timeouts = [];
+      if (labelRef.current) labelRef.current.textContent = t("home_hw_step_trace", meaningDisplay);
+      if (dotsRef.current) dotsRef.current.style.opacity = "1";
+      drawSet("trace", 300, 500, 420, timeouts);
+
+      timeouts.push(
+        setTimeout(() => {
+          if (labelRef.current) labelRef.current.textContent = t("home_hw_step_recall", meaningDisplay);
+          if (dotsRef.current) dotsRef.current.style.opacity = "0";
+          fadeOut("trace");
+        }, 2500)
+      );
+      timeouts.push(setTimeout(() => drawSet("recall", 0, 500, 420, timeouts), 2900));
+      timeouts.push(
+        setTimeout(() => {
+          if (labelRef.current) labelRef.current.textContent = t("home_hw_step_reveal", meaningDisplay);
+          fadeOut("recall");
+          drawSet("reveal", 0, 280, 250, timeouts);
+        }, 5300)
+      );
+      timeouts.push(
+        setTimeout(() => {
+          if (svgRef.current) svgRef.current.style.opacity = "0";
+          if (glyphRef.current) glyphRef.current.style.opacity = "1";
+        }, 6700)
+      );
+      return timeouts;
+    }
+
+    let timeouts = run();
+    const interval = setInterval(() => {
+      timeouts.forEach(clearTimeout);
+      timeouts = run();
+    }, CYCLE);
+    return () => {
+      clearInterval(interval);
+      timeouts.forEach(clearTimeout);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meaningDisplay]);
+
+  const strokePaths = {
+    1: "M13 14 Q20 13 30 14 Q40 15 47 13",
+    2: "M18 30 Q25 29 30 30 Q35 31 42 29",
+    3: "M30 14 Q29 23 31 30 Q31 38 29 47",
+    4: "M10 47 Q22 46 30 47 Q40 48 50 46",
+  };
+  const dots = [
+    [13, 14], [47, 13],
+    [18, 30], [42, 29],
+    [30, 14], [29, 47],
+    [10, 47], [50, 46],
+  ];
+
+  return (
+    <div
+      className="home-feature-card"
+      onClick={() => setTab("writing")}
+      style={{ background: "#445566", borderRadius: 14, padding: 18, height: 220, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_writing", meaningDisplay)}</span>
+        <span ref={labelRef} style={{ fontSize: 10, color: "#DCE3E8" }}>{t("home_hw_step_trace", meaningDisplay)}</span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "center", position: "relative", height: 90, alignItems: "center" }}>
+        <svg ref={svgRef} width="70" height="70" viewBox="0 0 60 60">
+          <g ref={dotsRef} opacity="0">
+            {dots.map(([cx, cy], i) => (
+              <circle key={i} cx={cx} cy={cy} r="2.2" fill="#FBF9EF" />
+            ))}
+          </g>
+          {["trace", "recall", "reveal"].map((prefix) =>
+            [1, 2, 3, 4].map((n) => (
+              <path
+                key={`${prefix}-${n}`}
+                ref={(el) => setRef(prefix, n, el)}
+                d={strokePaths[n]}
+                fill="none"
+                stroke={prefix === "trace" ? "#FBF9EF" : prefix === "recall" ? "#C8CDD2" : "#7FB8D8"}
+                strokeWidth="3.4"
+                strokeLinecap="round"
+                strokeDasharray={dashLen[n]}
+                opacity="0"
+              />
+            ))
+          )}
+        </svg>
+        <div ref={glyphRef} style={{ position: "absolute", fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 46, color: "#FBF9EF", opacity: 0, transition: "opacity 0.5s ease" }}>王</div>
+      </div>
+      <div style={{ fontSize: 11, color: "#DCE3E8" }}>{t("home_card_writing_desc", meaningDisplay)}</div>
+    </div>
+  );
+}
 
 function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview, isAdmin, checkListAccess, onViewPremium, meaningDisplay }) {
   const [round, setRound] = useState(null); // { target, palette: [{id,char}] }
