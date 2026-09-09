@@ -2952,8 +2952,8 @@ function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
       if (!target || !a || !b) return;
       target.style.transition = "none";
       target.style.opacity = "0.2";
-      a.style.transition = "none"; a.style.left = "0px"; a.style.top = "56px"; a.style.fontSize = "20px"; a.style.opacity = "1";
-      b.style.transition = "none"; b.style.left = "64px"; b.style.top = "56px"; b.style.fontSize = "20px"; b.style.opacity = "1";
+      a.style.transition = "none"; a.style.left = "8px"; a.style.top = "56px"; a.style.fontSize = "20px"; a.style.opacity = "1";
+      b.style.transition = "none"; b.style.left = "72px"; b.style.top = "56px"; b.style.fontSize = "20px"; b.style.opacity = "1";
       decoys.forEach((d) => d && (d.style.opacity = "1"));
 
       const t1 = setTimeout(() => {
@@ -2989,11 +2989,11 @@ function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
       <div style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_play", meaningDisplay)}</div>
       <div style={{ position: "relative", height: 110 }}>
         <div ref={targetRef} style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 38, color: "#FBF9EF", opacity: 0.2, textAlign: "center", transition: "opacity 0.4s ease" }}>好</div>
-        <div ref={aRef} style={{ position: "absolute", top: 56, left: 0, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5", transition: "all 0.6s ease" }}>女</div>
-        <div ref={(el) => (decoyRefs.current[0] = el)} style={{ position: "absolute", top: 56, left: 32, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>木</div>
-        <div ref={bRef} style={{ position: "absolute", top: 56, left: 64, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5", transition: "all 0.6s ease" }}>子</div>
-        <div ref={(el) => (decoyRefs.current[1] = el)} style={{ position: "absolute", top: 56, left: 96, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>口</div>
-        <div ref={(el) => (decoyRefs.current[2] = el)} style={{ position: "absolute", top: 56, left: 128, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>水</div>
+        <div ref={aRef} style={{ position: "absolute", top: 56, left: 8, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5", transition: "all 0.6s ease" }}>女</div>
+        <div ref={(el) => (decoyRefs.current[0] = el)} style={{ position: "absolute", top: 56, left: 40, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>木</div>
+        <div ref={bRef} style={{ position: "absolute", top: 56, left: 72, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5", transition: "all 0.6s ease" }}>子</div>
+        <div ref={(el) => (decoyRefs.current[1] = el)} style={{ position: "absolute", top: 56, left: 104, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>口</div>
+        <div ref={(el) => (decoyRefs.current[2] = el)} style={{ position: "absolute", top: 56, left: 136, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: "#E1F0F5" }}>水</div>
       </div>
       <div style={{ fontSize: 11, color: "#E1F0F5" }}>{t("home_card_radicals_desc", meaningDisplay)}</div>
     </div>
@@ -3030,10 +3030,10 @@ function FlashcardsPreviewCard({ setTab, meaningDisplay }) {
       style={{ background: "#54697A", borderRadius: 14, padding: 18, height: 220, display: "flex", flexDirection: "column", justifyContent: "space-between" }}
     >
       <div style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_flashcards", meaningDisplay)}</div>
-      <div style={{ display: "flex", justifyContent: "center", perspective: 400 }}>
-        <div ref={cardRef} style={{ width: 74, height: 56, position: "relative", transformStyle: "preserve-3d", transition: "transform 0.7s ease" }}>
-          <div style={{ position: "absolute", inset: 0, background: "#FBF9EF", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", backfaceVisibility: "hidden", fontSize: 11, color: "#3A4A56", fontWeight: 700 }}>hǎo</div>
-          <div style={{ position: "absolute", inset: 0, background: "#FBF9EF", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", backfaceVisibility: "hidden", transform: "rotateY(180deg)", fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 26, color: "#3A4A56" }}>好</div>
+      <div style={{ display: "flex", justifyContent: "center", perspective: 500 }}>
+        <div ref={cardRef} style={{ width: 108, height: 82, position: "relative", transformStyle: "preserve-3d", transition: "transform 0.7s ease" }}>
+          <div style={{ position: "absolute", inset: 0, background: "#FBF9EF", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", backfaceVisibility: "hidden", fontSize: 16, color: "#3A4A56", fontWeight: 700 }}>hǎo</div>
+          <div style={{ position: "absolute", inset: 0, background: "#FBF9EF", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", backfaceVisibility: "hidden", transform: "rotateY(180deg)", fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 38, color: "#3A4A56" }}>好</div>
         </div>
       </div>
       <div style={{ fontSize: 11, color: "#E3E9EC" }}>{t("home_card_flashcards_desc", meaningDisplay)}</div>
