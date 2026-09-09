@@ -701,6 +701,7 @@ const UI_TEXT = {
   admin_no_one_can_view: { vi: "Không ai được xem", en: "No one can view" },
   admin_no_lists_yet: { vi: "Chưa có danh sách nào.", en: "No lists yet." },
   admin_feedback_delete: { vi: "Xóa", en: "Delete" },
+  admin_feedback_mark_read: { vi: "Đánh dấu đã đọc", en: "Mark Read" },
   feedback_submit: { vi: "Gửi góp ý", en: "Submit Feedback" },
   feedback_sending: { vi: "Đang gửi…", en: "Sending…" },
   feedback_success: { vi: "Cảm ơn bạn đã góp ý!", en: "Thank you for your feedback!" },
@@ -7528,7 +7529,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     setFeedbackLoading(true);
     const { data, error } = await supabase
       .from("feedback")
-      .select("id, message, email, user_id, created_at")
+      .select("id, message, email, user_id, read, created_at")
       .order("created_at", { ascending: false });
     if (error) {
       setFeedbackLoading(false);
@@ -7545,6 +7546,11 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     }
     setFeedbackList(rows.map((f) => ({ ...f, accountEmail: f.user_id ? accountEmails[f.user_id] : null })));
     setFeedbackLoading(false);
+  }
+
+  async function markFeedbackRead(id) {
+    const { error } = await supabase.from("feedback").update({ read: true }).eq("id", id);
+    if (!error) setFeedbackList((prev) => prev.map((f) => (f.id === id ? { ...f, read: true } : f)));
   }
 
   async function handleDeleteFeedback(id) {
@@ -7743,16 +7749,6 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     { id: "comments", label: t("admin_nav_comments", meaningDisplay), badge: adminBadges?.comments },
     { id: "messages", label: t("admin_nav_messages", meaningDisplay), badge: adminBadges?.messages },
   ];
-
-  useEffect(() => {
-    // Feedback has no per-item status workflow like suggestions/comments,
-    // so viewing the section is what clears its badge -- mark everything
-    // read the moment the admin actually opens it, not on initial panel
-    // mount (which fetches feedback regardless of which section is active).
-    if (adminSection === "feedback") {
-      supabase.from("feedback").update({ read: true }).eq("read", false);
-    }
-  }, [adminSection]);
 
   return (
     <div className="side-nav-layout" style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
@@ -8194,7 +8190,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {feedbackList.map((f) => (
-              <div key={f.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "14px 16px" }}>
+              <div key={f.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderLeft: `3px solid ${f.read ? COLORS.metadata : COLORS.error}`, borderRadius: 11, padding: "14px 16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.seal }}>
                     {f.accountEmail
@@ -8212,14 +8208,26 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                   <div style={{ fontSize: 11.5, color: COLORS.metadata, marginBottom: 6 }}>{t("admin_feedback_no_email", meaningDisplay)}</div>
                 )}
                 <div style={{ fontSize: 13.5, color: COLORS.ink, lineHeight: 1.5, marginBottom: 8, whiteSpace: "pre-wrap" }}>{f.message}</div>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteFeedback(f.id)}
-                  className="ghost-btn"
-                  style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
-                >
-                  {t("admin_feedback_delete", meaningDisplay)}
-                </button>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {!f.read && (
+                    <button
+                      type="button"
+                      onClick={() => markFeedbackRead(f.id)}
+                      className="ghost-btn"
+                      style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, borderColor: COLORS.seal, color: COLORS.seal }}
+                    >
+                      {t("admin_feedback_mark_read", meaningDisplay)}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteFeedback(f.id)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
+                  >
+                    {t("admin_feedback_delete", meaningDisplay)}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
