@@ -491,7 +491,7 @@ const UI_TEXT = {
     vi: "Ngoài các gói thành viên, chúng tôi cũng tổ chức các khóa học với bộ từ vựng được biên soạn riêng cho từng khóa. Nếu bạn đang theo học một khóa cụ thể, tài khoản của bạn sẽ được cấp quyền truy cập vào danh sách từ vựng riêng của khóa đó.",
     en: "Beyond the standard tiers, we also run dedicated courses with vocabulary lists curated specifically for each one. If you're enrolled in a particular course, your account is granted access to that course's own vocabulary lists.",
   },
-  footer_copyright: { vi: "Bản quyền © 2026 MinouQ · deploy check OK", en: "Copyright © 2026 MinouQ · deploy check OK" },
+  footer_copyright: { vi: "Bản quyền © 2026 MinouQ", en: "Copyright © 2026 MinouQ" },
   blog_coming_soon_title: { vi: "Blog sắp ra mắt", en: "Blog Coming Soon" },
   blog_coming_soon_body: {
     vi: "Chúng tôi đang chuẩn bị các bài viết về mẹo học chữ Hán, bộ thủ, và phương pháp luyện viết. Quay lại sau nhé!",
@@ -505,6 +505,17 @@ const UI_TEXT = {
   blog_read_more: { vi: "Đọc tiếp →", en: "Read more →" },
   blog_collapse: { vi: "Thu gọn ↑", en: "Collapse ↑" },
   blog_external_link: { vi: "Đọc bài viết đầy đủ →", en: "Read the full article →" },
+  blog_comments_title: (n) => ({ vi: `Bình luận (${n})`, en: `Comments (${n})` }),
+  blog_comments_none: { vi: "Chưa có bình luận nào. Hãy là người đầu tiên!", en: "No comments yet. Be the first!" },
+  blog_leave_comment: { vi: "Để lại bình luận", en: "Leave a comment" },
+  blog_comment_name_placeholder: { vi: "Tên của bạn", en: "Your name" },
+  blog_comment_placeholder: { vi: "Viết bình luận của bạn…", en: "Write your comment…" },
+  blog_comment_moderation_note: {
+    vi: "Bình luận của bạn sẽ hiển thị sau khi được quản trị viên duyệt.",
+    en: "Your comment will appear after an admin approves it.",
+  },
+  blog_comment_submit: { vi: "Gửi bình luận", en: "Submit Comment" },
+  blog_comment_thanks: { vi: "Cảm ơn bạn! Bình luận đang chờ duyệt.", en: "Thanks! Your comment is awaiting approval." },
   blog_empty: { vi: "Chưa có bài viết nào trong mục này.", en: "No posts in this category yet." },
   blog_read_time: (n) => ({ vi: `${n} phút đọc`, en: `${n} min read` }),
   admin_blog_title: { vi: "Quản lý bài viết Blog", en: "Blog Post Management" },
@@ -555,6 +566,20 @@ const UI_TEXT = {
   admin_nav_lists: { vi: "Danh sách", en: "Lists" },
   admin_nav_feedback: { vi: "Góp ý", en: "Feedback" },
   admin_nav_blog: { vi: "Blog", en: "Blog" },
+  admin_nav_comments: { vi: "Bình luận", en: "Comments" },
+  admin_comments_title: { vi: "Duyệt bình luận blog", en: "Blog Comment Moderation" },
+  admin_comment_filter_pending: { vi: "Chờ duyệt", en: "Pending" },
+  admin_comment_filter_approved: { vi: "Đã duyệt", en: "Approved" },
+  admin_comment_filter_rejected: { vi: "Đã từ chối", en: "Rejected" },
+  admin_comment_filter_all: { vi: "Tất cả", en: "All" },
+  admin_comment_none: { vi: "Không có bình luận nào.", en: "No comments here." },
+  admin_comment_on_post: { vi: "Trên bài viết:", en: "On post:" },
+  admin_comment_unknown_post: { vi: "(không tìm thấy bài viết)", en: "(post not found)" },
+  admin_comment_no_email: { vi: "không có email", en: "no email" },
+  admin_comment_approve: { vi: "Duyệt", en: "Approve" },
+  admin_comment_reject: { vi: "Từ chối", en: "Reject" },
+  admin_comment_delete: { vi: "Xóa", en: "Delete" },
+  admin_comment_confirm_delete: { vi: "Xóa bình luận này?", en: "Delete this comment?" },
   admin_nav_userlib: { vi: "Thư viện người dùng", en: "User Libraries" },
   admin_lib_search_placeholder: { vi: "Tìm người dùng theo email…", en: "Search for a user by email…" },
   admin_lib_viewing_banner: (email) => ({ vi: `Đang xem thư viện của ${email} — chỉ xem, không phải của bạn`, en: `Viewing ${email}'s library — read-only, not yours` }),
@@ -6388,6 +6413,121 @@ const BLOG_CATEGORY_COLORS = {
   founder: { accent: "#6B5C7A", tint: "#EFEDF2" },
 };
 
+function BlogComments({ postId, meaningDisplay }) {
+  const [comments, setComments] = useState(null); // null = loading
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | sending | done | error
+  const [isGuest, setIsGuest] = useState(null);
+
+  useEffect(() => {
+    loadComments();
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setIsGuest(!user);
+      if (user) setName(user.email.split("@")[0]);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]);
+
+  async function loadComments() {
+    const { data, error } = await supabase
+      .from("blog_comments")
+      .select("id, name, message, created_at")
+      .eq("post_id", postId)
+      .eq("status", "approved")
+      .order("created_at", { ascending: true });
+    if (!error) setComments(data || []);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!name.trim() || !message.trim()) return;
+    setStatus("sending");
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const { error } = await supabase.from("blog_comments").insert({
+        post_id: postId,
+        name: name.trim(),
+        email: isGuest ? email.trim() || null : user ? user.email : null,
+        message: message.trim(),
+        user_id: user ? user.id : null,
+      });
+      if (error) throw error;
+      setStatus("done");
+      setMessage("");
+    } catch (err) {
+      console.error("Could not submit comment:", err);
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 24, paddingTop: 18, borderTop: `1px dashed ${COLORS.grid}` }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.ink, marginBottom: 12 }}>
+        {t("blog_comments_title", meaningDisplay, comments ? comments.length : 0)}
+      </div>
+
+      {comments === null ? (
+        <div style={{ fontSize: 12.5, color: COLORS.inkSoft }}>{t("loading", meaningDisplay)}</div>
+      ) : comments.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: COLORS.inkSoft, marginBottom: 16 }}>{t("blog_comments_none", meaningDisplay)}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          {comments.map((c) => (
+            <div key={c.id} style={{ background: COLORS.chipBg, borderRadius: 10, padding: "10px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: COLORS.ink }}>{c.name}</span>
+                <span style={{ fontSize: 10.5, color: COLORS.metadata }}>{new Date(c.created_at).toLocaleDateString()}</span>
+              </div>
+              <div style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{c.message}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {status === "done" ? (
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.seal }}>{t("blog_comment_thanks", meaningDisplay)}</div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, marginBottom: 8 }}>{t("blog_leave_comment", meaningDisplay)}</div>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("blog_comment_name_placeholder", meaningDisplay)}
+            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12.5, marginBottom: 6 }}
+          />
+          {isGuest && (
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t("feedback_email_placeholder", meaningDisplay)}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12.5, marginBottom: 6 }}
+            />
+          )}
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={t("blog_comment_placeholder", meaningDisplay)}
+            rows={3}
+            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12.5, resize: "vertical", marginBottom: 8 }}
+          />
+          <div style={{ fontSize: 11, color: COLORS.metadata, marginBottom: 8 }}>{t("blog_comment_moderation_note", meaningDisplay)}</div>
+          <button type="submit" className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 16px", fontSize: 12.5 }} disabled={status === "sending"}>
+            {status === "sending" ? t("feedback_sending", meaningDisplay) : t("blog_comment_submit", meaningDisplay)}
+          </button>
+          {status === "error" && <div style={{ fontSize: 11, color: COLORS.error, marginTop: 6 }}>{t("feedback_error", meaningDisplay)}</div>}
+        </form>
+      )}
+    </div>
+  );
+}
+
 function BlogTab({ meaningDisplay }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -6529,6 +6669,7 @@ function BlogTab({ meaningDisplay }) {
                         </button>
                       </div>
                     )}
+                    {isExpanded && <BlogComments postId={post.id} meaningDisplay={meaningDisplay} />}
                   </div>
                 );
               })}
@@ -6863,6 +7004,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     loadFeedback();
     loadBlogPosts();
     loadSuggestions();
+    loadComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
@@ -6938,6 +7080,33 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     if (!error) {
       setBlogPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, published: nextPublished } : p)));
     }
+  }
+
+  // Blog comment moderation
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentStatusFilter, setCommentStatusFilter] = useState("pending");
+
+  async function loadComments() {
+    setCommentsLoading(true);
+    const [commentsRes, postsRes] = await Promise.all([
+      supabase.from("blog_comments").select("*").order("created_at", { ascending: false }),
+      supabase.from("blog_posts").select("id, title"),
+    ]);
+    const postTitles = new Map((postsRes.data || []).map((p) => [p.id, p.title]));
+    setComments((commentsRes.data || []).map((c) => ({ ...c, postTitle: postTitles.get(c.post_id) || null })));
+    setCommentsLoading(false);
+  }
+
+  async function setCommentStatus(id, status) {
+    const { error } = await supabase.from("blog_comments").update({ status }).eq("id", id);
+    if (!error) setComments((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+  }
+
+  async function deleteComment(id) {
+    if (!window.confirm(t("admin_comment_confirm_delete", meaningDisplay))) return;
+    const { error } = await supabase.from("blog_comments").delete().eq("id", id);
+    if (!error) setComments((prev) => prev.filter((c) => c.id !== id));
   }
 
   // Deck management
@@ -7399,6 +7568,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     { id: "suggestions", label: t("admin_nav_suggestions", meaningDisplay) },
     { id: "feedback", label: t("admin_nav_feedback", meaningDisplay) },
     { id: "blog", label: t("admin_nav_blog", meaningDisplay) },
+    { id: "comments", label: t("admin_nav_comments", meaningDisplay) },
   ];
 
   return (
@@ -8385,6 +8555,90 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+      )}
+
+      {adminSection === "comments" && (
+      <div style={{ marginTop: 28 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+          {t("admin_comments_title", meaningDisplay)}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+          {["pending", "approved", "rejected", "all"].map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setCommentStatusFilter(s)}
+              style={{
+                padding: "5px 12px",
+                borderRadius: 999,
+                border: `1.5px solid ${commentStatusFilter === s ? COLORS.seal : COLORS.hairline}`,
+                background: commentStatusFilter === s ? COLORS.seal : "transparent",
+                color: commentStatusFilter === s ? "#FBF9EF" : COLORS.inkSoft,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {s === "pending"
+                ? t("admin_comment_filter_pending", meaningDisplay)
+                : s === "approved"
+                ? t("admin_comment_filter_approved", meaningDisplay)
+                : s === "rejected"
+                ? t("admin_comment_filter_rejected", meaningDisplay)
+                : t("admin_comment_filter_all", meaningDisplay)}
+            </button>
+          ))}
+        </div>
+
+        {commentsLoading ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("loading", meaningDisplay)}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {comments
+              .filter((c) => commentStatusFilter === "all" || c.status === commentStatusFilter)
+              .map((c) => {
+                const statusColor = c.status === "pending" ? COLORS.gold : c.status === "approved" ? COLORS.seal : COLORS.metadata;
+                return (
+                  <div key={c.id} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderLeft: `3px solid ${statusColor}`, borderRadius: 11, padding: "14px 16px" }}>
+                    <div style={{ fontSize: 11.5, color: COLORS.metadata, marginBottom: 6 }}>
+                      {t("admin_comment_on_post", meaningDisplay)} {c.postTitle || t("admin_comment_unknown_post", meaningDisplay)}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.ink }}>{c.name}</span>
+                      <span style={{ fontSize: 10.5, color: COLORS.metadata }}>{new Date(c.created_at).toLocaleString()}</span>
+                    </div>
+                    <div style={{ fontSize: 13.5, color: COLORS.ink, lineHeight: 1.5, marginBottom: 6, whiteSpace: "pre-wrap" }}>{c.message}</div>
+                    <div style={{ fontSize: 11, color: COLORS.metadata, marginBottom: 10 }}>{c.email || t("admin_comment_no_email", meaningDisplay)}</div>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {c.status !== "approved" && (
+                        <button type="button" onClick={() => setCommentStatus(c.id, "approved")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, borderColor: COLORS.seal, color: COLORS.seal }}>
+                          {t("admin_comment_approve", meaningDisplay)}
+                        </button>
+                      )}
+                      {c.status !== "rejected" && (
+                        <button type="button" onClick={() => setCommentStatus(c.id, "rejected")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5 }}>
+                          {t("admin_comment_reject", meaningDisplay)}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => deleteComment(c.id)}
+                        className="ghost-btn"
+                        style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5, borderColor: COLORS.error, color: COLORS.error }}
+                      >
+                        {t("admin_comment_delete", meaningDisplay)}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            {comments.filter((c) => commentStatusFilter === "all" || c.status === commentStatusFilter).length === 0 && (
+              <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("admin_comment_none", meaningDisplay)}</div>
+            )}
           </div>
         )}
       </div>
