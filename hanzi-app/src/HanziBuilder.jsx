@@ -592,6 +592,8 @@ const UI_TEXT = {
   admin_lib_copy_list_done: (n, total) => ({ vi: `Đã sao chép ${n}/${total} mục.`, en: `Copied ${n}/${total} items.` }),
   admin_lib_copy_deck_done: (n) => ({ vi: `Đã sao chép bộ sưu tập cùng ${n} mục.`, en: `Copied the deck along with ${n} items.` }),
   admin_lib_no_content: { vi: "Người dùng này chưa có nội dung nào.", en: "This user hasn't added anything yet." },
+  admin_lib_new_badge: { vi: "MỚI", en: "NEW" },
+  admin_lib_only_new: { vi: "Chỉ hiện mục mới", en: "Show only new items" },
   admin_lib_chars_title: { vi: "Hán tự của họ", en: "Their Characters" },
   admin_lib_words_title: { vi: "Từ vựng của họ", en: "Their Words" },
   admin_lib_bushou_title: { vi: "Bộ thủ của họ", en: "Their Radicals" },
@@ -7216,7 +7218,21 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
   const [libUserDecks, setLibUserDecks] = useState(null);
   const [libLoading, setLibLoading] = useState(false);
   const [libCopyMessage, setLibCopyMessage] = useState(null);
+  const [libOnlyNew, setLibOnlyNew] = useState(false);
   const [libUsersList, setLibUsersList] = useState([]);
+
+  // What the admin already has -- used to flag genuinely new items in a
+  // browsed user's library, so new contributions are easy to spot at a
+  // glance rather than needing to re-check each one manually.
+  const myCharKeys = useMemo(() => new Set((characterList || []).map((c) => c.char)), [characterList]);
+  const myWordKeys = useMemo(() => new Set((wordList || []).map((w) => w.word)), [wordList]);
+  const myBushouKeys = useMemo(() => new Set((bushouList || []).map((b) => b.char)), [bushouList]);
+  function isNewToMe(type, item) {
+    const key = item.char || item.word;
+    if (type === "char") return !myCharKeys.has(key);
+    if (type === "word") return !myWordKeys.has(key);
+    return !myBushouKeys.has(key);
+  }
 
   useEffect(() => {
     // A small dedicated user search for this feature, separate from the
@@ -8197,6 +8213,13 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
               </div>
             )}
 
+            <div style={{ textAlign: "center", marginBottom: 16 }}>
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: COLORS.ink, cursor: "pointer" }}>
+                <input type="checkbox" checked={libOnlyNew} onChange={(e) => setLibOnlyNew(e.target.checked)} />
+                {t("admin_lib_only_new", meaningDisplay)}
+              </label>
+            </div>
+
             {libLoading ? (
               <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 20 }}>{t("loading", meaningDisplay)}</div>
             ) : (
@@ -8214,7 +8237,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                     }
                     return a.localeCompare(b, "vi");
                   });
-                  const unlisted = (data || []).filter((item) => !item.lists || item.lists.length === 0);
+                  const unlisted = (data || []).filter((item) => (!item.lists || item.lists.length === 0) && (!libOnlyNew || isNewToMe(type, item)));
                   return (
                     <div key={type} style={{ marginBottom: 26 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.ink, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
@@ -8225,7 +8248,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                       ) : (
                         <>
                           {listNames.map((listName) => {
-                            const itemsInList = data.filter((item) => (item.lists || []).includes(listName));
+                            const itemsInList = data.filter((item) => (item.lists || []).includes(listName) && (!libOnlyNew || isNewToMe(type, item)));
+                            if (itemsInList.length === 0) return null;
                             return (
                               <div key={listName} style={{ marginBottom: 14 }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -8250,13 +8274,20 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                                   </button>
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                  {itemsInList.map((item) => (
+                                  {itemsInList.map((item) => {
+                                    const isNew = isNewToMe(type, item);
+                                    return (
                                     <div
                                       key={item.char || item.word}
-                                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}
+                                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${isNew ? COLORS.seal : COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}
                                     >
-                                      <div style={{ fontSize: 12.5, color: COLORS.ink }}>
-                                        <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontWeight: 700, marginRight: 6 }}>
+                                      <div style={{ fontSize: 12.5, color: COLORS.ink, display: "flex", alignItems: "center", gap: 6 }}>
+                                        {isNew && (
+                                          <span style={{ fontSize: 9.5, fontWeight: 700, color: "#FBF9EF", background: COLORS.seal, borderRadius: 4, padding: "1px 5px" }}>
+                                            {t("admin_lib_new_badge", meaningDisplay)}
+                                          </span>
+                                        )}
+                                        <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontWeight: 700 }}>
                                           {item.char || item.word}
                                         </span>
                                         {item.pinyin} · {item.meaning}
@@ -8270,7 +8301,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                                         {t("admin_lib_copy", meaningDisplay)}
                                       </button>
                                     </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             );
@@ -8282,13 +8314,20 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                                 {t("admin_lib_unlisted", meaningDisplay)}
                               </div>
                               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                                {unlisted.map((item) => (
+                                {unlisted.map((item) => {
+                                  const isNew = isNewToMe(type, item);
+                                  return (
                                   <div
                                     key={item.char || item.word}
-                                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}
+                                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: COLORS.card, border: `1px solid ${isNew ? COLORS.seal : COLORS.hairline}`, borderRadius: 8, padding: "8px 12px" }}
                                   >
-                                    <div style={{ fontSize: 12.5, color: COLORS.ink }}>
-                                      <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontWeight: 700, marginRight: 6 }}>
+                                    <div style={{ fontSize: 12.5, color: COLORS.ink, display: "flex", alignItems: "center", gap: 6 }}>
+                                      {isNew && (
+                                        <span style={{ fontSize: 9.5, fontWeight: 700, color: "#FBF9EF", background: COLORS.seal, borderRadius: 4, padding: "1px 5px" }}>
+                                          {t("admin_lib_new_badge", meaningDisplay)}
+                                        </span>
+                                      )}
+                                      <span style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontWeight: 700 }}>
                                         {item.char || item.word}
                                       </span>
                                       {item.pinyin} · {item.meaning}
@@ -8302,7 +8341,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                                       {t("admin_lib_copy", meaningDisplay)}
                                     </button>
                                   </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
