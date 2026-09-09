@@ -476,6 +476,7 @@ const UI_TEXT = {
   pricing_yes: { vi: "Có", en: "Yes" },
   pricing_no: { vi: "Không", en: "No" },
   pricing_tbd: { vi: "Sẽ cập nhật sau", en: "To be updated" },
+  pricing_free_rate: { vi: "Miễn phí", en: "Free" },
   pricing_lookup_explainer_title: { vi: "Lượt tra cứu được tính như thế nào?", en: "What counts as a lookup?" },
   pricing_lookup_explainer_body: {
     vi: "Một lượt tra cứu chỉ bị trừ khi bạn tra một chữ Hán hoặc từ vựng MỚI mà hệ thống AI của chúng tôi chưa từng phân tích trước đó. Nếu chữ hoặc từ đó đã có sẵn trong kho dữ liệu công khai (do chúng tôi hoặc người dùng khác đã thêm vào), bạn sẽ nhận được kết quả ngay lập tức và hoàn toàn miễn phí — không bị trừ vào số lượt tra cứu của bạn.",
@@ -6743,7 +6744,7 @@ function PremiumTab({ meaningDisplay }) {
   const rows = [
     { label: t("pricing_row_lookups", meaningDisplay), values: lookups },
     { label: t("pricing_row_ads", meaningDisplay), values: ads },
-    { label: t("pricing_row_rate", meaningDisplay), values: Object.fromEntries(tiers.map((tier) => [tier, t("pricing_tbd", meaningDisplay)])) },
+    { label: t("pricing_row_rate", meaningDisplay), values: Object.fromEntries(tiers.map((tier) => [tier, tier === "Free" ? t("pricing_free_rate", meaningDisplay) : t("pricing_tbd", meaningDisplay)])) },
   ];
 
   const tierColors = { Free: COLORS.metadata, Premium: COLORS.seal };
@@ -9840,7 +9841,6 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay, isOfficial
 function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [email, setEmail] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | done | error
 
   async function handleSubmit(e) {
@@ -9848,16 +9848,21 @@ function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
     if (!message.trim()) return;
     setStatus("sending");
     try {
+      // Signed-in users' email comes straight from their account, not a
+      // manually-typed field -- guests submit with no email attached.
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { error } = await supabase.from("card_suggestions").insert({
         content_type: contentType,
         item_key: itemKey,
         message: message.trim(),
-        email: email.trim() || null,
+        email: user ? user.email : null,
+        user_id: user ? user.id : null,
       });
       if (error) throw error;
       setStatus("done");
       setMessage("");
-      setEmail("");
     } catch (err) {
       console.error("Could not submit suggestion:", err);
       setStatus("error");
@@ -9887,13 +9892,7 @@ function SuggestRevisionButton({ contentType, itemKey, meaningDisplay }) {
         onChange={(e) => setMessage(e.target.value)}
         placeholder={t("suggest_revision_placeholder", meaningDisplay)}
         rows={2}
-        style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, resize: "vertical", marginBottom: 4 }}
-      />
-      <input
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder={t("feedback_email_placeholder", meaningDisplay)}
-        style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, marginBottom: 6 }}
+        style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, resize: "vertical", marginBottom: 6 }}
       />
       <div style={{ display: "flex", gap: 6 }}>
         <button type="submit" className="seal-btn" style={{ ...sealBtnStyle, padding: "4px 12px", fontSize: 11.5 }} disabled={status === "sending"}>
