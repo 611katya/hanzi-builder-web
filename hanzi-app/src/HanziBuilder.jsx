@@ -2952,14 +2952,19 @@ function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
       if (!target || !a || !b) return;
       target.style.transition = "none";
       target.style.opacity = "0.2";
-      a.style.transition = "none"; a.style.left = "134px"; a.style.top = "56px"; a.style.fontSize = "18px"; a.style.opacity = "1";
-      b.style.transition = "none"; b.style.left = "29px"; b.style.top = "56px"; b.style.fontSize = "18px"; b.style.opacity = "1";
+      // Resting state: no offset at all -- flexbox alone decides each
+      // character's position, so this can never drift off-center again.
+      a.style.transition = "none"; a.style.transform = "translate(0px, 0px)"; a.style.opacity = "1";
+      b.style.transition = "none"; b.style.transform = "translate(0px, 0px)"; b.style.opacity = "1";
       decoys.forEach((d) => d && (d.style.opacity = "1"));
 
       const t1 = setTimeout(() => {
-        a.style.transition = "all 0.7s ease"; b.style.transition = "all 0.7s ease";
-        a.style.left = "65px"; a.style.top = "6px"; a.style.fontSize = "18px";
-        b.style.left = "92px"; b.style.top = "6px"; b.style.fontSize = "18px";
+        a.style.transition = "transform 0.7s ease"; b.style.transition = "transform 0.7s ease";
+        // Relative nudges toward the target above, regardless of exactly
+        // where flexbox placed each character -- always converges near
+        // center since the row itself is centered.
+        a.style.transform = "translate(15px, -54px) scale(0.9)";
+        b.style.transform = "translate(-12px, -54px) scale(0.9)";
         decoys.forEach((d) => { if (d) { d.style.transition = "opacity 0.5s ease"; d.style.opacity = "0.35"; } });
       }, 900);
       const t2 = setTimeout(() => {
@@ -2980,6 +2985,8 @@ function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
     };
   }, []);
 
+  const charStyle = { fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" };
+
   return (
     <div
       className="home-feature-card"
@@ -2989,13 +2996,15 @@ function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
       <div style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_play", meaningDisplay)}</div>
       <div style={{ position: "relative", height: 110 }}>
         <div ref={targetRef} style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 38, color: "#FBF9EF", opacity: 0.2, textAlign: "center", transition: "opacity 0.4s ease" }}>好</div>
-        <div ref={(el) => (decoyRefs.current[0] = el)} style={{ position: "absolute", top: 56, left: 8, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>木</div>
-        <div ref={bRef} style={{ position: "absolute", top: 56, left: 29, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5", transition: "all 0.6s ease" }}>子</div>
-        <div ref={(el) => (decoyRefs.current[1] = el)} style={{ position: "absolute", top: 56, left: 50, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>口</div>
-        <div ref={(el) => (decoyRefs.current[2] = el)} style={{ position: "absolute", top: 56, left: 71, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>水</div>
-        <div ref={(el) => (decoyRefs.current[3] = el)} style={{ position: "absolute", top: 56, left: 92, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>手</div>
-        <div ref={(el) => (decoyRefs.current[4] = el)} style={{ position: "absolute", top: 56, left: 113, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5" }}>心</div>
-        <div ref={aRef} style={{ position: "absolute", top: 56, left: 134, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, color: "#E1F0F5", transition: "all 0.6s ease" }}>女</div>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 4, marginTop: 12 }}>
+          <div ref={(el) => (decoyRefs.current[0] = el)} style={charStyle}>木</div>
+          <div ref={bRef} style={{ ...charStyle, position: "relative" }}>子</div>
+          <div ref={(el) => (decoyRefs.current[1] = el)} style={charStyle}>口</div>
+          <div ref={(el) => (decoyRefs.current[2] = el)} style={charStyle}>水</div>
+          <div ref={(el) => (decoyRefs.current[3] = el)} style={charStyle}>手</div>
+          <div ref={(el) => (decoyRefs.current[4] = el)} style={charStyle}>心</div>
+          <div ref={aRef} style={{ ...charStyle, position: "relative" }}>女</div>
+        </div>
       </div>
       <div style={{ fontSize: 11, color: "#E1F0F5" }}>{t("home_card_radicals_desc", meaningDisplay)}</div>
     </div>
