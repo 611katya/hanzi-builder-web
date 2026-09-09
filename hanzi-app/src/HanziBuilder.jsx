@@ -427,7 +427,7 @@ const UI_TEXT = {
   tab_play: { vi: "🀄 Ghép bộ thủ", en: "🀄 Combine Radicals" },
   tab_flashcards: { vi: "🧠 Flashcard", en: "🧠 Flashcards" },
   tab_writing: { vi: "✍️ Luyện viết", en: "✍️ Handwriting" },
-  tab_add: { vi: "Tạo thẻ từ mới", en: "Add Cards" },
+  tab_add: { vi: "Thêm thẻ mới", en: "Add New Cards" },
   loading: { vi: "Đang tải…", en: "Loading…" },
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
@@ -2576,32 +2576,13 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
           />
-        ) : tab === "add" ? (
-          <AddTab
-            bushouList={bushouList}
-            characterList={characterList}
-            wordList={wordList}
-            customWords={customWords}
-            onAddCharacter={addCharacterRow}
-            onAddBushou={addBushouRow}
-            onUpdateCharacter={updateCharacterRow}
-            onDeleteCharacter={deleteCharacterRow}
-            onAddWord={addWordRow}
-            onDeleteWord={deleteWordRow}
-            userId={userId}
-            onRequireAuth={onRequireAuth}
-            onViewPremium={() => setTab("premium")}
-            onQuotaUpdate={(count, limit) => {
-              setLookupCount(count);
-              if (typeof limit === "number") setLookupLimit(limit);
-            }}
-            meaningDisplay={meaningDisplay}
-          />
         ) : tab === "library" ? (
           <LibraryTab
             bushouList={bushouList}
             characterList={characterList}
             wordList={wordList}
+            customWords={customWords}
+            onAddCharacter={addCharacterRow}
             onAddBushou={addBushouRow}
             officialBushouKeys={officialBushouKeys}
             overrideBushouKeys={overrideBushouKeys}
@@ -2627,6 +2608,11 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
             userId={userId}
+            onRequireAuth={onRequireAuth}
+            onQuotaUpdate={(count, limit) => {
+              setLookupCount(count);
+              if (typeof limit === "number") setLookupLimit(limit);
+            }}
           />
         ) : tab === "management" ? (
           <ManagementTab
@@ -2816,7 +2802,6 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay, unreadForUser, unreadForAd
     { id: "play", label: t("tab_play", meaningDisplay) },
     { id: "flashcards", label: t("tab_flashcards", meaningDisplay) },
     { id: "writing", label: t("tab_writing", meaningDisplay) },
-    { id: "add", label: t("tab_add", meaningDisplay) },
     { id: "library", label: t("tab_library", meaningDisplay) },
     { id: "management", label: t("tab_management", meaningDisplay), badge: unreadForUser },
   ];
@@ -11672,8 +11657,9 @@ function LibraryTab(props) {
     onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter,
     findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord,
     isAdmin, checkListAccess, onViewPremium, userId,
+    customWords, onAddCharacter, onRequireAuth, onQuotaUpdate,
   } = props;
-  const [subTab, setSubTab] = useState("radicals"); // radicals | hanzi | vocab
+  const [subTab, setSubTab] = useState("radicals"); // radicals | hanzi | vocab | add
 
   const subTabs = [
     { id: "radicals", label: t("tab_radicals", meaningDisplay) },
@@ -11683,7 +11669,7 @@ function LibraryTab(props) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", borderBottom: `1px solid ${COLORS.hairline}`, marginBottom: 22 }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 20, flexWrap: "wrap", borderBottom: `1px solid ${COLORS.hairline}`, marginBottom: 22 }}>
         {subTabs.map((s) => (
           <button
             key={s.id}
@@ -11704,9 +11690,44 @@ function LibraryTab(props) {
             {s.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setSubTab("add")}
+          style={{
+            border: `1.5px solid ${COLORS.gold}`,
+            borderRadius: 999,
+            background: subTab === "add" ? COLORS.gold : "transparent",
+            color: subTab === "add" ? "#FBF9EF" : COLORS.gold,
+            fontWeight: 700,
+            fontSize: 13,
+            padding: "6px 14px",
+            marginBottom: 6,
+            cursor: "pointer",
+          }}
+        >
+          + {t("tab_add", meaningDisplay)}
+        </button>
       </div>
 
-      {subTab === "radicals" ? (
+      {subTab === "add" ? (
+        <AddTab
+          bushouList={bushouList}
+          characterList={characterList}
+          wordList={wordList}
+          customWords={customWords}
+          onAddCharacter={onAddCharacter}
+          onAddBushou={onAddBushou}
+          onUpdateCharacter={onUpdateCharacter}
+          onDeleteCharacter={onDeleteCharacter}
+          onAddWord={onAddWord}
+          onDeleteWord={onDeleteWord}
+          userId={userId}
+          onRequireAuth={onRequireAuth}
+          onViewPremium={onViewPremium}
+          onQuotaUpdate={onQuotaUpdate}
+          meaningDisplay={meaningDisplay}
+        />
+      ) : subTab === "radicals" ? (
         <RadicalsTab
           bushouList={bushouList}
           onAddBushou={onAddBushou}
