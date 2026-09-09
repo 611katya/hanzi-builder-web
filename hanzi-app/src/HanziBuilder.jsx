@@ -3049,15 +3049,15 @@ function HandwritingPreviewCard({ setTab, meaningDisplay }) {
   const strokeRefs = useRef({});
   const dashLen = { 1: "34.5", 2: "24.5", 3: "33.5", 4: "40.5" };
 
+  function setRef(prefix, n, el) {
+    strokeRefs.current[`${prefix}-${n}`] = el;
+  }
+  function getRef(prefix, n) {
+    return strokeRefs.current[`${prefix}-${n}`];
+  }
+
   useEffect(() => {
     const CYCLE = 8200;
-
-    function setRef(prefix, n, el) {
-      strokeRefs.current[`${prefix}-${n}`] = el;
-    }
-    function getRef(prefix, n) {
-      return strokeRefs.current[`${prefix}-${n}`];
-    }
 
     function resetAll() {
       if (dotsRef.current) dotsRef.current.style.opacity = "0";
