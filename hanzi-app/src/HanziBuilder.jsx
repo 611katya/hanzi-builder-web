@@ -413,7 +413,7 @@ const UI_TEXT = {
   tab_home: { vi: "Trang chủ", en: "Home" },
   home_headline: { vi: "Bạn muốn học chữ Hán bằng cách nào?", en: "How do you want to study Hanzi today?" },
   home_subtext: {
-    vi: "Luyện tập bộ thủ, ôn flashcard, và luyện viết tay — tất cả tại đây.",
+    vi: "Luyện tập bộ thủ, ôn flashcard, và luyện viết tay —\ntất cả tại đây.",
     en: "Practice radicals, review flashcards, and master handwriting — all in one place.",
   },
   home_signup_button: { vi: "Đăng ký miễn phí", en: "Sign up for free" },
@@ -2888,7 +2888,7 @@ function HomeTab({ setTab, userId, tier, lookupCount, lookupLimit, onRequireAuth
       <div style={{ fontSize: 30, fontWeight: 800, color: COLORS.ink, lineHeight: 1.25, marginBottom: 12 }}>
         {t("home_headline", meaningDisplay)}
       </div>
-      <div style={{ fontSize: 14.5, color: COLORS.inkSoft, maxWidth: 420, margin: "0 auto 22px", lineHeight: 1.6 }}>
+      <div style={{ fontSize: 14.5, color: COLORS.inkSoft, maxWidth: 420, margin: "0 auto 22px", lineHeight: 1.6, whiteSpace: "pre-line" }}>
         {t("home_subtext", meaningDisplay)}
       </div>
 
