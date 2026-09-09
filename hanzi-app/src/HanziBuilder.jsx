@@ -2963,8 +2963,8 @@ function CombineRadicalsPreviewCard({ setTab, meaningDisplay }) {
         // Relative nudges toward the target above, regardless of exactly
         // where flexbox placed each character -- always converges near
         // center since the row itself is centered.
-        a.style.transform = "translate(15px, -54px) scale(0.9)";
-        b.style.transform = "translate(-12px, -54px) scale(0.9)";
+        a.style.transform = "translate(-62px, -54px) scale(0.9)";
+        b.style.transform = "translate(40px, -54px) scale(0.9)";
         decoys.forEach((d) => { if (d) { d.style.transition = "opacity 0.5s ease"; d.style.opacity = "0.35"; } });
       }, 900);
       const t2 = setTimeout(() => {
