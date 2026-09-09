@@ -1955,7 +1955,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       setIsAdmin(!error && data ? !!data.is_admin : false);
       if (!error && data) {
         setLookupCount(data.lookup_count || 0);
-        setLookupLimit(data.lookup_limit != null ? data.lookup_limit : 100);
+        setLookupLimit(data.lookup_limit != null ? data.lookup_limit : 1000);
         setTier(data.tier || "Free");
         setCourseName(data.course_name || null);
         setMeaningDisplay(data.meaning_display || "both");
@@ -6315,7 +6315,7 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
    words get added instead of staying a single unsorted row. ---------- */
 /* ---------- Admin-only: browse every user, adjust their tier/limit, or
    reset their usage — replaces doing the same thing via raw SQL. ---------- */
-const TIER_PRESETS = { Free: 100, Silver: 500, Titan: 2000, Gold: 5000, Platinum: 15000 };
+const TIER_PRESETS = { Free: 1000, Premium: 5000 };
 // "Enrolled Course" isn't a fixed-limit preset like the others -- its
 // limit is set manually per course/student, and it carries an extra
 // course_name field the others don't use.
@@ -7309,7 +7309,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
   function startEdit(u) {
     setEditingId(u.user_id);
     setEditTier(u.tier && ALL_TIERS.includes(u.tier) ? u.tier : "Free");
-    setEditLimit(String(u.lookup_limit != null ? u.lookup_limit : 100));
+    setEditLimit(String(u.lookup_limit != null ? u.lookup_limit : 1000));
     setEditCourseName(u.course_name || "");
   }
 
@@ -7575,7 +7575,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                     )}
                   </div>
                   <div style={{ fontSize: 12, color: COLORS.inkSoft }}>
-                    {u.lookup_count ?? 0} / {u.lookup_limit ?? 100}
+                    {u.lookup_count ?? 0} / {u.lookup_limit ?? 1000}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end" }}>
                     <button
@@ -10144,7 +10144,7 @@ function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, course
 }
 
 function AccountManagementTab({ tier, lookupCount, lookupLimit, courseName, meaningDisplay }) {
-  const tiers = ["Free", "Silver", "Titan", "Gold", "Platinum"];
+  const tiers = ["Free", "Premium"];
   const currentIndex = tiers.indexOf(tier || "Free");
   const higherTiers = tiers.slice(currentIndex + 1);
 
