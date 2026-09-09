@@ -427,7 +427,7 @@ const UI_TEXT = {
   tab_play: { vi: "🀄 Ghép bộ thủ", en: "🀄 Combine Radicals" },
   tab_flashcards: { vi: "🧠 Flashcard", en: "🧠 Flashcards" },
   tab_writing: { vi: "✍️ Luyện viết", en: "✍️ Handwriting" },
-  tab_add: { vi: "Thêm thẻ mới", en: "Add New Cards" },
+  tab_add: { vi: "Tạo thẻ mới", en: "Create New Cards" },
   loading: { vi: "Đang tải…", en: "Loading…" },
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
@@ -3345,10 +3345,10 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
             background: "transparent",
             color: COLORS.gold,
             fontWeight: 700,
-            fontSize: 12.5,
-            padding: "8px 14px",
+            fontSize: 13,
+            padding: "9px 16px",
             cursor: "pointer",
-            alignSelf: "center",
+            alignSelf: "flex-end",
           }}
         >
           + {t("tab_add", meaningDisplay)}
