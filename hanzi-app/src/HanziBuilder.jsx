@@ -1976,17 +1976,20 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadDecks, userId]);
 
-  // Unread message counts for the notification badges -- light polling
-  // rather than true realtime, so the badge updates on its own every
-  // ~45 seconds without needing a page reload, without the added
-  // complexity of a persistent live connection.
+  // Unread/new counts for notification badges -- light polling rather
+  // than true realtime, so badges update on their own every ~45 seconds
+  // without needing a page reload, without the added complexity of a
+  // persistent live connection. adminBadges tracks each admin section
+  // separately so it's visible at a glance *where* new activity is, not
+  // just that some exists somewhere.
   const [unreadForUser, setUnreadForUser] = useState(0);
-  const [unreadForAdmin, setUnreadForAdmin] = useState(0);
+  const [adminBadges, setAdminBadges] = useState({ messages: 0, feedback: 0, suggestions: 0, comments: 0 });
+  const unreadForAdmin = adminBadges.messages + adminBadges.feedback + adminBadges.suggestions + adminBadges.comments;
 
   useEffect(() => {
     if (!userId) {
       setUnreadForUser(0);
-      setUnreadForAdmin(0);
+      setAdminBadges({ messages: 0, feedback: 0, suggestions: 0, comments: 0 });
       return;
     }
     let cancelled = false;
@@ -2000,12 +2003,20 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       if (!cancelled) setUnreadForUser(userCount || 0);
 
       if (isAdmin) {
-        const { count: adminCount } = await supabase
-          .from("messages")
-          .select("id", { count: "exact", head: true })
-          .eq("sender", "user")
-          .eq("read", false);
-        if (!cancelled) setUnreadForAdmin(adminCount || 0);
+        const [messagesRes, feedbackRes, suggestionsRes, commentsRes] = await Promise.all([
+          supabase.from("messages").select("id", { count: "exact", head: true }).eq("sender", "user").eq("read", false),
+          supabase.from("feedback").select("id", { count: "exact", head: true }).eq("read", false),
+          supabase.from("card_suggestions").select("id", { count: "exact", head: true }).eq("status", "new"),
+          supabase.from("blog_comments").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        ]);
+        if (!cancelled) {
+          setAdminBadges({
+            messages: messagesRes.count || 0,
+            feedback: feedbackRes.count || 0,
+            suggestions: suggestionsRes.count || 0,
+            comments: commentsRes.count || 0,
+          });
+        }
       }
     }
     checkUnread();
@@ -2629,6 +2640,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             decks={decks}
             onDecksChanged={loadDecks}
             userId={userId}
+            adminBadges={adminBadges}
           />
         ) : null}
       </div>
@@ -7037,7 +7049,7 @@ function PremiumTab({ meaningDisplay }) {
   );
 }
 
-function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList, wordList, bushouList, decks, onDecksChanged, userId }) {
+function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList, wordList, bushouList, decks, onDecksChanged, userId, adminBadges }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -7725,12 +7737,22 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     { id: "lists", label: t("admin_nav_lists", meaningDisplay) },
     { id: "decks", label: t("admin_nav_decks", meaningDisplay) },
     { id: "userlib", label: t("admin_nav_userlib", meaningDisplay) },
-    { id: "suggestions", label: t("admin_nav_suggestions", meaningDisplay) },
-    { id: "feedback", label: t("admin_nav_feedback", meaningDisplay) },
+    { id: "suggestions", label: t("admin_nav_suggestions", meaningDisplay), badge: adminBadges?.suggestions },
+    { id: "feedback", label: t("admin_nav_feedback", meaningDisplay), badge: adminBadges?.feedback },
     { id: "blog", label: t("admin_nav_blog", meaningDisplay) },
-    { id: "comments", label: t("admin_nav_comments", meaningDisplay) },
-    { id: "messages", label: t("admin_nav_messages", meaningDisplay) },
+    { id: "comments", label: t("admin_nav_comments", meaningDisplay), badge: adminBadges?.comments },
+    { id: "messages", label: t("admin_nav_messages", meaningDisplay), badge: adminBadges?.messages },
   ];
+
+  useEffect(() => {
+    // Feedback has no per-item status workflow like suggestions/comments,
+    // so viewing the section is what clears its badge -- mark everything
+    // read the moment the admin actually opens it, not on initial panel
+    // mount (which fetches feedback regardless of which section is active).
+    if (adminSection === "feedback") {
+      supabase.from("feedback").update({ read: true }).eq("read", false);
+    }
+  }, [adminSection]);
 
   return (
     <div className="side-nav-layout" style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
@@ -7751,9 +7773,33 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
               padding: "8px 12px",
               cursor: "pointer",
               borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
             }}
           >
-            {s.label}
+            <span>{s.label}</span>
+            {s.badge > 0 && (
+              <span
+                style={{
+                  minWidth: 17,
+                  height: 17,
+                  borderRadius: 999,
+                  background: COLORS.error,
+                  color: "#FBF9EF",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "0 4px",
+                  flexShrink: 0,
+                }}
+              >
+                {s.badge > 9 ? "9+" : s.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
