@@ -424,6 +424,18 @@ const UI_TEXT = {
   mgmt_sign_in_button: { vi: "Đăng nhập", en: "Sign In" },
   mgmt_account_tab: { vi: "Quản lý tài khoản", en: "Account Management" },
   mgmt_library_tab: { vi: "Quản lý thư viện", en: "Library Management" },
+  mgmt_messages_tab: { vi: "Tin nhắn", en: "Messages" },
+  msg_empty_state: { vi: "Chưa có tin nhắn nào. Gửi tin nhắn đầu tiên cho quản trị viên bên dưới.", en: "No messages yet. Send your first message to the admin below." },
+  msg_placeholder: { vi: "Nhập tin nhắn…", en: "Type a message…" },
+  msg_send: { vi: "Gửi", en: "Send" },
+  msg_from_admin: { vi: "Quản trị viên", en: "Admin" },
+  msg_from_you: { vi: "Bạn", en: "You" },
+  admin_nav_messages: { vi: "Tin nhắn", en: "Messages" },
+  admin_messages_title: { vi: "Tin nhắn từ người dùng", en: "User Messages" },
+  admin_messages_pick_user: { vi: "Chọn một cuộc trò chuyện để xem", en: "Select a conversation to view" },
+  admin_messages_none: { vi: "Chưa có cuộc trò chuyện nào.", en: "No conversations yet." },
+  admin_messages_search_placeholder: { vi: "Tìm người dùng theo email…", en: "Search for a user by email…" },
+  admin_messages_new_thread: { vi: "+ Bắt đầu cuộc trò chuyện mới", en: "+ Start new conversation" },
   mgmt_tier_label: { vi: "Gói hiện tại", en: "Current Tier" },
   mgmt_lookup_usage: (used, limit) => ({ vi: `${used} / ${limit} lượt tra cứu đã dùng`, en: `${used} / ${limit} lookups used` }),
   mgmt_course_label: { vi: "Khóa học:", en: "Course:" },
@@ -1964,6 +1976,46 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadDecks, userId]);
 
+  // Unread message counts for the notification badges -- light polling
+  // rather than true realtime, so the badge updates on its own every
+  // ~45 seconds without needing a page reload, without the added
+  // complexity of a persistent live connection.
+  const [unreadForUser, setUnreadForUser] = useState(0);
+  const [unreadForAdmin, setUnreadForAdmin] = useState(0);
+
+  useEffect(() => {
+    if (!userId) {
+      setUnreadForUser(0);
+      setUnreadForAdmin(0);
+      return;
+    }
+    let cancelled = false;
+    async function checkUnread() {
+      const { count: userCount } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("sender", "admin")
+        .eq("read", false);
+      if (!cancelled) setUnreadForUser(userCount || 0);
+
+      if (isAdmin) {
+        const { count: adminCount } = await supabase
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .eq("sender", "user")
+          .eq("read", false);
+        if (!cancelled) setUnreadForAdmin(adminCount || 0);
+      }
+    }
+    checkUnread();
+    const interval = setInterval(checkUnread, 45000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [userId, isAdmin]);
+
   useEffect(() => {
     if (!userId) {
       setIsAdmin(false);
@@ -2440,7 +2492,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <Header meaningDisplay={meaningDisplay} />
         {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />}
-        <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />
+        <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} meaningDisplay={meaningDisplay} unreadForUser={unreadForUser} unreadForAdmin={unreadForAdmin} />
 
         {!loaded ? (
           <div style={{ textAlign: "center", padding: 60, color: COLORS.inkSoft }}>{t("loading", meaningDisplay)}</div>
@@ -2719,16 +2771,16 @@ function MeaningDisplayToggle({ value, onChange }) {
 }
 
 
-function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
+function Tabs({ tab, setTab, isAdmin, meaningDisplay, unreadForUser, unreadForAdmin }) {
   const items = [
     { id: "play", label: t("tab_play", meaningDisplay) },
     { id: "flashcards", label: t("tab_flashcards", meaningDisplay) },
     { id: "writing", label: t("tab_writing", meaningDisplay) },
     { id: "add", label: t("tab_add", meaningDisplay) },
     { id: "library", label: t("tab_library", meaningDisplay) },
-    { id: "management", label: t("tab_management", meaningDisplay) },
+    { id: "management", label: t("tab_management", meaningDisplay), badge: unreadForUser },
   ];
-  if (isAdmin) items.push({ id: "admin", label: t("tab_admin", meaningDisplay) });
+  if (isAdmin) items.push({ id: "admin", label: t("tab_admin", meaningDisplay), badge: unreadForAdmin });
   return (
     <div
       style={{
@@ -2755,9 +2807,32 @@ function Tabs({ tab, setTab, isAdmin, meaningDisplay }) {
             padding: "10px 2px",
             marginBottom: -1,
             cursor: "pointer",
+            position: "relative",
           }}
         >
           {it.label}
+          {it.badge > 0 && (
+            <span
+              style={{
+                position: "absolute",
+                top: 3,
+                right: -14,
+                minWidth: 15,
+                height: 15,
+                borderRadius: 999,
+                background: COLORS.error,
+                color: "#FBF9EF",
+                fontSize: 9.5,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 3px",
+              }}
+            >
+              {it.badge > 9 ? "9+" : it.badge}
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -7008,6 +7083,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     loadBlogPosts();
     loadSuggestions();
     loadComments();
+    loadMsgThreads();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
@@ -7110,6 +7186,73 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     if (!window.confirm(t("admin_comment_confirm_delete", meaningDisplay))) return;
     const { error } = await supabase.from("blog_comments").delete().eq("id", id);
     if (!error) setComments((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  // Admin messaging inbox
+  const [msgThreads, setMsgThreads] = useState(null); // null = loading
+  const [msgSelectedUser, setMsgSelectedUser] = useState(null); // { user_id, email }
+  const [msgThread, setMsgThread] = useState(null);
+  const [msgDraft, setMsgDraft] = useState("");
+  const [msgSending, setMsgSending] = useState(false);
+  const [msgSearchQuery, setMsgSearchQuery] = useState("");
+  const [msgUsersList, setMsgUsersList] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("profiles").select("user_id, email").order("email");
+      setMsgUsersList(data || []);
+    })();
+  }, []);
+
+  async function loadMsgThreads() {
+    setMsgThreads(null);
+    const [messagesRes, usersRes] = await Promise.all([
+      supabase.from("messages").select("*").order("created_at", { ascending: false }),
+      supabase.from("profiles").select("user_id, email"),
+    ]);
+    const emailByUser = new Map((usersRes.data || []).map((u) => [u.user_id, u.email]));
+    const byUser = new Map();
+    (messagesRes.data || []).forEach((m) => {
+      if (!byUser.has(m.user_id)) {
+        byUser.set(m.user_id, { user_id: m.user_id, email: emailByUser.get(m.user_id) || m.user_id, latest: m, unread: 0 });
+      }
+      if (m.sender === "user" && !m.read) byUser.get(m.user_id).unread += 1;
+    });
+    setMsgThreads(Array.from(byUser.values()).sort((a, b) => new Date(b.latest.created_at) - new Date(a.latest.created_at)));
+  }
+
+  const msgSearchResults =
+    msgSearchQuery.trim().length > 0
+      ? msgUsersList.filter((u) => (u.email || "").toLowerCase().includes(msgSearchQuery.trim().toLowerCase())).slice(0, 8)
+      : [];
+
+  async function selectMsgThread(user) {
+    setMsgSelectedUser(user);
+    setMsgSearchQuery("");
+    setMsgThread(null);
+    const { data, error } = await supabase.from("messages").select("*").eq("user_id", user.user_id).order("created_at", { ascending: true });
+    if (!error) {
+      setMsgThread(data || []);
+      const unreadIds = (data || []).filter((m) => m.sender === "user" && !m.read).map((m) => m.id);
+      if (unreadIds.length > 0) {
+        await supabase.from("messages").update({ read: true }).in("id", unreadIds);
+        loadMsgThreads();
+      }
+    }
+  }
+
+  async function sendMsgReply(e) {
+    e.preventDefault();
+    if (!msgDraft.trim() || msgSending || !msgSelectedUser) return;
+    setMsgSending(true);
+    const { error } = await supabase.from("messages").insert({ user_id: msgSelectedUser.user_id, sender: "admin", message: msgDraft.trim() });
+    if (!error) {
+      setMsgDraft("");
+      const { data } = await supabase.from("messages").select("*").eq("user_id", msgSelectedUser.user_id).order("created_at", { ascending: true });
+      setMsgThread(data || []);
+      loadMsgThreads();
+    }
+    setMsgSending(false);
   }
 
   // Deck management
@@ -7586,6 +7729,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     { id: "feedback", label: t("admin_nav_feedback", meaningDisplay) },
     { id: "blog", label: t("admin_nav_blog", meaningDisplay) },
     { id: "comments", label: t("admin_nav_comments", meaningDisplay) },
+    { id: "messages", label: t("admin_nav_messages", meaningDisplay) },
   ];
 
   return (
@@ -8682,6 +8826,141 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
             )}
           </div>
         )}
+      </div>
+      )}
+
+      {adminSection === "messages" && (
+      <div style={{ marginTop: 28 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+          {t("admin_messages_title", meaningDisplay)}
+        </div>
+
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ width: 220, flexShrink: 0 }}>
+            <input
+              value={msgSearchQuery}
+              onChange={(e) => setMsgSearchQuery(e.target.value)}
+              placeholder={t("admin_messages_search_placeholder", meaningDisplay)}
+              style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12.5, marginBottom: 8 }}
+            />
+            {msgSearchResults.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10 }}>
+                {msgSearchResults.map((u) => (
+                  <button
+                    key={u.user_id}
+                    type="button"
+                    onClick={() => selectMsgThread(u)}
+                    className="ghost-btn"
+                    style={{ ...ghostBtnStyle, textAlign: "left", padding: "6px 10px", fontSize: 12 }}
+                  >
+                    {t("admin_messages_new_thread", meaningDisplay)}: {u.email}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {msgThreads === null ? (
+              <div style={{ fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", padding: 12 }}>{t("loading", meaningDisplay)}</div>
+            ) : msgThreads.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", padding: 12 }}>{t("admin_messages_none", meaningDisplay)}</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {msgThreads.map((th) => (
+                  <button
+                    key={th.user_id}
+                    type="button"
+                    onClick={() => selectMsgThread(th)}
+                    style={{
+                      textAlign: "left",
+                      background: msgSelectedUser && msgSelectedUser.user_id === th.user_id ? COLORS.chipBg : "none",
+                      border: "none",
+                      borderLeft: `3px solid ${msgSelectedUser && msgSelectedUser.user_id === th.user_id ? COLORS.seal : "transparent"}`,
+                      borderRadius: 6,
+                      padding: "8px 10px",
+                      cursor: "pointer",
+                      position: "relative",
+                    }}
+                  >
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {th.email}
+                      {th.unread > 0 && (
+                        <span style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 700, color: "#FBF9EF", background: COLORS.error, borderRadius: 999, padding: "1px 6px" }}>
+                          {th.unread}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: COLORS.metadata, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {th.latest.sender === "admin" ? `${t("msg_from_you", meaningDisplay)}: ` : ""}
+                      {th.latest.message}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 260 }}>
+            {!msgSelectedUser ? (
+              <div style={{ textAlign: "center", color: COLORS.inkSoft, padding: 30 }}>{t("admin_messages_pick_user", meaningDisplay)}</div>
+            ) : (
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.ink, marginBottom: 10 }}>{msgSelectedUser.email}</div>
+                <div
+                  style={{
+                    border: `1px solid ${COLORS.hairline}`,
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                    minHeight: 240,
+                    maxHeight: 420,
+                    overflowY: "auto",
+                    marginBottom: 12,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}
+                >
+                  {msgThread === null ? (
+                    <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13 }}>{t("loading", meaningDisplay)}</div>
+                  ) : msgThread.length === 0 ? (
+                    <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13 }}>{t("msg_empty_state", meaningDisplay)}</div>
+                  ) : (
+                    msgThread.map((m) => (
+                      <div key={m.id} style={{ alignSelf: m.sender === "admin" ? "flex-end" : "flex-start", maxWidth: "80%" }}>
+                        <div style={{ fontSize: 10, color: COLORS.metadata, marginBottom: 2, textAlign: m.sender === "admin" ? "right" : "left" }}>
+                          {m.sender === "admin" ? t("msg_from_you", meaningDisplay) : msgSelectedUser.email} · {new Date(m.created_at).toLocaleString()}
+                        </div>
+                        <div
+                          style={{
+                            background: m.sender === "admin" ? COLORS.seal : COLORS.chipBg,
+                            color: m.sender === "admin" ? "#FBF9EF" : COLORS.ink,
+                            borderRadius: 10,
+                            padding: "8px 12px",
+                            fontSize: 13,
+                            lineHeight: 1.5,
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          {m.message}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <form onSubmit={sendMsgReply} style={{ display: "flex", gap: 8 }}>
+                  <input
+                    value={msgDraft}
+                    onChange={(e) => setMsgDraft(e.target.value)}
+                    placeholder={t("msg_placeholder", meaningDisplay)}
+                    style={{ ...inputStyle, flex: 1, boxSizing: "border-box" }}
+                  />
+                  <button type="submit" className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 18px" }} disabled={msgSending}>
+                    {t("msg_send", meaningDisplay)}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       )}
       </div>
@@ -10465,6 +10744,7 @@ function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, course
   const subTabs = [
     { id: "account", label: t("mgmt_account_tab", meaningDisplay) },
     { id: "library", label: t("mgmt_library_tab", meaningDisplay) },
+    { id: "messages", label: t("mgmt_messages_tab", meaningDisplay) },
   ];
 
   return (
@@ -10494,6 +10774,8 @@ function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, course
 
       {subTab === "account" ? (
         <AccountManagementTab tier={tier} lookupCount={lookupCount} lookupLimit={lookupLimit} courseName={courseName} meaningDisplay={meaningDisplay} />
+      ) : subTab === "messages" ? (
+        <UserMessagesTab userId={userId} meaningDisplay={meaningDisplay} />
       ) : (
         <LibraryManagementTab
           userId={userId}
@@ -10506,6 +10788,108 @@ function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, course
           meaningDisplay={meaningDisplay}
         />
       )}
+    </div>
+  );
+}
+
+function UserMessagesTab({ userId, meaningDisplay }) {
+  const [thread, setThread] = useState(null); // null = loading
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    loadThread();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  useEffect(() => {
+    if (thread) bottomRef.current?.scrollIntoView({ block: "nearest" });
+  }, [thread]);
+
+  async function loadThread() {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
+    if (!error) {
+      setThread(data || []);
+      // Mark the admin's messages as read now that the user is viewing them.
+      const unreadIds = (data || []).filter((m) => m.sender === "admin" && !m.read).map((m) => m.id);
+      if (unreadIds.length > 0) {
+        await supabase.from("messages").update({ read: true }).in("id", unreadIds);
+      }
+    }
+  }
+
+  async function handleSend(e) {
+    e.preventDefault();
+    if (!draft.trim() || sending) return;
+    setSending(true);
+    const { error } = await supabase.from("messages").insert({ user_id: userId, sender: "user", message: draft.trim() });
+    if (!error) {
+      setDraft("");
+      await loadThread();
+    }
+    setSending(false);
+  }
+
+  return (
+    <div style={{ maxWidth: 480, margin: "0 auto" }}>
+      <div
+        style={{
+          border: `1px solid ${COLORS.hairline}`,
+          borderRadius: 12,
+          padding: "14px 16px",
+          minHeight: 240,
+          maxHeight: 420,
+          overflowY: "auto",
+          marginBottom: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        {thread === null ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13 }}>{t("loading", meaningDisplay)}</div>
+        ) : thread.length === 0 ? (
+          <div style={{ textAlign: "center", color: COLORS.inkSoft, fontSize: 13 }}>{t("msg_empty_state", meaningDisplay)}</div>
+        ) : (
+          thread.map((m) => (
+            <div key={m.id} style={{ alignSelf: m.sender === "user" ? "flex-end" : "flex-start", maxWidth: "80%" }}>
+              <div style={{ fontSize: 10, color: COLORS.metadata, marginBottom: 2, textAlign: m.sender === "user" ? "right" : "left" }}>
+                {m.sender === "user" ? t("msg_from_you", meaningDisplay) : t("msg_from_admin", meaningDisplay)} · {new Date(m.created_at).toLocaleString()}
+              </div>
+              <div
+                style={{
+                  background: m.sender === "user" ? COLORS.seal : COLORS.chipBg,
+                  color: m.sender === "user" ? "#FBF9EF" : COLORS.ink,
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {m.message}
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={bottomRef} />
+      </div>
+      <form onSubmit={handleSend} style={{ display: "flex", gap: 8 }}>
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={t("msg_placeholder", meaningDisplay)}
+          style={{ ...inputStyle, flex: 1, boxSizing: "border-box" }}
+        />
+        <button type="submit" className="seal-btn" style={{ ...sealBtnStyle, padding: "8px 18px" }} disabled={sending}>
+          {t("msg_send", meaningDisplay)}
+        </button>
+      </form>
     </div>
   );
 }
