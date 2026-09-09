@@ -1855,6 +1855,15 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const [needsReview, setNeedsReview] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState("home");
+  // Lets other tabs (Combine Radicals, Flashcards, Handwriting) jump
+  // straight into Library's "Add New Cards" sub-tab, not just Library
+  // generally. LibraryTab reads this once and clears it, so a normal
+  // visit to Library afterward doesn't keep jumping back to Add.
+  const [pendingLibrarySubTab, setPendingLibrarySubTab] = useState(null);
+  function goToAddNewCards() {
+    setTab("library");
+    setPendingLibrarySubTab("add");
+  }
 
   // The shared default data, loaded from Supabase for EVERYONE (including
   // guests, via public SELECT policies) so admin corrections go live for
@@ -2552,6 +2561,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
+            goToAddNewCards={goToAddNewCards}
           />
         ) : tab === "flashcards" ? (
           <FlashcardsTab
@@ -2565,6 +2575,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             onRequireAuth={onRequireAuth}
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
+            goToAddNewCards={goToAddNewCards}
           />
         ) : tab === "writing" ? (
           <WritingPracticeTab
@@ -2575,6 +2586,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             checkListAccess={checkListAccess}
             onViewPremium={() => setTab("premium")}
             meaningDisplay={meaningDisplay}
+            goToAddNewCards={goToAddNewCards}
           />
         ) : tab === "library" ? (
           <LibraryTab
@@ -2613,6 +2625,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
               setLookupCount(count);
               if (typeof limit === "number") setLookupLimit(limit);
             }}
+            pendingSubTab={pendingLibrarySubTab}
+            onConsumePendingSubTab={() => setPendingLibrarySubTab(null)}
           />
         ) : tab === "management" ? (
           <ManagementTab
@@ -3187,7 +3201,7 @@ function HandwritingPreviewCard({ setTab, meaningDisplay }) {
   );
 }
 
-function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview, isAdmin, checkListAccess, onViewPremium, meaningDisplay }) {
+function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview, onMarkNeedsReview, onClearNeedsReview, isAdmin, checkListAccess, onViewPremium, meaningDisplay, goToAddNewCards }) {
   const [round, setRound] = useState(null); // { target, palette: [{id,char}] }
   const [selected, setSelected] = useState([]); // array of palette ids, in click order
   const [status, setStatus] = useState("playing"); // playing | correct | wrong | revealed
@@ -3321,6 +3335,24 @@ function PlayTab({ characterList, wordList, bushouList, findBushou, needsReview,
             ))}
           </select>
         </div>
+
+        <button
+          type="button"
+          onClick={goToAddNewCards}
+          style={{
+            border: `1.5px solid ${COLORS.gold}`,
+            borderRadius: 999,
+            background: "transparent",
+            color: COLORS.gold,
+            fontWeight: 700,
+            fontSize: 12.5,
+            padding: "8px 14px",
+            cursor: "pointer",
+            alignSelf: "center",
+          }}
+        >
+          + {t("tab_add", meaningDisplay)}
+        </button>
       </div>
       {lockedListName && (
         <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
@@ -3601,7 +3633,7 @@ function updateSM2(progress, rating) {
 }
 
 /* ================= FLASHCARDS TAB ================= */
-function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isAdmin, checkListAccess, onRequireAuth, onViewPremium, meaningDisplay }) {
+function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isAdmin, checkListAccess, onRequireAuth, onViewPremium, meaningDisplay, goToAddNewCards }) {
   const [contentType, setContentType] = useState("words"); // words = characters+words, radicals = bushou, deck = a saved deck
   const [selectedList, setSelectedList] = useState("Tất cả");
   const [selectedDeckId, setSelectedDeckId] = useState(decks && decks[0] ? decks[0].id : "");
@@ -3788,6 +3820,25 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
             {t("fc_title", meaningDisplay)}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+            <button
+              type="button"
+              onClick={goToAddNewCards}
+              style={{
+                border: `1.5px solid ${COLORS.gold}`,
+                borderRadius: 999,
+                background: "transparent",
+                color: COLORS.gold,
+                fontWeight: 700,
+                fontSize: 12.5,
+                padding: "7px 14px",
+                cursor: "pointer",
+              }}
+            >
+              + {t("tab_add", meaningDisplay)}
+            </button>
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 14 }}>
@@ -3989,7 +4040,7 @@ const ratingBtnStyle = {
    here. No login required and no API cost: this never calls our lookup
    functions, HanziWriter fetches character stroke data from its own
    public source. ---------- */
-function WritingPracticeTab({ characterList, bushouList, decks, isAdmin, checkListAccess, onViewPremium, meaningDisplay }) {
+function WritingPracticeTab({ characterList, bushouList, decks, isAdmin, checkListAccess, onViewPremium, meaningDisplay, goToAddNewCards }) {
   const [contentType, setContentType] = useState("chars"); // chars | radicals | deck
   const [selectedList, setSelectedList] = useState("Tất cả");
   const [selectedDeckId, setSelectedDeckId] = useState(decks && decks[0] ? decks[0].id : "");
@@ -4538,6 +4589,25 @@ function WritingPracticeTab({ characterList, bushouList, decks, isAdmin, checkLi
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 16, textTransform: "uppercase", letterSpacing: 0.8 }}>
             {t("wp_title", meaningDisplay)}
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+            <button
+              type="button"
+              onClick={goToAddNewCards}
+              style={{
+                border: `1.5px solid ${COLORS.gold}`,
+                borderRadius: 999,
+                background: "transparent",
+                color: COLORS.gold,
+                fontWeight: 700,
+                fontSize: 12.5,
+                padding: "7px 14px",
+                cursor: "pointer",
+              }}
+            >
+              + {t("tab_add", meaningDisplay)}
+            </button>
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 16 }}>
@@ -11658,8 +11728,16 @@ function LibraryTab(props) {
     findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord,
     isAdmin, checkListAccess, onViewPremium, userId,
     customWords, onAddCharacter, onRequireAuth, onQuotaUpdate,
+    pendingSubTab, onConsumePendingSubTab,
   } = props;
   const [subTab, setSubTab] = useState("radicals"); // radicals | hanzi | vocab | add
+
+  useEffect(() => {
+    if (pendingSubTab) {
+      setSubTab(pendingSubTab);
+      if (onConsumePendingSubTab) onConsumePendingSubTab();
+    }
+  }, [pendingSubTab, onConsumePendingSubTab]);
 
   const subTabs = [
     { id: "radicals", label: t("tab_radicals", meaningDisplay) },
