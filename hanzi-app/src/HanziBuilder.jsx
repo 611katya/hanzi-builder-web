@@ -1880,7 +1880,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const [lookupLimit, setLookupLimit] = useState(100);
   const [tier, setTier] = useState("Free");
   const [courseName, setCourseName] = useState(null);
-  const [meaningDisplay, setMeaningDisplay] = useState("both"); // 'both' | 'en' | 'vi'
+  const [meaningDisplay, setMeaningDisplay] = useState("en"); // 'both' | 'en' | 'vi'
 
   const updateMeaningDisplay = useCallback(
     async (next) => {
@@ -2075,7 +2075,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         setLookupLimit(data.lookup_limit != null ? data.lookup_limit : 1000);
         setTier(data.tier || "Free");
         setCourseName(data.course_name || null);
-        setMeaningDisplay(data.meaning_display || "both");
+        setMeaningDisplay(data.meaning_display || "en");
       }
     })();
     return () => {
