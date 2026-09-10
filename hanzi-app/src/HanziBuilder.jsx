@@ -786,6 +786,7 @@ const UI_TEXT = {
     en: `Reviewed ${reviewed} cards, ${again} need review again soon.`,
   }),
   fc_done: { vi: "Xong", en: "Done" },
+  fc_replay_missed: (n) => ({ vi: `Ôn lại ${n} thẻ chưa nhớ`, en: `Replay ${n} missed card${n === 1 ? "" : "s"}` }),
 
   // Luyện viết (Writing practice)
   wp_title: { vi: "Luyện viết theo nét", en: "Guided Writing Practice" },
@@ -3649,6 +3650,7 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
   const [flipped, setFlipped] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionStats, setSessionStats] = useState({ reviewed: 0, again: 0 });
+  const [missedCards, setMissedCards] = useState([]);
 
   const selectedDeck = (decks || []).find((d) => d.id === selectedDeckId) || null;
 
@@ -3766,6 +3768,7 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
     setCurrent(shuffled[0] || null);
     setFlipped(false);
     setSessionStats({ reviewed: 0, again: 0 });
+    setMissedCards([]);
     setSessionActive(true);
   }
 
@@ -3799,6 +3802,9 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
     // no account to persist it to, same as the rest of the app's guest mode.
 
     setSessionStats((prev) => ({ reviewed: prev.reviewed + 1, again: prev.again + (rating === "again" ? 1 : 0) }));
+    if (rating === "again") {
+      setMissedCards((prev) => (prev.some((c) => c.type === current.type && c.key === current.key) ? prev : [...prev, current]));
+    }
     const rest = queue;
     setQueue(rest.slice(1));
     setCurrent(rest[0] || null);
@@ -3809,6 +3815,16 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
     setSessionActive(false);
     setCurrent(null);
     setQueue([]);
+  }
+
+  function replayMissed() {
+    const shuffled = shuffle(missedCards);
+    setQueue(shuffled.slice(1));
+    setCurrent(shuffled[0] || null);
+    setFlipped(false);
+    setSessionStats({ reviewed: 0, again: 0 });
+    setMissedCards([]);
+    setSessionActive(true);
   }
 
   if (progressMap === null) {
@@ -4018,9 +4034,16 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
           <div style={{ fontSize: 14, color: COLORS.inkSoft, marginBottom: 20 }}>
             {t("fc_complete_summary", meaningDisplay, sessionStats.reviewed, sessionStats.again)}
           </div>
-          <button type="button" onClick={endSession} className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }}>
-            {t("fc_done", meaningDisplay)}
-          </button>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            {missedCards.length > 0 && (
+              <button type="button" onClick={replayMissed} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "10px 22px", fontSize: 14, borderColor: COLORS.error, color: COLORS.error }}>
+                {t("fc_replay_missed", meaningDisplay, missedCards.length)}
+              </button>
+            )}
+            <button type="button" onClick={endSession} className="seal-btn" style={{ ...sealBtnStyle, padding: "10px 26px", fontSize: 14 }}>
+              {t("fc_done", meaningDisplay)}
+            </button>
+          </div>
         </div>
       )}
     </div>
