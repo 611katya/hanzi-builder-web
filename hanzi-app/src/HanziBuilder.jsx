@@ -2518,16 +2518,16 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
           .side-nav-layout { flex-direction: column !important; }
           .side-nav-menu { flex-direction: row !important; overflow-x: auto; width: 100% !important; gap: 6px !important; }
           .side-nav-menu button { white-space: nowrap; }
+          .home-cards-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
       {showLangPrompt && <LanguagePromptModal onChoose={handleLangPromptChoice} />}
 
-      <div style={{ position: "fixed", top: 44, right: 16, zIndex: 40 }}>
-        <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
-      </div>
-
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+          <MeaningDisplayToggle value={meaningDisplay} onChange={updateMeaningDisplay} />
+        </div>
         <Header meaningDisplay={meaningDisplay} />
         {userId && <LookupQuotaBadge count={lookupCount} limit={lookupLimit} tier={tier} isAdmin={isAdmin} meaningDisplay={meaningDisplay} />}
         <Tabs tab={tab} setTab={setTab} isAdmin={isAdmin} meaningDisplay={meaningDisplay} unreadForUser={unreadForUser} unreadForAdmin={unreadForAdmin} />
@@ -2929,7 +2929,7 @@ function HomeTab({ setTab, userId, tier, lookupCount, lookupLimit, onRequireAuth
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
+      <div className="home-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14 }}>
         <CombineRadicalsPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
         <FlashcardsPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
         <HandwritingPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
