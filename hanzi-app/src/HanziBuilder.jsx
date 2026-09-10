@@ -4036,7 +4036,20 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             {missedCards.length > 0 && (
-              <button type="button" onClick={replayMissed} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "10px 22px", fontSize: 14, borderColor: COLORS.error, color: COLORS.error }}>
+              <button
+                type="button"
+                onClick={replayMissed}
+                style={{
+                  background: COLORS.error,
+                  color: "#FBF9EF",
+                  border: "none",
+                  borderRadius: 9,
+                  padding: "10px 22px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
                 {t("fc_replay_missed", meaningDisplay, missedCards.length)}
               </button>
             )}
