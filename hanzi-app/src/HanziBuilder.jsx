@@ -420,7 +420,7 @@ const UI_TEXT = {
   home_status_lookups: (used, limit) => ({ vi: `${used}/${limit} lượt tra cứu đã dùng kỳ này`, en: `${used}/${limit} lookups used this period` }),
   home_card_radicals_desc: { vi: "Ghép chữ từ bộ thủ →", en: "Build characters from parts →" },
   home_card_flashcards_desc: { vi: "Ôn tập theo phương pháp lặp lại →", en: "Spaced-repetition review →" },
-  home_card_writing_desc: { vi: "Luyện thứ tự nét bút →", en: "Practice stroke order →" },
+  home_card_writing_desc: { vi: "Luyện nét bút, viết theo gợi ý, và viết từ trí nhớ →", en: "Practice stroke order, write from hints, and write from memory →" },
   home_hw_step_trace: { vi: "1. Nối điểm", en: "1. Trace" },
   home_hw_step_recall: { vi: "2. Nhớ lại", en: "2. Recall" },
   home_hw_step_reveal: { vi: "3. Đáp án", en: "3. Reveal" },
