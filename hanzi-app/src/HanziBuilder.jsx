@@ -3965,8 +3965,8 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
           <div
             onClick={() => setFlipped((f) => !f)}
             style={{
-              background: COLORS.card,
-              border: `1px solid ${COLORS.hairline}`,
+              background: flipped ? COLORS.seal : "#FBF9EF",
+              border: `1px solid ${flipped ? COLORS.seal : COLORS.hairline}`,
               borderRadius: 14,
               padding: "40px 24px",
               minHeight: 220,
@@ -3985,15 +3985,15 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
               </div>
             ) : (
               <div style={{ width: "100%" }}>
-                <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 34, color: COLORS.ink, marginBottom: 10 }}>
+                <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 34, color: "#FBF9EF", marginBottom: 10 }}>
                   {current.key}
                 </div>
-                <div style={{ fontSize: 16, color: COLORS.sealDark, marginBottom: 6 }}>{current.data.pinyin}</div>
+                <div style={{ fontSize: 16, color: "#FBF9EF", marginBottom: 6 }}>{current.data.pinyin}</div>
                 <div style={{ marginBottom: 4 }}>
                   <MeaningBoxes meaning={current.data.meaning} meaningVi={current.data.meaning_vi} meaningDisplay={meaningDisplay} large />
                 </div>
                 {current.data.sv && meaningDisplay !== "en" && (
-                  <div style={{ fontSize: 13.5, color: COLORS.bamboo, fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>
+                  <div style={{ fontSize: 13.5, color: "#FBF9EF", fontWeight: 600, marginTop: 4 }}>HV: {current.data.sv}</div>
                 )}
               </div>
             )}
