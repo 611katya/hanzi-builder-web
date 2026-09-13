@@ -9954,7 +9954,15 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
                 {found.components.map((comp, ci) => (
                   <span key={ci}>
                     <span
-                      title={findBushou ? `${findBushou(comp).pinyin} · ${findBushou(comp).meaning} · HV: ${findBushou(comp).sv}` : undefined}
+                      title={
+                        !findBushou
+                          ? undefined
+                          : meaningDisplay === "en"
+                          ? `${findBushou(comp).pinyin} · ${findBushou(comp).meaning}`
+                          : meaningDisplay === "vi"
+                          ? `${findBushou(comp).pinyin} · HV: ${findBushou(comp).sv}`
+                          : `${findBushou(comp).pinyin} · ${findBushou(comp).meaning} · HV: ${findBushou(comp).sv}`
+                      }
                       style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", color: COLORS.gold, fontSize: 13 }}
                     >
                       {comp}
@@ -10715,7 +10723,13 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               {c.components.map((comp, i) => (
                 <span
                   key={i}
-                  title={`${findBushou(comp).pinyin} · ${findBushou(comp).meaning} · HV: ${findBushou(comp).sv}`}
+                  title={
+                    meaningDisplay === "en"
+                      ? `${findBushou(comp).pinyin} · ${findBushou(comp).meaning}`
+                      : meaningDisplay === "vi"
+                      ? `${findBushou(comp).pinyin} · HV: ${findBushou(comp).sv}`
+                      : `${findBushou(comp).pinyin} · ${findBushou(comp).meaning} · HV: ${findBushou(comp).sv}`
+                  }
                   style={{
                     fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif",
                     fontSize: 16,
