@@ -491,6 +491,9 @@ const UI_TEXT = {
   copy_to_personal_confirm: { vi: "Xác nhận", en: "Confirm" },
   copy_to_personal_done: { vi: "✓ Đã sao chép!", en: "✓ Copied!" },
   copy_to_personal_error: { vi: "Không thể sao chép.", en: "Could not copy." },
+  copy_list_button: { vi: "Sao chép cả danh sách", en: "Copy whole list" },
+  copy_list_saving: { vi: "Đang sao chép…", en: "Copying…" },
+  copy_list_done: (n, total) => ({ vi: `Đã sao chép ${n}/${total} mục vào thư viện cá nhân.`, en: `Copied ${n}/${total} items to your personal library.` }),
   suggest_revision_placeholder: { vi: "Thông tin này sai hoặc thiếu điều gì?", en: "What's wrong or missing here?" },
   suggest_revision_submit: { vi: "Gửi đề xuất", en: "Submit" },
   suggest_revision_thanks: { vi: "Cảm ơn bạn! Chúng tôi sẽ xem xét.", en: "Thanks! We'll take a look." },
@@ -9488,6 +9491,23 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
   const [exportMessage, setExportMessage] = useState(null);
   const [lockedListName, setLockedListName] = useState(null);
+  const [copyListStatus, setCopyListStatus] = useState(null);
+
+  async function handleCopyWholeList() {
+    if (!userId) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    setCopyListStatus({ type: "saving", text: t("copy_list_saving", meaningDisplay) });
+    const itemsInList = (wordList || []).filter((w) => (w.lists || []).includes(listFilter));
+    let successCount = 0;
+    for (const w of itemsInList) {
+      const row = { ...wordToRow(w, userId), lists: [listFilter] };
+      const { error } = await supabase.from("custom_words").upsert(row, { onConflict: "user_id,word" });
+      if (!error) successCount += 1;
+    }
+    setCopyListStatus({ type: "done", text: t("copy_list_done", meaningDisplay, successCount, itemsInList.length) });
+  }
 
   const allLists = useMemo(() => {
     const set = new Set();
@@ -9593,6 +9613,25 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 </option>
               ))}
             </select>
+            {showCopyToPersonal && listFilter !== "Tất cả" && (
+              <button
+                type="button"
+                onClick={handleCopyWholeList}
+                disabled={copyListStatus && copyListStatus.type === "saving"}
+                style={{
+                  border: `1px solid ${COLORS.seal}`,
+                  borderRadius: 11,
+                  background: "transparent",
+                  color: COLORS.seal,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  padding: "9px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                📋 {t("copy_list_button", meaningDisplay)}
+              </button>
+            )}
             {lockedListName && (
               <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
             )}
@@ -9612,6 +9651,11 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
               {t("hanzi_export_excel", meaningDisplay)}
             </button>
           </div>
+          {copyListStatus && (
+            <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : COLORS.inkSoft, marginBottom: 10 }}>
+              {copyListStatus.text}
+            </div>
+          )}
           {exportMessage && (
             <div
               style={{
@@ -10175,6 +10219,23 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
   const [exportMessage, setExportMessage] = useState(null);
   const [lockedListName, setLockedListName] = useState(null);
+  const [copyListStatus, setCopyListStatus] = useState(null);
+
+  async function handleCopyWholeList() {
+    if (!userId) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    setCopyListStatus({ type: "saving", text: t("copy_list_saving", meaningDisplay) });
+    const itemsInList = (characterList || []).filter((c) => getLists(c).includes(listFilter));
+    let successCount = 0;
+    for (const c of itemsInList) {
+      const row = { ...charToRow(c, userId), lists: [listFilter] };
+      const { error } = await supabase.from("custom_characters").upsert(row, { onConflict: "user_id,char" });
+      if (!error) successCount += 1;
+    }
+    setCopyListStatus({ type: "done", text: t("copy_list_done", meaningDisplay, successCount, itemsInList.length) });
+  }
 
   const findBushou = (ch) =>
     bushouList.find((b) => b.char === ch) || { char: ch, pinyin: "—", meaning: "unknown", sv: "—" };
@@ -10281,6 +10342,25 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
               </option>
             ))}
           </select>
+          {showCopyToPersonal && listFilter !== "Tất cả" && (
+            <button
+              type="button"
+              onClick={handleCopyWholeList}
+              disabled={copyListStatus && copyListStatus.type === "saving"}
+              style={{
+                border: `1px solid ${COLORS.seal}`,
+                borderRadius: 11,
+                background: "transparent",
+                color: COLORS.seal,
+                fontWeight: 600,
+                fontSize: 13,
+                padding: "9px 14px",
+                cursor: "pointer",
+              }}
+            >
+              📋 {t("copy_list_button", meaningDisplay)}
+            </button>
+          )}
           {lockedListName && (
             <ListLockedModal listName={lockedListName} onClose={() => setLockedListName(null)} onViewPremium={onViewPremium} />
           )}
@@ -10300,6 +10380,11 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
             {t("hanzi_export_excel", meaningDisplay)}
           </button>
         </div>
+        {copyListStatus && (
+          <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : COLORS.inkSoft, marginBottom: 10 }}>
+            {copyListStatus.text}
+          </div>
+        )}
         {exportMessage && (
           <div
             style={{
@@ -12232,6 +12317,23 @@ function LibraryTab(props) {
 function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou, meaningDisplay, showCopyToPersonal, personalListNames, userId, onRequireAuth }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
+  const [copyListStatus, setCopyListStatus] = useState(null);
+
+  async function handleCopyWholeList() {
+    if (!userId) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    setCopyListStatus({ type: "saving", text: t("copy_list_saving", meaningDisplay) });
+    const itemsInList = (bushouList || []).filter((b) => (b.lists || []).includes(listFilter));
+    let successCount = 0;
+    for (const b of itemsInList) {
+      const row = { ...bushouToRow(b, userId), lists: [listFilter] };
+      const { error } = await supabase.from("custom_bushou").upsert(row, { onConflict: "user_id,char" });
+      if (!error) successCount += 1;
+    }
+    setCopyListStatus({ type: "done", text: t("copy_list_done", meaningDisplay, successCount, itemsInList.length) });
+  }
   const allLists = useMemo(() => {
     const set = new Set();
     bushouList.forEach((b) => (b.lists || []).forEach((l) => set.add(l)));
@@ -12320,7 +12422,31 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
             </option>
           ))}
         </select>
+        {showCopyToPersonal && listFilter !== "Tất cả" && (
+          <button
+            type="button"
+            onClick={handleCopyWholeList}
+            disabled={copyListStatus && copyListStatus.type === "saving"}
+            style={{
+              border: `1px solid ${COLORS.seal}`,
+              borderRadius: 11,
+              background: "transparent",
+              color: COLORS.seal,
+              fontWeight: 600,
+              fontSize: 13,
+              padding: "9px 14px",
+              cursor: "pointer",
+            }}
+          >
+            📋 {t("copy_list_button", meaningDisplay)}
+          </button>
+        )}
       </div>
+      {copyListStatus && (
+        <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : COLORS.inkSoft, marginBottom: 10 }}>
+          {copyListStatus.text}
+        </div>
+      )}
       <div style={{ fontSize: 12.5, color: COLORS.inkSoft, textAlign: "center", marginBottom: 20 }}>
         {t("radicals_count", meaningDisplay, filtered.length, bushouList.length)}
       </div>
