@@ -1095,6 +1095,10 @@ const UI_TEXT = {
 
   // Từ vựng (Word list panel)
   vocab_panel_title: { vi: "Danh sách từ vựng trong kho dữ liệu", en: "Vocabulary List in Storage" },
+  vocab_refresh_reminder: {
+    vi: "Vui lòng tải lại trang để xem những từ bạn vừa tạo hoặc sao chép.",
+    en: "Please refresh to see the words you just created or copied.",
+  },
   vocab_panel_title_guest: { vi: "Đăng nhập để thêm từ của riêng bạn", en: "Sign in to add your own words" },
   vocab_empty: {
     vi: 'Bạn chưa có từ nào. Hãy thêm từ ở tab "Tạo thẻ từ mới".',
@@ -9550,8 +9554,11 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
 
   return (
     <div>
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
         {userId ? t("vocab_panel_title", meaningDisplay) : t("vocab_panel_title_guest", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 11.5, color: COLORS.metadata, marginBottom: 12, textAlign: "center" }}>
+        {t("vocab_refresh_reminder", meaningDisplay)}
       </div>
 
       {(!wordList || wordList.length === 0) ? (
@@ -9906,7 +9913,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         </button>
         </>
         )}
-        {isOfficial && (
+        {isOfficial && showCopyToPersonal && (
           <SuggestRevisionButton contentType="word" itemKey={w.word} meaningDisplay={meaningDisplay} compact />
         )}
         {showCopyToPersonal && isOfficial && (
@@ -10527,7 +10534,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           </button>
             </>
           )}
-          {isOfficial && (
+          {isOfficial && showCopyToPersonal && (
             <SuggestRevisionButton contentType="char" itemKey={c.char} meaningDisplay={meaningDisplay} compact />
           )}
           {showCopyToPersonal && isOfficial && (
@@ -12612,7 +12619,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
                 : t("radicals_set_default", meaningDisplay)}
             </button>
           )}
-          {isOfficial && (
+          {isOfficial && showCopyToPersonal && (
             <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
               <SuggestRevisionButton contentType="bushou" itemKey={b.char} meaningDisplay={meaningDisplay} />
               {showCopyToPersonal && (
