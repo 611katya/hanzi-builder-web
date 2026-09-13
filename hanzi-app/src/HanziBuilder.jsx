@@ -492,6 +492,7 @@ const UI_TEXT = {
   copy_to_personal_done: { vi: "✓ Đã sao chép!", en: "✓ Copied!" },
   copy_to_personal_error: { vi: "Không thể sao chép.", en: "Could not copy." },
   copy_list_button: { vi: "Sao chép cả danh sách", en: "Copy whole list" },
+  copy_list_choose_first: { vi: "Vui lòng chọn một danh sách cụ thể trước khi sao chép.", en: "Please choose a specific list before copying." },
   copy_list_saving: { vi: "Đang sao chép…", en: "Copying…" },
   copy_list_done: (n, total) => ({ vi: `Đã sao chép ${n}/${total} mục vào thư viện cá nhân.`, en: `Copied ${n}/${total} items to your personal library.` }),
   suggest_revision_placeholder: { vi: "Thông tin này sai hoặc thiếu điều gì?", en: "What's wrong or missing here?" },
@@ -9498,6 +9499,10 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
       if (onRequireAuth) onRequireAuth();
       return;
     }
+    if (listFilter === "Tất cả") {
+      setCopyListStatus({ type: "error", text: t("copy_list_choose_first", meaningDisplay) });
+      return;
+    }
     setCopyListStatus({ type: "saving", text: t("copy_list_saving", meaningDisplay) });
     const itemsInList = (wordList || []).filter((w) => (w.lists || []).includes(listFilter));
     let successCount = 0;
@@ -9613,7 +9618,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 </option>
               ))}
             </select>
-            {showCopyToPersonal && listFilter !== "Tất cả" && (
+            {showCopyToPersonal && (
               <button
                 type="button"
                 onClick={handleCopyWholeList}
@@ -9652,7 +9657,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
             </button>
           </div>
           {copyListStatus && (
-            <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : COLORS.inkSoft, marginBottom: 10 }}>
+            <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : copyListStatus.type === "error" ? COLORS.error : COLORS.inkSoft, marginBottom: 10 }}>
               {copyListStatus.text}
             </div>
           )}
@@ -10226,6 +10231,10 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
       if (onRequireAuth) onRequireAuth();
       return;
     }
+    if (listFilter === "Tất cả") {
+      setCopyListStatus({ type: "error", text: t("copy_list_choose_first", meaningDisplay) });
+      return;
+    }
     setCopyListStatus({ type: "saving", text: t("copy_list_saving", meaningDisplay) });
     const itemsInList = (characterList || []).filter((c) => getLists(c).includes(listFilter));
     let successCount = 0;
@@ -10342,7 +10351,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
               </option>
             ))}
           </select>
-          {showCopyToPersonal && listFilter !== "Tất cả" && (
+          {showCopyToPersonal && (
             <button
               type="button"
               onClick={handleCopyWholeList}
@@ -10381,7 +10390,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
           </button>
         </div>
         {copyListStatus && (
-          <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : COLORS.inkSoft, marginBottom: 10 }}>
+          <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : copyListStatus.type === "error" ? COLORS.error : COLORS.inkSoft, marginBottom: 10 }}>
             {copyListStatus.text}
           </div>
         )}
@@ -12324,6 +12333,10 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
       if (onRequireAuth) onRequireAuth();
       return;
     }
+    if (listFilter === "Tất cả") {
+      setCopyListStatus({ type: "error", text: t("copy_list_choose_first", meaningDisplay) });
+      return;
+    }
     setCopyListStatus({ type: "saving", text: t("copy_list_saving", meaningDisplay) });
     const itemsInList = (bushouList || []).filter((b) => (b.lists || []).includes(listFilter));
     let successCount = 0;
@@ -12422,7 +12435,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
             </option>
           ))}
         </select>
-        {showCopyToPersonal && listFilter !== "Tất cả" && (
+        {showCopyToPersonal && (
           <button
             type="button"
             onClick={handleCopyWholeList}
@@ -12443,7 +12456,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
         )}
       </div>
       {copyListStatus && (
-        <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : COLORS.inkSoft, marginBottom: 10 }}>
+        <div style={{ textAlign: "center", fontSize: 12.5, fontWeight: 600, color: copyListStatus.type === "done" ? COLORS.seal : copyListStatus.type === "error" ? COLORS.error : COLORS.inkSoft, marginBottom: 10 }}>
           {copyListStatus.text}
         </div>
       )}
