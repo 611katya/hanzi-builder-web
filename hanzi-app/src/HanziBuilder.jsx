@@ -11607,13 +11607,13 @@ function LibraryManagementTab({ userId, isAdmin, characterList, wordList, bushou
   }
 
   function handleRenameList(name) {
-    const next = window.prompt(t("mgmt_rename_prompt", meaningDisplay), name);
+    const next = window.prompt(t("mgmt_rename_prompt", meaningDisplay), displayListName(name, meaningDisplay));
     if (!next || !next.trim() || next.trim() === name) return;
     bulkRenameList(name, next.trim());
   }
 
   function handleDeleteList(name) {
-    if (!window.confirm(t("mgmt_confirm_delete_list", meaningDisplay, name))) return;
+    if (!window.confirm(t("mgmt_confirm_delete_list", meaningDisplay, displayListName(name, meaningDisplay)))) return;
     bulkDeleteList(name);
   }
 
@@ -11752,7 +11752,7 @@ function LibraryManagementTab({ userId, isAdmin, characterList, wordList, bushou
           {myLists.map((l) => (
             <div key={l.name} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 11, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>{l.name}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.ink }}>{displayListName(l.name, meaningDisplay)}</div>
                 <div style={{ fontSize: 11, color: COLORS.metadata }}>{t("mgmt_item_count", meaningDisplay, l.count)}</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
