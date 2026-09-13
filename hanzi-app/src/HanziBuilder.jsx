@@ -433,7 +433,7 @@ const UI_TEXT = {
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
   tab_vocab: { vi: "Từ vựng", en: "Words" },
   tab_library: { vi: "Thư viện", en: "Library" },
-  tab_management: { vi: "Quản lý", en: "Management" },
+  tab_management: { vi: "⚙️ Quản lý", en: "⚙️ Management" },
   mgmt_sign_in_required: { vi: "Vui lòng đăng nhập để quản lý tài khoản và thư viện của bạn.", en: "Please sign in to manage your account and library." },
   mgmt_sign_in_button: { vi: "Đăng nhập", en: "Sign In" },
   mgmt_account_tab: { vi: "Quản lý tài khoản", en: "Account Management" },
@@ -455,7 +455,7 @@ const UI_TEXT = {
   mgmt_course_label: { vi: "Khóa học:", en: "Course:" },
   mgmt_upgrade_title: { vi: "Nâng cấp gói", en: "Upgrade Your Tier" },
   mgmt_upgrade_body: {
-    vi: "Chúng tôi vẫn đang thiết lập phương thức thanh toán và xây dựng kho nội dung phong phú hơn. Trong thời gian này, chúng tôi sẽ nâng cấp tài khoản của bạn lên Premium miễn phí. Vui lòng vào mục Tin nhắn và gửi tin nhắn cho chúng tôi. Chúng tôi sẽ đặt lại số lượt tra cứu của bạn trong vòng 24 giờ.",
+    vi: "Chúng tôi vẫn đang thiết lập phương thức thanh toán và xây dựng kho nội dung phong phú hơn. Trong thời gian này, chúng tôi sẽ nâng cấp tài khoản của bạn lên Premium miễn phí. Vui lòng vào mục Tin nhắn và gửi tin nhắn cho chúng tôi. Chúng tôi sẽ gia hạn số lượt tra cứu của bạn trong vòng 24 giờ.",
     en: "We are still setting up payment methods and building a more intensive content library. In the meantime, we will upgrade your account to premium for free. Please go to the message tab and send us a message. We will reset your lookup limit within 24 hours.",
   },
   mgmt_upgrade_button: { vi: "Nâng cấp lên Premium", en: "Upgrade to Premium" },
@@ -1022,7 +1022,7 @@ const UI_TEXT = {
   },
   add_note_p4: {
     vi: "Ngoài ra, thanh công cụ đôi lúc vẫn có thể tách sai bộ thành phần. Người học cần tra soát lại với các hệ thống từ điển và nhập lại thủ công nếu phát hiện sai sót. Các từ điển tham khảo:",
-    en: "Also, the tool can occasionally split components incorrectly. Double-check against a dictionary and re-enter manually if you spot an error. Reference dictionaries:",
+    en: "Also, the tool can occasionally split components incorrectly. Double-check with a reliable dictionary and re-enter manually if you spot an error. Reference dictionaries:",
   },
 
   // Bộ thủ (Radicals tab)
@@ -1036,7 +1036,7 @@ const UI_TEXT = {
   },
   radicals_header_p3: {
     vi: "Lưu ý, thanh tra cứu đôi khi sẽ tách các bộ thành phần của chữ Hán chưa chính xác hoặc khác với nhu cầu của người học (như ví dụ phía trên). Người học cần tra soát lại với các hệ thống từ điển và nhập lại thủ công nếu phát hiện sai sót.",
-    en: "Note: the lookup tool sometimes splits a character's components imprecisely or differently than a learner would want (as in the example above). Double-check against a dictionary and re-enter manually if you spot an error.",
+    en: "Note: the lookup tool sometimes splits a character's components imprecisely or differently than a learner would want (as in the example above). Double-check with a reliable dictionary and re-enter manually if you spot an error.",
   },
   radicals_search_placeholder: {
     vi: "Tìm bộ thủ theo chữ, pinyin, nghĩa, hoặc Hán Việt…",
@@ -11430,7 +11430,7 @@ function AccountManagementTab({ tier, lookupCount, lookupLimit, courseName, mean
           <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.ink, marginBottom: 8, textAlign: "center" }}>
             {t("mgmt_upgrade_title", meaningDisplay)}
           </div>
-          <div style={{ fontSize: 13, color: COLORS.inkSoft, textAlign: "center", marginBottom: 16, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 13, color: COLORS.inkSoft, textAlign: "justify", marginBottom: 16, lineHeight: 1.6 }}>
             {t("mgmt_upgrade_body", meaningDisplay)}
           </div>
           <div style={{ textAlign: "center" }}>
