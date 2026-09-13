@@ -3965,8 +3965,8 @@ function FlashcardsTab({ userId, characterList, wordList, bushouList, decks, isA
           <div
             onClick={() => setFlipped((f) => !f)}
             style={{
-              background: flipped ? COLORS.seal : "#FBF9EF",
-              border: `1px solid ${flipped ? COLORS.seal : COLORS.hairline}`,
+              background: flipped ? COLORS.seal : "#E6EBED",
+              border: `1px solid ${flipped ? COLORS.seal : "#A8B7BE"}`,
               borderRadius: 14,
               padding: "40px 24px",
               minHeight: 220,
