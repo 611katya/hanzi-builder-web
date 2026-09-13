@@ -433,7 +433,9 @@ const UI_TEXT = {
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
   tab_vocab: { vi: "Từ vựng", en: "Words" },
   tab_library: { vi: "Thư viện", en: "Library" },
-  tab_management: { vi: "⚙️ Quản lý", en: "⚙️ Management" },
+  lib_group_public: { vi: "Công khai", en: "Public" },
+  lib_group_personal: { vi: "Cá nhân", en: "Personal" },
+  tab_management: { vi: "⚙️ Tài khoản", en: "⚙️ Account" },
   mgmt_sign_in_required: { vi: "Vui lòng đăng nhập để quản lý tài khoản và thư viện của bạn.", en: "Please sign in to manage your account and library." },
   mgmt_sign_in_button: { vi: "Đăng nhập", en: "Sign In" },
   mgmt_account_tab: { vi: "Quản lý tài khoản", en: "Account Management" },
@@ -840,8 +842,8 @@ const UI_TEXT = {
 
   // Tạo thẻ từ mới (Add tab)
   add_intro: {
-    vi: "Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, và một danh sách. Nếu chữ đã được phân tích trong kho dữ liệu chung, lượt tra cứu của bạn sẽ không bị tính. Lưu ý: ở đây bạn chỉ có thể gán một danh sách cho thẻ mới — để tạo bộ sưu tập (deck), vui lòng vào mục Quản lý → Quản lý thư viện.",
-    en: "Enter a complete Chinese character along with its meaning, pinyin, and a list. If a character has been broken down in shared storage, your lookup quota will not be counted. Note: here you can only assign a list to a new card — to create a deck, go to Management → Library Management.",
+    vi: "Nhập một chữ Hán hoàn chỉnh cùng nghĩa, pinyin, và một danh sách. Nếu chữ đã được phân tích trong kho dữ liệu chung, lượt tra cứu của bạn sẽ không bị tính. Lưu ý: ở đây bạn chỉ có thể gán một danh sách cho thẻ mới — để tạo bộ sưu tập (deck), vui lòng vào THƯ VIỆN → CÁ NHÂN → Quản lý thư viện.",
+    en: "Enter a complete Chinese character along with its meaning, pinyin, and a list. If a character has been broken down in shared storage, your lookup quota will not be counted. Note: here you can only assign a list to a new card — to create a deck, go to LIBRARY → PERSONAL → Library Management.",
   },
   add_char_label: { vi: "Chữ Hán hoàn chỉnh", en: "Complete Chinese Character" },
   add_meaning_en_label: { vi: "Nghĩa (English)", en: "Meaning (English)" },
@@ -2628,6 +2630,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             }}
             pendingSubTab={pendingLibrarySubTab}
             onConsumePendingSubTab={() => setPendingLibrarySubTab(null)}
+            decks={decks}
+            onDecksChanged={loadDecks}
           />
         ) : tab === "management" ? (
           <ManagementTab
@@ -11254,7 +11258,6 @@ function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, course
 
   const subTabs = [
     { id: "account", label: t("mgmt_account_tab", meaningDisplay) },
-    { id: "library", label: t("mgmt_library_tab", meaningDisplay) },
     { id: "messages", label: t("mgmt_messages_tab", meaningDisplay) },
   ];
 
@@ -11285,19 +11288,8 @@ function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, course
 
       {subTab === "account" ? (
         <AccountManagementTab tier={tier} lookupCount={lookupCount} lookupLimit={lookupLimit} courseName={courseName} meaningDisplay={meaningDisplay} goToMessages={() => setSubTab("messages")} />
-      ) : subTab === "messages" ? (
-        <UserMessagesTab userId={userId} meaningDisplay={meaningDisplay} />
       ) : (
-        <LibraryManagementTab
-          userId={userId}
-          isAdmin={isAdmin}
-          characterList={characterList}
-          wordList={wordList}
-          bushouList={bushouList}
-          decks={decks}
-          onDecksChanged={onDecksChanged}
-          meaningDisplay={meaningDisplay}
-        />
+        <UserMessagesTab userId={userId} meaningDisplay={meaningDisplay} />
       )}
     </div>
   );
@@ -11785,15 +11777,44 @@ function LibraryTab(props) {
     isAdmin, checkListAccess, onViewPremium, userId,
     customWords, onAddCharacter, onRequireAuth, onQuotaUpdate,
     pendingSubTab, onConsumePendingSubTab,
+    decks, onDecksChanged,
   } = props;
-  const [subTab, setSubTab] = useState("radicals"); // radicals | hanzi | vocab | add
+  const [group, setGroup] = useState("public"); // public | personal
+  const [subTab, setSubTab] = useState("radicals"); // radicals | hanzi | vocab | add | manage
 
   useEffect(() => {
     if (pendingSubTab) {
+      // The Create New Cards shortcut from the practice tabs always lands
+      // in Personal, since that's where a regular user's own additions
+      // actually live.
+      setGroup("personal");
       setSubTab(pendingSubTab);
       if (onConsumePendingSubTab) onConsumePendingSubTab();
     }
   }, [pendingSubTab, onConsumePendingSubTab]);
+
+  // Public = the official/admin-created baseline. Personal = anything
+  // that isn't official, plus the user's own override of an official
+  // item (their own customized copy), regardless of group.
+  const publicBushouList = useMemo(() => (bushouList || []).filter((b) => officialBushouKeys && officialBushouKeys.has(b.char)), [bushouList, officialBushouKeys]);
+  const personalBushouList = useMemo(
+    () => (bushouList || []).filter((b) => !officialBushouKeys || !officialBushouKeys.has(b.char) || (overrideBushouKeys && overrideBushouKeys.has(b.char))),
+    [bushouList, officialBushouKeys, overrideBushouKeys]
+  );
+  const publicCharacterList = useMemo(() => (characterList || []).filter((c) => officialCharKeys && officialCharKeys.has(c.char)), [characterList, officialCharKeys]);
+  const personalCharacterList = useMemo(
+    () => (characterList || []).filter((c) => !officialCharKeys || !officialCharKeys.has(c.char) || (overrideCharKeys && overrideCharKeys.has(c.char))),
+    [characterList, officialCharKeys, overrideCharKeys]
+  );
+  const publicWordList = useMemo(() => (wordList || []).filter((w) => officialWordKeys && officialWordKeys.has(w.word)), [wordList, officialWordKeys]);
+  const personalWordList = useMemo(
+    () => (wordList || []).filter((w) => !officialWordKeys || !officialWordKeys.has(w.word) || (overrideWordKeys && overrideWordKeys.has(w.word))),
+    [wordList, officialWordKeys, overrideWordKeys]
+  );
+
+  const activeBushouList = group === "public" ? publicBushouList : personalBushouList;
+  const activeCharacterList = group === "public" ? publicCharacterList : personalCharacterList;
+  const activeWordList = group === "public" ? publicWordList : personalWordList;
 
   const subTabs = [
     { id: "radicals", label: t("tab_radicals", meaningDisplay) },
@@ -11803,6 +11824,47 @@ function LibraryTab(props) {
 
   return (
     <div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 18 }}>
+        <button
+          type="button"
+          onClick={() => {
+            setGroup("public");
+            setSubTab("radicals");
+          }}
+          style={{
+            border: `1.5px solid ${COLORS.seal}`,
+            borderRadius: 999,
+            background: group === "public" ? COLORS.seal : "transparent",
+            color: group === "public" ? "#FBF9EF" : COLORS.seal,
+            fontWeight: 700,
+            fontSize: 13.5,
+            padding: "7px 20px",
+            cursor: "pointer",
+          }}
+        >
+          {t("lib_group_public", meaningDisplay)}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setGroup("personal");
+            setSubTab("radicals");
+          }}
+          style={{
+            border: `1.5px solid ${COLORS.seal}`,
+            borderRadius: 999,
+            background: group === "personal" ? COLORS.seal : "transparent",
+            color: group === "personal" ? "#FBF9EF" : COLORS.seal,
+            fontWeight: 700,
+            fontSize: 13.5,
+            padding: "7px 20px",
+            cursor: "pointer",
+          }}
+        >
+          {t("lib_group_personal", meaningDisplay)}
+        </button>
+      </div>
+
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 20, flexWrap: "wrap", borderBottom: `1px solid ${COLORS.hairline}`, marginBottom: 22 }}>
         {subTabs.map((s) => (
           <button
@@ -11841,6 +11903,25 @@ function LibraryTab(props) {
         >
           + {t("tab_add", meaningDisplay)}
         </button>
+        {group === "personal" && (
+          <button
+            type="button"
+            onClick={() => setSubTab("manage")}
+            style={{
+              border: `1.5px solid ${COLORS.inkSoft}`,
+              borderRadius: 999,
+              background: subTab === "manage" ? COLORS.inkSoft : "transparent",
+              color: subTab === "manage" ? "#FBF9EF" : COLORS.inkSoft,
+              fontWeight: 700,
+              fontSize: 13,
+              padding: "6px 14px",
+              marginBottom: 6,
+              cursor: "pointer",
+            }}
+          >
+            {t("mgmt_library_tab", meaningDisplay)}
+          </button>
+        )}
       </div>
 
       {subTab === "add" ? (
@@ -11861,9 +11942,20 @@ function LibraryTab(props) {
           onQuotaUpdate={onQuotaUpdate}
           meaningDisplay={meaningDisplay}
         />
+      ) : subTab === "manage" && group === "personal" ? (
+        <LibraryManagementTab
+          userId={userId}
+          isAdmin={isAdmin}
+          characterList={characterList}
+          wordList={wordList}
+          bushouList={bushouList}
+          decks={decks}
+          onDecksChanged={onDecksChanged}
+          meaningDisplay={meaningDisplay}
+        />
       ) : subTab === "radicals" ? (
         <RadicalsTab
-          bushouList={bushouList}
+          bushouList={activeBushouList}
           onAddBushou={onAddBushou}
           isAdmin={isAdmin}
           officialBushouKeys={officialBushouKeys}
@@ -11874,7 +11966,7 @@ function LibraryTab(props) {
         />
       ) : subTab === "hanzi" ? (
         <CharacterListPanel
-          characterList={characterList}
+          characterList={activeCharacterList}
           bushouList={bushouList}
           onDeleteCharacter={onDeleteCharacter}
           onDeleteCharacterFromOfficial={onDeleteCharacterFromOfficial}
@@ -11892,7 +11984,7 @@ function LibraryTab(props) {
         />
       ) : (
         <WordListPanel
-          wordList={wordList}
+          wordList={activeWordList}
           characterList={characterList}
           findBushou={findBushou}
           onAddWord={onAddWord}
