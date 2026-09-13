@@ -455,8 +455,8 @@ const UI_TEXT = {
   mgmt_course_label: { vi: "Khóa học:", en: "Course:" },
   mgmt_upgrade_title: { vi: "Nâng cấp gói", en: "Upgrade Your Tier" },
   mgmt_upgrade_body: {
-    vi: "Xem bảng giá chi tiết trong mục Bảng giá. Nhấn nút bên dưới để yêu cầu nâng cấp.",
-    en: "See full tier details on the Pricing page. Click below to request an upgrade.",
+    vi: "Chúng tôi vẫn đang thiết lập phương thức thanh toán và xây dựng kho nội dung phong phú hơn. Trong thời gian này, chúng tôi sẽ nâng cấp tài khoản của bạn lên Premium miễn phí. Vui lòng vào mục Tin nhắn và gửi tin nhắn cho chúng tôi. Chúng tôi sẽ đặt lại số lượt tra cứu của bạn trong vòng 24 giờ.",
+    en: "We are still setting up payment methods and building a more intensive content library. In the meantime, we will upgrade your account to premium for free. Please go to the message tab and send us a message. We will reset your lookup limit within 24 hours.",
   },
   mgmt_upgrade_button: { vi: "Nâng cấp lên Premium", en: "Upgrade to Premium" },
   mgmt_my_decks_title: { vi: "Bộ sưu tập của tôi", en: "My Decks" },
@@ -11284,7 +11284,7 @@ function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, course
       </div>
 
       {subTab === "account" ? (
-        <AccountManagementTab tier={tier} lookupCount={lookupCount} lookupLimit={lookupLimit} courseName={courseName} meaningDisplay={meaningDisplay} />
+        <AccountManagementTab tier={tier} lookupCount={lookupCount} lookupLimit={lookupLimit} courseName={courseName} meaningDisplay={meaningDisplay} goToMessages={() => setSubTab("messages")} />
       ) : subTab === "messages" ? (
         <UserMessagesTab userId={userId} meaningDisplay={meaningDisplay} />
       ) : (
@@ -11405,7 +11405,7 @@ function UserMessagesTab({ userId, meaningDisplay }) {
   );
 }
 
-function AccountManagementTab({ tier, lookupCount, lookupLimit, courseName, meaningDisplay }) {
+function AccountManagementTab({ tier, lookupCount, lookupLimit, courseName, meaningDisplay, goToMessages }) {
   const tiers = ["Free", "Premium"];
   const currentIndex = tiers.indexOf(tier || "Free");
   const higherTiers = tiers.slice(currentIndex + 1);
@@ -11434,13 +11434,14 @@ function AccountManagementTab({ tier, lookupCount, lookupLimit, courseName, mean
             {t("mgmt_upgrade_body", meaningDisplay)}
           </div>
           <div style={{ textAlign: "center" }}>
-            <a
-              href="mailto:hello@minouq.com?subject=Upgrade%20request"
+            <button
+              type="button"
+              onClick={() => goToMessages && goToMessages()}
               className="seal-btn"
-              style={{ ...sealBtnStyle, textDecoration: "none", display: "inline-block" }}
+              style={{ ...sealBtnStyle, border: "none" }}
             >
               {t("mgmt_upgrade_button", meaningDisplay)}
-            </a>
+            </button>
           </div>
         </div>
       )}
