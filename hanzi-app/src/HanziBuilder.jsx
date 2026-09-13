@@ -482,6 +482,15 @@ const UI_TEXT = {
   }),
   mgmt_item_count: (n) => ({ vi: `${n} mục`, en: `${n} item${n === 1 ? "" : "s"}` }),
   suggest_revision_button: { vi: "Đề xuất chỉnh sửa cho quản trị viên", en: "Suggest a revision to admin" },
+  copy_to_personal_button: { vi: "Sao chép vào thư viện cá nhân", en: "Copy to my personal library" },
+  copy_to_personal_title: { vi: "Sao chép vào thư viện cá nhân của bạn", en: "Copy to my personal library" },
+  copy_to_personal_uncategorized: { vi: "Chưa phân loại", en: "Uncategorized" },
+  copy_to_personal_available_lists: { vi: "Danh sách có sẵn →", en: "Available lists →" },
+  copy_to_personal_new_list: { vi: "+ Tạo danh sách mới", en: "+ Create a new list" },
+  copy_to_personal_new_list_placeholder: { vi: "Tên danh sách mới", en: "New list name" },
+  copy_to_personal_confirm: { vi: "Xác nhận", en: "Confirm" },
+  copy_to_personal_done: { vi: "✓ Đã sao chép!", en: "✓ Copied!" },
+  copy_to_personal_error: { vi: "Không thể sao chép.", en: "Could not copy." },
   suggest_revision_placeholder: { vi: "Thông tin này sai hoặc thiếu điều gì?", en: "What's wrong or missing here?" },
   suggest_revision_submit: { vi: "Gửi đề xuất", en: "Submit" },
   suggest_revision_thanks: { vi: "Cảm ơn bạn! Chúng tôi sẽ xem xét.", en: "Thanks! We'll take a look." },
@@ -9469,7 +9478,7 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
   );
 }
 
-function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord, checkListAccess, onViewPremium, meaningDisplay, userId }) {
+function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord, checkListAccess, onViewPremium, meaningDisplay, userId, showCopyToPersonal, personalListNames, onRequireAuth }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
@@ -9630,6 +9639,10 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
                 onPromoteWord={onPromoteWord}
                 onWithdrawWord={onWithdrawWord}
                 meaningDisplay={meaningDisplay}
+                showCopyToPersonal={showCopyToPersonal}
+                personalListNames={personalListNames}
+                userId={userId}
+                onRequireAuth={onRequireAuth}
               />
             ))}
           </div>
@@ -9647,7 +9660,7 @@ function WordListPanel({ wordList, characterList, findBushou, onAddWord, onDelet
    (expands into a small inline form). Saving re-upserts the same word via
    onAddWord, which already overwrites on conflict — same pattern as
    character and radical editing. ---------- */
-function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord, meaningDisplay }) {
+function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteWord, onDeleteWordFromOfficial, isAdmin, isOfficial, hasOverride, onPromoteWord, onWithdrawWord, meaningDisplay, showCopyToPersonal, personalListNames, userId, onRequireAuth }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [zoomed, setZoomed] = useState(false);
   const [pinyin, setPinyin] = useState(w.pinyin);
@@ -9896,6 +9909,16 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         {isOfficial && (
           <SuggestRevisionButton contentType="word" itemKey={w.word} meaningDisplay={meaningDisplay} compact />
         )}
+        {showCopyToPersonal && isOfficial && (
+          <CopyToPersonalButton
+            contentType="word"
+            item={w}
+            userId={userId}
+            onRequireAuth={onRequireAuth}
+            personalListNames={personalListNames}
+            meaningDisplay={meaningDisplay}
+          />
+        )}
       </div>
 
       <div
@@ -10139,7 +10162,7 @@ function WordZoomModal({ w, characterList, findBushou, onClose, meaningDisplay, 
 }
 
 /* ---------- List function: browse every character already in the database ---------- */
-function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter, checkListAccess, onViewPremium, meaningDisplay, userId }) {
+function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, isAdmin, officialCharKeys, overrideCharKeys, onPromoteCharacter, onWithdrawCharacter, checkListAccess, onViewPremium, meaningDisplay, userId, showCopyToPersonal, personalListNames, onRequireAuth }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const [defaultFilter, setDefaultFilter] = useState("all"); // all | official | pending
@@ -10305,6 +10328,10 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
               onPromoteCharacter={onPromoteCharacter}
               onWithdrawCharacter={onWithdrawCharacter}
               meaningDisplay={meaningDisplay}
+              showCopyToPersonal={showCopyToPersonal}
+              personalListNames={personalListNames}
+              userId={userId}
+              onRequireAuth={onRequireAuth}
             />
           ))}
         </div>
@@ -10319,7 +10346,7 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
 }
 
 /* ---------- A single character card: view mode, edit mode, delete confirm ---------- */
-function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, hasOverride, onPromoteCharacter, onWithdrawCharacter, meaningDisplay }) {
+function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteCharacterFromOfficial, onUpdateCharacter, onAddBushou, allLists, isAdmin, isOfficial, hasOverride, onPromoteCharacter, onWithdrawCharacter, meaningDisplay, showCopyToPersonal, personalListNames, userId, onRequireAuth }) {
   const [mode, setMode] = useState("view"); // view | edit | confirmDelete
   const [zoomed, setZoomed] = useState(false);
   const [meaning, setMeaning] = useState(c.meaning);
@@ -10502,6 +10529,16 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           )}
           {isOfficial && (
             <SuggestRevisionButton contentType="char" itemKey={c.char} meaningDisplay={meaningDisplay} compact />
+          )}
+          {showCopyToPersonal && isOfficial && (
+            <CopyToPersonalButton
+              contentType="char"
+              item={c}
+              userId={userId}
+              onRequireAuth={onRequireAuth}
+              personalListNames={personalListNames}
+              meaningDisplay={meaningDisplay}
+            />
           )}
         </div>
       )}
@@ -10939,6 +10976,169 @@ function CharacterZoomModal({ c, findBushou, onClose, meaningDisplay, isOfficial
 // A small, collapsible "flag an issue" control for shared/official cards.
 // Expands into a short message box in place, rather than opening another
 // modal on top of one that may already be open (e.g. inside a zoom modal).
+function CopyToPersonalButton({ contentType, item, userId, onRequireAuth, personalListNames, onCopied, meaningDisplay }) {
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState("menu"); // menu | pickList | newList
+  const [newListName, setNewListName] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | saving | done | error
+
+  function handleOpen(e) {
+    if (e) e.stopPropagation();
+    if (!userId) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    setOpen(true);
+    setMode("menu");
+    setStatus("idle");
+  }
+
+  async function doCopy(listName) {
+    setStatus("saving");
+    const table = contentType === "char" ? "custom_characters" : contentType === "word" ? "custom_words" : "custom_bushou";
+    const toRow = contentType === "char" ? charToRow : contentType === "word" ? wordToRow : bushouToRow;
+    const row = { ...toRow(item, userId), lists: [listName] };
+    const conflictCol = contentType === "word" ? "user_id,word" : contentType === "char" ? "user_id,char" : "user_id,char";
+    const { error } = await supabase.from(table).upsert(row, { onConflict: conflictCol });
+    if (error) {
+      console.error("Could not copy to personal library:", error);
+      setStatus("error");
+      return;
+    }
+    setStatus("done");
+    if (onCopied) onCopied();
+    setTimeout(() => setOpen(false), 1200);
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={handleOpen}
+        title={t("copy_to_personal_button", meaningDisplay)}
+        style={{
+          width: 20,
+          height: 20,
+          lineHeight: "18px",
+          padding: 0,
+          fontSize: 11,
+          border: `1px solid ${COLORS.hairline}`,
+          borderRadius: "50%",
+          background: COLORS.chipBg,
+          color: COLORS.seal,
+          cursor: "pointer",
+        }}
+      >
+        📋
+      </button>
+    );
+  }
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: "absolute",
+        top: 28,
+        right: 6,
+        zIndex: 5,
+        background: COLORS.card,
+        border: `1px solid ${COLORS.hairline}`,
+        borderRadius: 8,
+        padding: "8px",
+        width: 190,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+        textAlign: "left",
+      }}
+    >
+      {status === "done" ? (
+        <div style={{ fontSize: 12, color: COLORS.seal, fontWeight: 600, padding: "4px 2px" }}>{t("copy_to_personal_done", meaningDisplay)}</div>
+      ) : mode === "menu" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.inkSoft, padding: "2px 4px", marginBottom: 2 }}>
+            {t("copy_to_personal_title", meaningDisplay)}
+          </div>
+          <button
+            type="button"
+            onClick={() => doCopy("Chưa phân loại")}
+            style={{ textAlign: "left", background: "none", border: "none", padding: "6px 4px", fontSize: 12.5, color: COLORS.ink, cursor: "pointer", borderRadius: 5 }}
+          >
+            {t("copy_to_personal_uncategorized", meaningDisplay)}
+          </button>
+          {personalListNames && personalListNames.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMode("pickList")}
+              style={{ textAlign: "left", background: "none", border: "none", padding: "6px 4px", fontSize: 12.5, color: COLORS.ink, cursor: "pointer", borderRadius: 5 }}
+            >
+              {t("copy_to_personal_available_lists", meaningDisplay)}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setMode("newList")}
+            style={{ textAlign: "left", background: "none", border: "none", padding: "6px 4px", fontSize: 12.5, color: COLORS.ink, cursor: "pointer", borderRadius: 5 }}
+          >
+            {t("copy_to_personal_new_list", meaningDisplay)}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            style={{ textAlign: "left", background: "none", border: "none", padding: "6px 4px", fontSize: 11.5, color: COLORS.metadata, cursor: "pointer", borderRadius: 5, marginTop: 2 }}
+          >
+            {t("admin_deck_cancel", meaningDisplay)}
+          </button>
+        </div>
+      ) : mode === "pickList" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 180, overflowY: "auto" }}>
+          {personalListNames.map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => doCopy(l)}
+              style={{ textAlign: "left", background: "none", border: "none", padding: "6px 4px", fontSize: 12.5, color: COLORS.ink, cursor: "pointer", borderRadius: 5 }}
+            >
+              {displayListName(l, meaningDisplay)}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setMode("menu")}
+            style={{ textAlign: "left", background: "none", border: "none", padding: "6px 4px", fontSize: 11.5, color: COLORS.metadata, cursor: "pointer", borderRadius: 5, marginTop: 2 }}
+          >
+            ← {t("admin_deck_cancel", meaningDisplay)}
+          </button>
+        </div>
+      ) : (
+        <div>
+          <input
+            autoFocus
+            value={newListName}
+            onChange={(e) => setNewListName(e.target.value)}
+            placeholder={t("copy_to_personal_new_list_placeholder", meaningDisplay)}
+            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12, marginBottom: 6 }}
+          />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => newListName.trim() && doCopy(newListName.trim())}
+              className="seal-btn"
+              style={{ ...sealBtnStyle, padding: "4px 10px", fontSize: 11.5 }}
+              disabled={status === "saving"}
+            >
+              {t("copy_to_personal_confirm", meaningDisplay)}
+            </button>
+            <button type="button" onClick={() => setMode("menu")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5 }}>
+              {t("admin_deck_cancel", meaningDisplay)}
+            </button>
+          </div>
+        </div>
+      )}
+      {status === "error" && <div style={{ fontSize: 11, color: COLORS.error, marginTop: 4 }}>{t("copy_to_personal_error", meaningDisplay)}</div>}
+    </div>
+  );
+}
+
 function SuggestRevisionButton({ contentType, itemKey, meaningDisplay, compact }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -11816,6 +12016,13 @@ function LibraryTab(props) {
   const activeCharacterList = group === "public" ? publicCharacterList : personalCharacterList;
   const activeWordList = group === "public" ? publicWordList : personalWordList;
 
+  // Personal list names per content type -- used by the "Copy to my
+  // personal library" feature on Public cards, to populate its
+  // "Available lists" option with the user's own existing lists.
+  const personalBushouListNames = useMemo(() => Array.from(new Set(personalBushouList.flatMap((b) => b.lists || []))), [personalBushouList]);
+  const personalCharacterListNames = useMemo(() => Array.from(new Set(personalCharacterList.flatMap((c) => c.lists || []))), [personalCharacterList]);
+  const personalWordListNames = useMemo(() => Array.from(new Set(personalWordList.flatMap((w) => w.lists || []))), [personalWordList]);
+
   const subTabs = [
     { id: "radicals", label: t("tab_radicals", meaningDisplay) },
     { id: "hanzi", label: t("tab_hanzi", meaningDisplay) },
@@ -11963,6 +12170,10 @@ function LibraryTab(props) {
           onPromoteBushou={onPromoteBushou}
           onWithdrawBushou={onWithdrawBushou}
           meaningDisplay={meaningDisplay}
+          showCopyToPersonal={group === "public"}
+          personalListNames={personalBushouListNames}
+          userId={userId}
+          onRequireAuth={onRequireAuth}
         />
       ) : subTab === "hanzi" ? (
         <CharacterListPanel
@@ -11981,6 +12192,9 @@ function LibraryTab(props) {
           onViewPremium={onViewPremium}
           meaningDisplay={meaningDisplay}
           userId={userId}
+          showCopyToPersonal={group === "public"}
+          personalListNames={personalCharacterListNames}
+          onRequireAuth={onRequireAuth}
         />
       ) : (
         <WordListPanel
@@ -11999,13 +12213,16 @@ function LibraryTab(props) {
           onViewPremium={onViewPremium}
           meaningDisplay={meaningDisplay}
           userId={userId}
+          showCopyToPersonal={group === "public"}
+          personalListNames={personalWordListNames}
+          onRequireAuth={onRequireAuth}
         />
       )}
     </div>
   );
 }
 
-function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou, meaningDisplay }) {
+function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, overrideBushouKeys, onPromoteBushou, onWithdrawBushou, meaningDisplay, showCopyToPersonal, personalListNames, userId, onRequireAuth }) {
   const [query, setQuery] = useState("");
   const [listFilter, setListFilter] = useState("Tất cả");
   const allLists = useMemo(() => {
@@ -12147,6 +12364,10 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
                 onWithdrawBushou={onWithdrawBushou}
                 meaningDisplay={meaningDisplay}
                 allBushouLists={allLists}
+                showCopyToPersonal={showCopyToPersonal}
+                personalListNames={personalListNames}
+                userId={userId}
+                onRequireAuth={onRequireAuth}
               />
             ))}
           </div>
@@ -12160,7 +12381,7 @@ function RadicalsTab({ bushouList, onAddBushou, isAdmin, officialBushouKeys, ove
    Saving just re-upserts the same char via onAddBushou (addBushouRow),
    which already overwrites on conflict — so "add" and "edit" are the same
    operation under the hood, exactly like character editing works. ---------- */
-function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromoteBushou, onWithdrawBushou, meaningDisplay, allBushouLists }) {
+function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromoteBushou, onWithdrawBushou, meaningDisplay, allBushouLists, showCopyToPersonal, personalListNames, userId, onRequireAuth }) {
   const [mode, setMode] = useState("view"); // view | edit
   const [strokeOrderOpen, setStrokeOrderOpen] = useState(false);
   const [pinyin, setPinyin] = useState(b.pinyin);
@@ -12392,8 +12613,18 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
             </button>
           )}
           {isOfficial && (
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
               <SuggestRevisionButton contentType="bushou" itemKey={b.char} meaningDisplay={meaningDisplay} />
+              {showCopyToPersonal && (
+                <CopyToPersonalButton
+                  contentType="bushou"
+                  item={b}
+                  userId={userId}
+                  onRequireAuth={onRequireAuth}
+                  personalListNames={personalListNames}
+                  meaningDisplay={meaningDisplay}
+                />
+              )}
             </div>
           )}
         </>
