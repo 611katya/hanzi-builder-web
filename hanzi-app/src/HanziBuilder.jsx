@@ -9806,7 +9806,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
         <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Danh sách</label>
         {selectedLists.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6, maxHeight: 70, overflowY: "auto" }}>
             {selectedLists.map((l) => (
               <span
                 key={l}
@@ -9857,7 +9857,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
           </button>
         </div>
         {allLists && allLists.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8, maxHeight: 100, overflowY: "auto" }}>
             {allLists.map((l) => (
               <button
                 key={l}
@@ -10659,7 +10659,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
           <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Danh sách (có thể nhiều)</label>
           {lists.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, maxHeight: 70, overflowY: "auto" }}>
               {lists.map((l) => (
                 <span
                   key={l}
@@ -10731,7 +10731,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
 
           <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 4 }}>{t("components_breakdown_label", meaningDisplay)}</label>
           {components.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6, maxHeight: 70, overflowY: "auto" }}>
               {components.map((ch, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <span
