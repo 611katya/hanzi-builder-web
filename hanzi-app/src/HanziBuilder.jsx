@@ -703,6 +703,37 @@ const UI_TEXT = {
   admin_enabled_done: { vi: "Đã kích hoạt lại.", en: "Re-enabled." },
   admin_course_name_placeholder: { vi: "Tên khóa học…", en: "Course name…" },
   admin_save: { vi: "Lưu", en: "Save" },
+  edit_add_button: { vi: "Thêm", en: "Add" },
+  edit_meaning_en: { vi: "Nghĩa (English)", en: "Meaning (English)" },
+  edit_meaning_vi: { vi: "Nghĩa (Tiếng Việt)", en: "Meaning (Vietnamese)" },
+  edit_pinyin_label: { vi: "Pinyin", en: "Pinyin" },
+  edit_sino_viet_label: { vi: "Hán Việt", en: "Sino-Vietnamese" },
+  edit_lists_label: { vi: "Danh sách (có thể nhiều)", en: "Lists (multiple allowed)" },
+  edit_list_placeholder: { vi: "+ danh sách", en: "+ list" },
+  edit_radical_placeholder: { vi: "+ bộ thủ", en: "+ radical" },
+  edit_new_radical_prefix: { vi: "Bộ thủ", en: "Radical" },
+  edit_new_radical_suffix: { vi: "chưa có — điền thông tin:", en: "doesn't exist yet — fill in its info:" },
+  edit_confirm_delete_char_official: (ch) => ({ vi: `Xóa "${ch}" khỏi dữ liệu mặc định cho MỌI người dùng?`, en: `Delete "${ch}" from the default data for ALL users?` }),
+  edit_confirm_delete_char: (ch) => ({ vi: `Xóa chữ "${ch}"?`, en: `Delete character "${ch}"?` }),
+  edit_delete_char_error: (ch, msg) => ({
+    vi: `Không thể xóa "${ch}" khỏi dữ liệu mặc định (lỗi: ${msg}). Chữ sẽ chỉ được ẩn khỏi tài khoản của bạn — vẫn hiển thị cho người dùng khác. Vui lòng kiểm tra lại trong Supabase.`,
+    en: `Could not delete "${ch}" from the default data (error: ${msg}). The character will only be hidden from your own account — it will still show for other users. Please check Supabase.`,
+  }),
+  edit_confirm_delete_word_official: (w) => ({ vi: `Xóa "${w}" khỏi dữ liệu mặc định cho MỌI người dùng?`, en: `Delete "${w}" from the default data for ALL users?` }),
+  edit_delete_word_error: (w, msg) => ({
+    vi: `Không thể xóa "${w}" khỏi dữ liệu mặc định (lỗi: ${msg}). Từ sẽ chỉ được ẩn khỏi tài khoản của bạn — vẫn hiển thị cho người dùng khác. Vui lòng kiểm tra lại trong Supabase.`,
+    en: `Could not delete "${w}" from the default data (error: ${msg}). The word will only be hidden from your own account — it will still show for other users. Please check Supabase.`,
+  }),
+  edit_tooltip_edit_word: { vi: "Sửa từ này", en: "Edit this word" },
+  edit_tooltip_delete_word: { vi: "Xóa từ này", en: "Delete this word" },
+  edit_tooltip_edit_char: { vi: "Sửa chữ này", en: "Edit this character" },
+  edit_tooltip_delete_char: { vi: "Xóa chữ này", en: "Delete this character" },
+  edit_tooltip_edit_radical: { vi: "Sửa bộ thủ này", en: "Edit this radical" },
+  edit_meaning_simple: { vi: "Nghĩa", en: "Meaning" },
+  edit_stroke_count_label: { vi: "Số nét", en: "Stroke count" },
+  edit_list_placeholder_radical: { vi: "vd: 1 nét… rồi Enter", en: "e.g. 1 stroke… then Enter" },
+  edit_tooltip_zoom_word: { vi: "Phóng to để xem chi tiết", en: "Zoom to see details" },
+  edit_tooltip_click_zoom_word: { vi: "Bấm để phóng to", en: "Click to zoom" },
   admin_cancel: { vi: "Hủy", en: "Cancel" },
   admin_disabled_badge: { vi: "Đã vô hiệu hóa", en: "Disabled" },
   admin_edit: { vi: "Sửa", en: "Edit" },
@@ -9796,15 +9827,15 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         }}
       >
         <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 18, marginBottom: 6 }}>{w.word}</div>
-        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_pinyin_label", meaningDisplay)}</label>
         <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
-        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (English)</label>
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_meaning_en", meaningDisplay)}</label>
         <input value={meaning} onChange={(e) => setMeaning(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
-        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (Tiếng Việt)</label>
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_meaning_vi", meaningDisplay)}</label>
         <input value={meaningVi} onChange={(e) => setMeaningVi(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
-        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Hán Việt</label>
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_sino_viet_label", meaningDisplay)}</label>
         <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12, boxSizing: "border-box" }} />
-        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Danh sách</label>
+        <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_lists_label", meaningDisplay)}</label>
         {selectedLists.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6, maxHeight: 70, overflowY: "auto" }}>
             {selectedLists.map((l) => (
@@ -9844,7 +9875,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
                 addList(listTypeahead);
               }
             }}
-            placeholder="+ danh sách"
+            placeholder={t("edit_list_placeholder", meaningDisplay)}
             style={{ ...inputStyle, fontSize: 12, padding: "5px 8px" }}
           />
           <button
@@ -9853,7 +9884,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
             className="ghost-btn"
             style={{ ...ghostBtnStyle, padding: "5px 8px", fontSize: 11.5, flex: "none" }}
           >
-            Thêm
+            {t("edit_add_button", meaningDisplay)}
           </button>
         </div>
         {allLists && allLists.length > 0 && (
@@ -9881,10 +9912,10 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
         )}
         <div style={{ display: "flex", gap: 6 }}>
           <button type="button" onClick={saveEdit} className="seal-btn" style={{ ...sealBtnStyle, padding: "5px 12px", fontSize: 11.5 }}>
-            Lưu
+            {t("admin_save", meaningDisplay)}
           </button>
           <button type="button" onClick={() => setMode("view")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "5px 12px", fontSize: 11.5 }}>
-            Hủy
+            {t("admin_cancel", meaningDisplay)}
           </button>
         </div>
       </div>
@@ -9906,7 +9937,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
       <button
         type="button"
         onClick={() => setZoomed(true)}
-        title="Phóng to để xem chi tiết"
+        title={t("edit_tooltip_zoom_word", meaningDisplay)}
         style={{
           position: "absolute",
           top: 6,
@@ -9933,7 +9964,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
           type="button"
           onClick={startEdit}
           style={{ background: "none", border: "none", color: COLORS.gold, cursor: "pointer", fontSize: 12, padding: 0 }}
-          title="Sửa từ này"
+          title={t("edit_tooltip_edit_word", meaningDisplay)}
         >
           ✎
         </button>
@@ -9941,22 +9972,20 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
           type="button"
           onClick={async () => {
             if (isAdmin && isOfficial) {
-              if (!window.confirm(`Xóa "${w.word}" khỏi dữ liệu mặc định cho MỌI người dùng?`)) return;
+              if (!window.confirm(t("edit_confirm_delete_word_official", meaningDisplay, w.word))) return;
               if (onDeleteWordFromOfficial) {
                 try {
                   await onDeleteWordFromOfficial(w.word);
                 } catch (e) {
                   console.error("Could not delete from default:", e);
-                  alert(
-                    `Không thể xóa "${w.word}" khỏi dữ liệu mặc định (lỗi: ${e && e.message ? e.message : "không rõ"}). Từ sẽ chỉ được ẩn khỏi tài khoản của bạn — vẫn hiển thị cho người dùng khác. Vui lòng kiểm tra lại trong Supabase.`
-                  );
+                  alert(t("edit_delete_word_error", meaningDisplay, w.word, e && e.message ? e.message : "unknown"));
                 }
               }
             }
             onDeleteWord && onDeleteWord(w.word);
           }}
           style={{ background: "none", border: "none", color: COLORS.error, cursor: "pointer", fontSize: 12, padding: 0 }}
-          title="Xóa từ này"
+          title={t("edit_tooltip_delete_word", meaningDisplay)}
         >
           ✕
         </button>
@@ -9979,7 +10008,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
 
       <div
         onClick={() => setZoomed(true)}
-        title="Bấm để phóng to"
+        title={t("edit_tooltip_click_zoom_word", meaningDisplay)}
         style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 20, color: COLORS.ink, marginBottom: 2, marginTop: 6, cursor: "pointer" }}
       >
         {w.word}
@@ -9998,8 +10027,8 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
           disabled={defaultStatus === "working"}
           title={
             hasOverride || !isOfficial
-              ? "Đặt/cập nhật làm dữ liệu mặc định cho mọi người dùng mới"
-              : "Bấm để gỡ khỏi dữ liệu mặc định"
+              ? t("radicals_set_default_tooltip", meaningDisplay)
+              : t("radicals_withdraw_tooltip", meaningDisplay)
           }
           style={{
             marginTop: 6,
@@ -10563,7 +10592,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
         <button
           type="button"
           onClick={() => setZoomed(true)}
-          title="Phóng to để xem chi tiết"
+          title={t("edit_tooltip_zoom_word", meaningDisplay)}
           style={{
             position: "absolute",
             top: 6,
@@ -10591,7 +10620,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <button
             type="button"
             onClick={startEdit}
-            title="Sửa chữ này"
+            title={t("edit_tooltip_edit_char", meaningDisplay)}
             style={{
               width: 20,
               height: 20,
@@ -10610,7 +10639,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <button
             type="button"
             onClick={() => setMode(mode === "confirmDelete" ? "view" : "confirmDelete")}
-            title="Xóa chữ này"
+            title={t("edit_tooltip_delete_char", meaningDisplay)}
             style={{
               width: 20,
               height: 20,
@@ -10649,15 +10678,15 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
           <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
             {c.char}
           </div>
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (English)</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_meaning_en", meaningDisplay)}</label>
           <input value={meaning} onChange={(e) => setMeaning(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa (Tiếng Việt)</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_meaning_vi", meaningDisplay)}</label>
           <input value={meaningVi} onChange={(e) => setMeaningVi(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_pinyin_label", meaningDisplay)}</label>
           <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Hán Việt</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_sino_viet_label", meaningDisplay)}</label>
           <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Danh sách (có thể nhiều)</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_lists_label", meaningDisplay)}</label>
           {lists.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 4, maxHeight: 70, overflowY: "auto" }}>
               {lists.map((l) => (
@@ -10697,7 +10726,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                   addListToEdit(listTypeahead);
                 }
               }}
-              placeholder="+ danh sách"
+              placeholder={t("edit_list_placeholder", meaningDisplay)}
               style={{ ...inputStyle, fontSize: 12.5, padding: "5px 8px" }}
             />
             <button
@@ -10706,7 +10735,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               className="ghost-btn"
               style={{ ...ghostBtnStyle, padding: "5px 8px", fontSize: 11.5, flex: "none" }}
             >
-              Thêm
+              {t("edit_add_button", meaningDisplay)}
             </button>
           </div>
 
@@ -10758,7 +10787,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
             <input
               value={compInput}
               onChange={(e) => setCompInput(e.target.value)}
-              placeholder="+ bộ thủ"
+              placeholder={t("edit_radical_placeholder", meaningDisplay)}
               style={{ ...inputStyle, fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 12.5, padding: "5px 8px" }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -10773,18 +10802,18 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               className="ghost-btn"
               style={{ ...ghostBtnStyle, padding: "5px 8px", fontSize: 11.5, flex: "none" }}
             >
-              Thêm
+              {t("edit_add_button", meaningDisplay)}
             </button>
           </div>
           {newCompDraft && (
             <div style={{ padding: 8, background: "rgba(80,133,165,0.08)", borderRadius: 6, border: `1px dashed ${COLORS.gold}`, marginBottom: 6 }}>
               <div style={{ fontSize: 11, marginBottom: 6 }}>
-                Bộ thủ <strong style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif" }}>{newCompDraft.char}</strong> chưa có — điền thông tin:
+                {t("edit_new_radical_prefix", meaningDisplay)} <strong style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif" }}>{newCompDraft.char}</strong> {t("edit_new_radical_suffix", meaningDisplay)}
               </div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 <input value={ncPinyin} onChange={(e) => setNcPinyin(e.target.value)} placeholder="pinyin" style={{ ...inputStyle, fontSize: 11.5, padding: "4px 6px", width: 60 }} />
                 <input value={ncMeaning} onChange={(e) => setNcMeaning(e.target.value)} placeholder="meaning" style={{ ...inputStyle, fontSize: 11.5, padding: "4px 6px", width: 80 }} />
-                <input value={ncSv} onChange={(e) => setNcSv(e.target.value)} placeholder="Hán Việt" style={{ ...inputStyle, fontSize: 11.5, padding: "4px 6px", width: 70 }} />
+                <input value={ncSv} onChange={(e) => setNcSv(e.target.value)} placeholder={t("edit_sino_viet_label", meaningDisplay)} style={{ ...inputStyle, fontSize: 11.5, padding: "4px 6px", width: 70 }} />
                 <button type="button" onClick={confirmNewComponent} className="seal-btn" style={{ ...sealBtnStyle, padding: "4px 8px", fontSize: 11 }}>
                   OK
                 </button>
@@ -10794,10 +10823,10 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
 
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
             <button type="button" onClick={saveEdit} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
-              Lưu
+              {t("admin_save", meaningDisplay)}
             </button>
             <button type="button" onClick={cancelEdit} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 14px", fontSize: 12 }}>
-              Hủy
+              {t("admin_cancel", meaningDisplay)}
             </button>
           </div>
         </div>
@@ -10805,7 +10834,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
         <>
           <div
             onClick={() => setZoomed(true)}
-            title="Bấm để phóng to"
+            title={t("edit_tooltip_click_zoom_word", meaningDisplay)}
             style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 32, color: COLORS.ink, cursor: "pointer", marginTop: 10 }}
           >
             {c.char}
@@ -10824,8 +10853,8 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               disabled={defaultStatus === "working"}
               title={
                 hasOverride || !isOfficial
-                  ? "Đặt/cập nhật làm dữ liệu mặc định cho mọi người dùng mới"
-                  : "Bấm để gỡ khỏi dữ liệu mặc định"
+                  ? t("radicals_set_default_tooltip", meaningDisplay)
+                  : t("radicals_withdraw_tooltip", meaningDisplay)
               }
               style={{
                 marginTop: 6,
@@ -10900,8 +10929,8 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
             >
               <div style={{ fontSize: 11, color: COLORS.error, fontWeight: 600 }}>
                 {isAdmin && isOfficial
-                  ? `Xóa "${c.char}" khỏi dữ liệu mặc định cho MỌI người dùng?`
-                  : `Xóa chữ "${c.char}"?`}
+                  ? t("edit_confirm_delete_char_official", meaningDisplay, c.char)
+                  : t("edit_confirm_delete_char", meaningDisplay, c.char)}
               </div>
               <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
                 <button
@@ -10912,9 +10941,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                         await onDeleteCharacterFromOfficial(c.char);
                       } catch (e) {
                         console.error("Could not delete from default:", e);
-                        alert(
-                          `Không thể xóa "${c.char}" khỏi dữ liệu mặc định (lỗi: ${e && e.message ? e.message : "không rõ"}). Chữ sẽ chỉ được ẩn khỏi tài khoản của bạn — vẫn hiển thị cho người dùng khác. Vui lòng kiểm tra lại trong Supabase.`
-                        );
+                        alert(t("edit_delete_char_error", meaningDisplay, c.char, e && e.message ? e.message : "unknown"));
                       }
                     }
                     onDeleteCharacter && onDeleteCharacter(c.char);
@@ -10930,7 +10957,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                     cursor: "pointer",
                   }}
                 >
-                  Xóa
+                  {t("mgmt_delete_list", meaningDisplay)}
                 </button>
                 <button
                   type="button"
@@ -10938,7 +10965,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                   className="ghost-btn"
                   style={{ ...ghostBtnStyle, padding: "4px 10px", fontSize: 11.5 }}
                 >
-                  Hủy
+                  {t("admin_cancel", meaningDisplay)}
                 </button>
               </div>
             </div>
@@ -12625,7 +12652,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
         <button
           type="button"
           onClick={startEdit}
-          title="Sửa bộ thủ này"
+          title={t("edit_tooltip_edit_radical", meaningDisplay)}
           style={{
             position: "absolute",
             top: 6,
@@ -12651,13 +12678,13 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
           <div style={{ fontFamily: "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif", fontSize: 26, color: COLORS.ink, textAlign: "center", marginBottom: 8 }}>
             {b.char}
           </div>
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Pinyin</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_pinyin_label", meaningDisplay)}</label>
           <input value={pinyin} onChange={(e) => setPinyin(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Nghĩa</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_meaning_simple", meaningDisplay)}</label>
           <input value={meaning} onChange={(e) => setMeaning(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Hán Việt</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_sino_viet_label", meaningDisplay)}</label>
           <input value={sv} onChange={(e) => setSv(e.target.value)} style={{ ...inputStyle, width: "100%", marginBottom: 6, fontSize: 12.5 }} />
-          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>Số nét</label>
+          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("edit_stroke_count_label", meaningDisplay)}</label>
           <input
             value={strokes}
             onChange={(e) => setStrokes(e.target.value.replace(/[^0-9]/g, ""))}
@@ -12665,7 +12692,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
           />
           <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>{t("radicals_lists_field_label", meaningDisplay)}</label>
           {lists.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6, maxHeight: 70, overflowY: "auto" }}>
               {lists.map((l) => (
                 <span
                   key={l}
@@ -12683,7 +12710,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
               ))}
             </div>
           )}
-          <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
             <input
               value={listTypeahead}
               onChange={(e) => setListTypeahead(e.target.value)}
@@ -12693,7 +12720,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
                   addList(listTypeahead);
                 }
               }}
-              placeholder="vd: 1 nét… rồi Enter"
+              placeholder={t("edit_list_placeholder_radical", meaningDisplay)}
               list="existing-bushou-lists"
               style={{ ...inputStyle, fontSize: 11.5, padding: "5px 8px" }}
             />
@@ -12708,10 +12735,10 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
           </div>
           <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
             <button type="button" onClick={saveEdit} className="seal-btn" style={{ ...sealBtnStyle, padding: "6px 14px", fontSize: 12 }}>
-              Lưu
+              {t("admin_save", meaningDisplay)}
             </button>
             <button type="button" onClick={() => setMode("view")} className="ghost-btn" style={{ ...ghostBtnStyle, padding: "6px 14px", fontSize: 12 }}>
-              Hủy
+              {t("admin_cancel", meaningDisplay)}
             </button>
           </div>
         </div>
