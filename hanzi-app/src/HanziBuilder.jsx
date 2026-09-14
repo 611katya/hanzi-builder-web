@@ -2644,6 +2644,9 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             bushouList={bushouList}
             characterList={characterList}
             wordList={wordList}
+            officialCharsRaw={officialChars}
+            officialWordsRaw={officialWords}
+            officialBushouRaw={officialBushou}
             customWords={customWords}
             onAddCharacter={addCharacterRow}
             onAddBushou={addBushouRow}
@@ -12106,6 +12109,7 @@ function LibraryTab(props) {
     customWords, onAddCharacter, onRequireAuth, onQuotaUpdate,
     pendingSubTab, onConsumePendingSubTab,
     decks, onDecksChanged,
+    officialCharsRaw, officialWordsRaw, officialBushouRaw,
   } = props;
   const [group, setGroup] = useState("public"); // public | personal
   const [subTab, setSubTab] = useState("radicals"); // radicals | hanzi | vocab | add | manage
@@ -12121,20 +12125,30 @@ function LibraryTab(props) {
     }
   }, [pendingSubTab, onConsumePendingSubTab]);
 
-  // Public = the official/admin-created baseline. Personal = anything
-  // that isn't official, plus the user's own override of an official
-  // item (their own customized copy), regardless of group.
-  const publicBushouList = useMemo(() => (bushouList || []).filter((b) => officialBushouKeys && officialBushouKeys.has(b.char)), [bushouList, officialBushouKeys]);
+  // Public = the true, untouched official baseline data -- sourced
+  // directly from officialCharsRaw/officialWordsRaw/officialBushouRaw
+  // (loaded straight from the official_* tables, before any per-user
+  // override is merged in), NOT filtered from characterList/wordList/
+  // bushouList. Those merged lists intentionally let a user's own
+  // override of an official item replace what they see everywhere they
+  // browse -- which is exactly why filtering them for "Public" was wrong:
+  // once someone copies an official item to Personal and edits it, that
+  // edit is stored under the same key and would silently override what
+  // Public showed too. Reading the raw official arrays instead means
+  // editing a personal copy can never change what Public displays.
+  // Personal still correctly uses the merged, override-aware lists, since
+  // a user's own customization of an official item should show there.
+  const publicBushouList = officialBushouRaw || [];
   const personalBushouList = useMemo(
     () => (bushouList || []).filter((b) => !officialBushouKeys || !officialBushouKeys.has(b.char) || (overrideBushouKeys && overrideBushouKeys.has(b.char))),
     [bushouList, officialBushouKeys, overrideBushouKeys]
   );
-  const publicCharacterList = useMemo(() => (characterList || []).filter((c) => officialCharKeys && officialCharKeys.has(c.char)), [characterList, officialCharKeys]);
+  const publicCharacterList = officialCharsRaw || [];
   const personalCharacterList = useMemo(
     () => (characterList || []).filter((c) => !officialCharKeys || !officialCharKeys.has(c.char) || (overrideCharKeys && overrideCharKeys.has(c.char))),
     [characterList, officialCharKeys, overrideCharKeys]
   );
-  const publicWordList = useMemo(() => (wordList || []).filter((w) => officialWordKeys && officialWordKeys.has(w.word)), [wordList, officialWordKeys]);
+  const publicWordList = officialWordsRaw || [];
   const personalWordList = useMemo(
     () => (wordList || []).filter((w) => !officialWordKeys || !officialWordKeys.has(w.word) || (overrideWordKeys && overrideWordKeys.has(w.word))),
     [wordList, officialWordKeys, overrideWordKeys]
