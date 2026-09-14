@@ -1905,15 +1905,62 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const [deletedChars, setDeletedChars] = useState([]);
   const [needsReview, setNeedsReview] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState("home");
-  // Lets other tabs (Combine Radicals, Flashcards, Handwriting) jump
-  // straight into Library's "Add New Cards" sub-tab, not just Library
-  // generally. LibraryTab reads this once and clears it, so a normal
-  // visit to Library afterward doesn't keep jumping back to Add.
-  const [pendingLibrarySubTab, setPendingLibrarySubTab] = useState(null);
+
+  // URL <-> navigation sync. Every level of navigation (top tab, Library's
+  // group and sub-tab, Management's sub-tab) is reflected in the URL path,
+  // and read back out of it on load / back-forward, e.g.
+  // /library/public/hanzi or /management/messages. This is a lightweight
+  // manual sync rather than a routing library, since retrofitting a full
+  // router onto this much existing state-driven UI would be a much
+  // riskier rewrite for the same end result.
+  function parsePathToState(pathname) {
+    const parts = pathname.replace(/^\/|\/$/g, "").split("/").filter(Boolean);
+    const validTabs = ["home", "play", "flashcards", "writing", "library", "management", "admin"];
+    const t = validTabs.includes(parts[0]) ? parts[0] : "home";
+    let lg = "public", ls = "radicals", ms = "account";
+    if (t === "library") {
+      if (parts[1] === "public" || parts[1] === "personal") lg = parts[1];
+      if (["radicals", "hanzi", "vocab", "add", "manage"].includes(parts[2])) ls = parts[2];
+    }
+    if (t === "management") {
+      if (parts[1] === "account" || parts[1] === "messages") ms = parts[1];
+    }
+    return { tab: t, libGroup: lg, libSubTab: ls, mgmtSubTab: ms };
+  }
+
+  const initialState = typeof window !== "undefined" ? parsePathToState(window.location.pathname) : { tab: "home", libGroup: "public", libSubTab: "radicals", mgmtSubTab: "account" };
+  const [tab, setTab] = useState(initialState.tab);
+  const [libGroup, setLibGroup] = useState(initialState.libGroup);
+  const [libSubTab, setLibSubTab] = useState(initialState.libSubTab);
+  const [mgmtSubTab, setMgmtSubTab] = useState(initialState.mgmtSubTab);
+
+  // Push a URL update whenever navigation state changes.
+  useEffect(() => {
+    let path = "/" + tab;
+    if (tab === "library") path += "/" + libGroup + "/" + libSubTab;
+    if (tab === "management") path += "/" + mgmtSubTab;
+    if (window.location.pathname !== path) {
+      window.history.pushState({ tab, libGroup, libSubTab, mgmtSubTab }, "", path);
+    }
+  }, [tab, libGroup, libSubTab, mgmtSubTab]);
+
+  // Restore state on browser back/forward.
+  useEffect(() => {
+    function onPopState() {
+      const s = parsePathToState(window.location.pathname);
+      setTab(s.tab);
+      setLibGroup(s.libGroup);
+      setLibSubTab(s.libSubTab);
+      setMgmtSubTab(s.mgmtSubTab);
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   function goToAddNewCards() {
     setTab("library");
-    setPendingLibrarySubTab("add");
+    setLibGroup("personal");
+    setLibSubTab("add");
   }
 
   // The shared default data, loaded from Supabase for EVERYONE (including
@@ -2679,8 +2726,10 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
               setLookupCount(count);
               if (typeof limit === "number") setLookupLimit(limit);
             }}
-            pendingSubTab={pendingLibrarySubTab}
-            onConsumePendingSubTab={() => setPendingLibrarySubTab(null)}
+            group={libGroup}
+            setGroup={setLibGroup}
+            subTab={libSubTab}
+            setSubTab={setLibSubTab}
             decks={decks}
             onDecksChanged={loadDecks}
           />
@@ -2699,6 +2748,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             onDecksChanged={loadDecks}
             meaningDisplay={meaningDisplay}
             onRequireAuth={onRequireAuth}
+            subTab={mgmtSubTab}
+            setSubTab={setMgmtSubTab}
           />
         ) : tab === "premium" ? (
           <PremiumTab meaningDisplay={meaningDisplay} />
@@ -11588,8 +11639,7 @@ const smallXStyle = {
 };
 
 /* ================= RADICALS TAB ================= */
-function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, courseName, characterList, wordList, bushouList, decks, onDecksChanged, meaningDisplay, onRequireAuth }) {
-  const [subTab, setSubTab] = useState("account"); // account | library
+function ManagementTab({ userId, isAdmin, tier, lookupCount, lookupLimit, courseName, characterList, wordList, bushouList, decks, onDecksChanged, meaningDisplay, onRequireAuth, subTab, setSubTab }) {
 
   if (!userId) {
     return (
@@ -12122,23 +12172,10 @@ function LibraryTab(props) {
     findBushou, onAddWord, onDeleteWord, onDeleteWordFromOfficial, officialWordKeys, overrideWordKeys, onPromoteWord, onWithdrawWord,
     isAdmin, checkListAccess, onViewPremium, userId,
     customWords, onAddCharacter, onRequireAuth, onQuotaUpdate,
-    pendingSubTab, onConsumePendingSubTab,
+    group, setGroup, subTab, setSubTab,
     decks, onDecksChanged,
     officialCharsRaw, officialWordsRaw, officialBushouRaw,
   } = props;
-  const [group, setGroup] = useState("public"); // public | personal
-  const [subTab, setSubTab] = useState("radicals"); // radicals | hanzi | vocab | add | manage
-
-  useEffect(() => {
-    if (pendingSubTab) {
-      // The Create New Cards shortcut from the practice tabs always lands
-      // in Personal, since that's where a regular user's own additions
-      // actually live.
-      setGroup("personal");
-      setSubTab(pendingSubTab);
-      if (onConsumePendingSubTab) onConsumePendingSubTab();
-    }
-  }, [pendingSubTab, onConsumePendingSubTab]);
 
   // Public = the true, untouched official baseline data -- sourced
   // directly from officialCharsRaw/officialWordsRaw/officialBushouRaw
