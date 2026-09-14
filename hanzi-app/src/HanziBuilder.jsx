@@ -491,7 +491,7 @@ const UI_TEXT = {
   copy_to_personal_confirm: { vi: "Xác nhận", en: "Confirm" },
   copy_to_personal_done: { vi: "✓ Đã sao chép!", en: "✓ Copied!" },
   copy_to_personal_error: { vi: "Không thể sao chép.", en: "Could not copy." },
-  copy_list_button: { vi: "Sao chép cả danh sách", en: "Copy whole list" },
+  copy_list_button: { vi: "Sao chép cả danh sách", en: "Copy Whole List" },
   copy_list_choose_first: { vi: "Vui lòng chọn một danh sách cụ thể trước khi sao chép.", en: "Please choose a specific list before copying." },
   copy_list_saving: { vi: "Đang sao chép…", en: "Copying…" },
   copy_list_done: (n, total) => ({ vi: `Đã sao chép ${n}/${total} mục vào thư viện cá nhân.`, en: `Copied ${n}/${total} items to your personal library.` }),
@@ -9927,7 +9927,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
       </button>
 
       <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
-        {(isAdmin || hasOverride || !isOfficial) && (
+        {(isAdmin || (hasOverride && !showCopyToPersonal) || !isOfficial) && (
         <>
         <button
           type="button"
@@ -10586,7 +10586,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
 
       {mode !== "edit" && (
         <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
-          {(isAdmin || hasOverride || !isOfficial) && (
+          {(isAdmin || (hasOverride && !showCopyToPersonal) || !isOfficial) && (
             <>
           <button
             type="button"
@@ -12621,7 +12621,7 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
         </button>
       )}
 
-      {mode === "view" && (isAdmin || hasOverride || !isOfficial) && (
+      {mode === "view" && (isAdmin || (hasOverride && !showCopyToPersonal) || !isOfficial) && (
         <button
           type="button"
           onClick={startEdit}
