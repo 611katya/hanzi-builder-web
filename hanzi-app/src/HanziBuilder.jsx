@@ -10273,7 +10273,12 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
     for (const c of itemsInList) {
       const row = { ...charToRow(c, userId), lists: [listFilter] };
       const { error } = await supabase.from("custom_characters").upsert(row, { onConflict: "user_id,char" });
-      if (!error) successCount += 1;
+      if (!error) {
+        successCount += 1;
+        // Clear any stale "deleted" tombstone for this character, or a
+        // previously-deleted-then-recopied character would stay hidden.
+        await supabase.from("deleted_characters").delete().eq("user_id", userId).eq("char", c.char);
+      }
     }
     setCopyListStatus({ type: "done", text: t("copy_list_done", meaningDisplay, successCount, itemsInList.length) });
   }
@@ -10353,8 +10358,11 @@ function CharacterListPanel({ characterList, bushouList, onDeleteCharacter, onDe
 
   return (
     <div>
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.8, textAlign: "center" }}>
         {userId ? t("hanzi_panel_title", meaningDisplay) : t("hanzi_panel_title_guest", meaningDisplay)}
+      </div>
+      <div style={{ fontSize: 11.5, color: COLORS.metadata, marginBottom: 12, textAlign: "center" }}>
+        {t("vocab_refresh_reminder", meaningDisplay)}
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
@@ -11135,6 +11143,13 @@ function CopyToPersonalButton({ contentType, item, userId, onRequireAuth, person
       console.error("Could not copy to personal library:", error);
       setStatus("error");
       return;
+    }
+    if (contentType === "char") {
+      // Characters have a separate "deleted" tombstone table that
+      // otherwise keeps hiding this character even after a fresh copy --
+      // clear it so the copy actually shows up.
+      const { error: delError } = await supabase.from("deleted_characters").delete().eq("user_id", userId).eq("char", item.char);
+      if (delError) console.error("Could not clear hidden flag:", delError);
     }
     setStatus("done");
     if (onCopied) onCopied();
