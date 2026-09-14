@@ -9834,7 +9834,7 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
             ))}
           </div>
         )}
-        <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+<div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
           <input
             value={listTypeahead}
             onChange={(e) => setListTypeahead(e.target.value)}
@@ -10687,7 +10687,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               ))}
             </div>
           )}
-          <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+<div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
             <input
               value={listTypeahead}
               onChange={(e) => setListTypeahead(e.target.value)}
@@ -10754,7 +10754,7 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
               ))}
             </div>
           )}
-          <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+<div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
             <input
               value={compInput}
               onChange={(e) => setCompInput(e.target.value)}
