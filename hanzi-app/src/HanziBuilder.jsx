@@ -581,10 +581,10 @@ const UI_TEXT = {
     en: "MinouQ Chinese is a Hanzi-learning tool built to help learners understand Chinese characters through their component structure, rather than by rote memorization. We believe that understanding how a character is built makes it easier to remember naturally and for the long term.",
   },
   about_visit_line: {
-    vi: "Để tìm hiểu thêm về các bài viết, sản phẩm, và nghiên cứu khác của MinouQ, vui lòng truy cập chúng tôi tại",
+    vi: "Để tìm hiểu thêm về các bài viết, sản phẩm, và nghiên cứu khác của MinouQ, vui lòng truy cập",
     en: "To learn more about other articles, products, and research by MinouQ, please visit us at",
   },
-  feedback_title: { vi: "Chúng tôi rất muốn nghe ý kiến của bạn", en: "We'd Love Your Feedback" },
+  feedback_title: { vi: "Chúng tôi rất mong chờ những ý kiến đóng góp của bạn", en: "We'd Love Your Feedback" },
   feedback_body: {
     vi: "Bạn thấy điều gì hữu ích? Điều gì cần cải thiện? Hãy cho chúng tôi biết bên dưới.",
     en: "What's working well? What could be better? Let us know below.",
