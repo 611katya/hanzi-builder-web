@@ -9870,15 +9870,24 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
     const lists = selectedLists
       .map((l) => l.trim())
       .filter(Boolean);
-    onAddWord &&
-      onAddWord({
-        ...w,
-        pinyin: pinyin.trim(),
-        meaning: meaning.trim(),
-        meaning_vi: meaningVi.trim(),
-        sv: sv.trim(),
-        lists: lists.length > 0 ? lists : ["Chưa phân loại"],
-      });
+    const updated = {
+      ...w,
+      pinyin: pinyin.trim(),
+      meaning: meaning.trim(),
+      meaning_vi: meaningVi.trim(),
+      sv: sv.trim(),
+      lists: lists.length > 0 ? lists : ["Chưa phân loại"],
+    };
+    // Editing an official word directly (admin, on the Public tab) must
+    // write straight to the shared official_words row via onPromoteWord --
+    // otherwise it would just create a personal override that the Public
+    // tab (which intentionally reads only the raw official data) ignores,
+    // making the edit look like it silently reverted right after saving.
+    if (isAdmin && isOfficial && onPromoteWord) {
+      onPromoteWord(updated);
+    } else {
+      onAddWord && onAddWord(updated);
+    }
     setMode("view");
   }
 
@@ -10619,16 +10628,26 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
 
   function saveEdit() {
     if (!meaning.trim() || !pinyin.trim() || !sv.trim()) return;
-    onUpdateCharacter &&
-      onUpdateCharacter(c.char, {
-        meaning: meaning.trim(),
-        meaning_vi: meaningVi.trim(),
-        pinyin: pinyin.trim(),
-        sv: sv.trim(),
-        lists: lists.length > 0 ? lists : ["Chưa phân loại"],
-        list: undefined,
-        components,
-      });
+    const updatedFields = {
+      meaning: meaning.trim(),
+      meaning_vi: meaningVi.trim(),
+      pinyin: pinyin.trim(),
+      sv: sv.trim(),
+      lists: lists.length > 0 ? lists : ["Chưa phân loại"],
+      list: undefined,
+      components,
+    };
+    // Editing an official character directly (admin, on the Public tab)
+    // must write straight to the shared official_characters row via
+    // onPromoteCharacter -- otherwise it would just create a personal
+    // override that the Public tab (which intentionally reads only the raw
+    // official data) ignores, making the edit look like it silently
+    // reverted right after saving.
+    if (isAdmin && isOfficial && onPromoteCharacter) {
+      onPromoteCharacter({ ...c, ...updatedFields, char: c.char });
+    } else {
+      onUpdateCharacter && onUpdateCharacter(c.char, updatedFields);
+    }
     setMode("view");
   }
 
@@ -12694,15 +12713,24 @@ function RadicalCard({ b, onAddBushou, isAdmin, isOfficial, hasOverride, onPromo
   function saveEdit() {
     if (!pinyin.trim() || !meaning.trim() || !sv.trim()) return;
     const strokesNum = parseInt(strokes, 10);
-    onAddBushou &&
-      onAddBushou({
-        char: b.char,
-        pinyin: pinyin.trim(),
-        meaning: meaning.trim(),
-        sv: sv.trim(),
-        strokes: Number.isFinite(strokesNum) && strokesNum > 0 ? strokesNum : undefined,
-        lists,
-      });
+    const updated = {
+      char: b.char,
+      pinyin: pinyin.trim(),
+      meaning: meaning.trim(),
+      sv: sv.trim(),
+      strokes: Number.isFinite(strokesNum) && strokesNum > 0 ? strokesNum : undefined,
+      lists,
+    };
+    // Editing an official radical directly (admin, on the Public tab) must
+    // write straight to the shared official_bushou row via onPromoteBushou
+    // -- otherwise it would just create a personal override that the Public
+    // tab (which intentionally reads only the raw official data) ignores,
+    // making the edit look like it silently reverted.
+    if (isAdmin && isOfficial && onPromoteBushou) {
+      onPromoteBushou(updated);
+    } else {
+      onAddBushou && onAddBushou(updated);
+    }
     setMode("view");
   }
 
