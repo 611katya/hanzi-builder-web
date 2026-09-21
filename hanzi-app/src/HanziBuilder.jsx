@@ -2248,15 +2248,21 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
 
   const addCharacterRow = useCallback(
     async (entry) => {
-      setCustomChars((prev) => [...prev, entry]);
+      setCustomChars((prev) => {
+        const without = prev.filter((c) => c.char !== entry.char);
+        return [...without, entry];
+      });
       // If this char was previously hidden (deleted from this user's own
       // view), adding it back is a clear signal to un-hide it too —
       // otherwise the old tombstone would keep masking it forever.
       setDeletedChars((prev) => prev.filter((ch) => ch !== entry.char));
       if (!userId) return; // guest mode: keep in memory only, nothing to save
-      const { error } = await supabase
-        .from("custom_characters")
-        .upsert(charToRow(entry, userId), { onConflict: "user_id,char" });
+      // Delete-then-insert instead of upsert: if the table's onConflict
+      // target isn't backed by a real unique constraint, upsert() silently
+      // INSERTs a duplicate row instead of updating, and the old row's
+      // (now-stale) list membership keeps showing up alongside the new one.
+      await supabase.from("custom_characters").delete().eq("user_id", userId).eq("char", entry.char);
+      const { error } = await supabase.from("custom_characters").insert(charToRow(entry, userId));
       if (error) console.error("Could not save character:", error);
       const { error: delError } = await supabase
         .from("deleted_characters")
@@ -2282,9 +2288,14 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
       const existing = customChars.find((c) => c.char === char);
       const base = existing || characterList.find((c) => c.char === char) || { char };
       const merged = { ...base, ...updatedFields, char };
-      const { error } = await supabase
-        .from("custom_characters")
-        .upsert(charToRow(merged, userId), { onConflict: "user_id,char" });
+      // Delete-then-insert instead of upsert: if the table's onConflict
+      // target isn't backed by a real unique constraint, upsert() silently
+      // INSERTs a duplicate row instead of updating, and the old row's
+      // (now-stale) list membership keeps showing up alongside the new one.
+      // Explicitly clearing any existing row first guarantees there's only
+      // ever one row per character, regardless of what constraints exist.
+      await supabase.from("custom_characters").delete().eq("user_id", userId).eq("char", char);
+      const { error } = await supabase.from("custom_characters").insert(charToRow(merged, userId));
       if (error) console.error("Could not update character:", error);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2312,9 +2323,14 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         return [...without, entry];
       });
       if (!userId) return; // guest mode: keep in memory only, nothing to save
-      const { error } = await supabase
-        .from("custom_words")
-        .upsert(wordToRow(entry, userId), { onConflict: "user_id,word" });
+      // Delete-then-insert instead of upsert: if the table's onConflict
+      // target isn't backed by a real unique constraint, upsert() silently
+      // INSERTs a duplicate row instead of updating, and the old row's
+      // (now-stale) list membership keeps showing up alongside the new one.
+      // Explicitly clearing any existing row first guarantees there's only
+      // ever one row per word, regardless of what constraints exist.
+      await supabase.from("custom_words").delete().eq("user_id", userId).eq("word", entry.word);
+      const { error } = await supabase.from("custom_words").insert(wordToRow(entry, userId));
       if (error) console.error("Could not save word:", error);
     },
     [userId]
@@ -9930,8 +9946,14 @@ function WordChip({ w, characterList, findBushou, allLists, onAddWord, onDeleteW
               }
             }}
             placeholder={t("edit_list_placeholder", meaningDisplay)}
+            list="edit-word-lists"
             style={{ ...inputStyle, fontSize: 12, padding: "5px 8px" }}
           />
+          <datalist id="edit-word-lists">
+            {(allLists || []).map((l) => (
+              <option key={l} value={l} />
+            ))}
+          </datalist>
           <button
             type="button"
             onClick={() => addList(listTypeahead)}
@@ -10789,8 +10811,14 @@ function CharacterCard({ c, bushouList, findBushou, onDeleteCharacter, onDeleteC
                 }
               }}
               placeholder={t("edit_list_placeholder", meaningDisplay)}
+              list="edit-char-lists"
               style={{ ...inputStyle, fontSize: 12.5, padding: "5px 8px" }}
             />
+            <datalist id="edit-char-lists">
+              {(allLists || []).map((l) => (
+                <option key={l} value={l} />
+              ))}
+            </datalist>
             <button
               type="button"
               onClick={() => addListToEdit(listTypeahead)}
