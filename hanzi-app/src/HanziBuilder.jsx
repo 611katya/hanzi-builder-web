@@ -749,6 +749,12 @@ const UI_TEXT = {
     en: 'Lists not configured below default to open for everyone. "Admin only" hides it completely from regular users. Choose tiers and/or grant specific courses to restrict content access (the list name is still visible to everyone, unless "Admin only" is selected).',
   },
   admin_admin_only_checkbox: { vi: "Chỉ admin", en: "Admin only" },
+  admin_list_display_names_label: {
+    vi: "Tên hiển thị (tùy chọn) — để trống sẽ dùng tên gốc ở trên:",
+    en: "Display names (optional) — leave blank to use the raw name above:",
+  },
+  admin_list_name_en_label: { vi: "Tên tiếng Anh", en: "English name" },
+  admin_list_name_vi_label: { vi: "Tên tiếng Việt", en: "Vietnamese name" },
   admin_allowed_tiers_label: { vi: "Gói được phép xem:", en: "Tiers allowed to view:" },
   admin_course_grants_label: {
     vi: 'Cấp riêng cho khóa học cụ thể (dành cho gói "Enrolled Course"):',
@@ -1161,7 +1167,32 @@ function t(key, meaningDisplay, ...args) {
 // t() dictionary. This translates just that one predictable pattern for
 // display in English mode, without touching the underlying stored value --
 // filtering by list still works correctly since the real name is unchanged.
+// Admin-configurable per-list display names (English/Vietnamese), set from
+// the admin panel's "Lists" section and stored in list_settings.name_en /
+// list_settings.name_vi -- kept here as a plain module-level cache (rather
+// than threaded through props) because displayListName() is called from
+// ~20 places across many components, and this way a name change takes
+// effect everywhere the moment list_settings reloads, with zero code edits
+// ever needed again for a translation (including the built-in "Chưa phân
+// loại" default, which can now be overridden the same way as any other
+// list instead of being hardcoded below).
+let listNameOverrides = {};
+function setListNameOverrides(settings) {
+  const next = {};
+  (settings || []).forEach((s) => {
+    if (s && s.name && (s.name_en || s.name_vi)) {
+      next[s.name] = { en: s.name_en || null, vi: s.name_vi || null };
+    }
+  });
+  listNameOverrides = next;
+}
+
 function displayListName(name, meaningDisplay) {
+  const override = listNameOverrides[name];
+  if (override) {
+    if (meaningDisplay === "en" && override.en) return override.en;
+    if (meaningDisplay !== "en" && override.vi) return override.vi;
+  }
   if (meaningDisplay !== "en") return name;
   if (name === "Chưa phân loại") return "Uncategorized";
   const range = name.match(/^(\d+)-(\d+) nét$/);
@@ -2031,7 +2062,9 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
         supabase.from("list_course_access").select("*"),
       ]);
       if (cancelled) return;
-      setListSettings(!lsRes.error ? lsRes.data || [] : []);
+      const ls = !lsRes.error ? lsRes.data || [] : [];
+      setListSettings(ls);
+      setListNameOverrides(ls);
       setListCourseAccess(!lcaRes.error ? lcaRes.data || [] : []);
     })();
     return () => {
@@ -7635,6 +7668,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
   const [editingListName, setEditingListName] = useState(null);
   const [editAdminOnly, setEditAdminOnly] = useState(false);
   const [editAllowedTiers, setEditAllowedTiers] = useState([]);
+  const [editNameEn, setEditNameEn] = useState("");
+  const [editNameVi, setEditNameVi] = useState("");
   const [newCourseGrant, setNewCourseGrant] = useState("");
   const [listMessage, setListMessage] = useState(null);
 
@@ -8139,7 +8174,10 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
       supabase.from("list_settings").select("*"),
       supabase.from("list_course_access").select("*"),
     ]);
-    if (!lsRes.error) setListSettings(lsRes.data || []);
+    if (!lsRes.error) {
+      setListSettings(lsRes.data || []);
+      setListNameOverrides(lsRes.data || []);
+    }
     if (!lcaRes.error) setListCourseAccess(lcaRes.data || []);
     setListsLoading(false);
   }
@@ -8157,6 +8195,8 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
     setEditingListName(name);
     setEditAdminOnly(setting ? setting.admin_only : false);
     setEditAllowedTiers(setting && setting.allowed_tiers ? setting.allowed_tiers : []);
+    setEditNameEn(setting && setting.name_en ? setting.name_en : "");
+    setEditNameVi(setting && setting.name_vi ? setting.name_vi : "");
     setNewCourseGrant("");
   }
 
@@ -8165,16 +8205,20 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
   }
 
   async function saveListSetting(name) {
+    const nameEn = editNameEn.trim() || null;
+    const nameVi = editNameVi.trim() || null;
     const { error } = await supabase
       .from("list_settings")
-      .upsert({ name, admin_only: editAdminOnly, allowed_tiers: editAllowedTiers }, { onConflict: "name" });
+      .upsert({ name, admin_only: editAdminOnly, allowed_tiers: editAllowedTiers, name_en: nameEn, name_vi: nameVi }, { onConflict: "name" });
     if (error) {
       setListMessage({ type: "error", text: t("admin_save_failed", meaningDisplay, error.message) });
       return;
     }
     setListSettings((prev) => {
       const without = prev.filter((s) => s.name !== name);
-      return [...without, { name, admin_only: editAdminOnly, allowed_tiers: editAllowedTiers }];
+      const next = [...without, { name, admin_only: editAdminOnly, allowed_tiers: editAllowedTiers, name_en: nameEn, name_vi: nameVi }];
+      setListNameOverrides(next);
+      return next;
     });
     setEditingListName(null);
     setListMessage({ type: "success", text: t("admin_saved", meaningDisplay) });
@@ -8614,6 +8658,34 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                         </label>
                       </div>
 
+                      <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 6 }}>
+                        {t("admin_list_display_names_label", meaningDisplay)}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                        <div style={{ flex: "1 1 180px" }}>
+                          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>
+                            {t("admin_list_name_en_label", meaningDisplay)}
+                          </label>
+                          <input
+                            value={editNameEn}
+                            onChange={(e) => setEditNameEn(e.target.value)}
+                            placeholder={name}
+                            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12.5 }}
+                          />
+                        </div>
+                        <div style={{ flex: "1 1 180px" }}>
+                          <label style={{ fontSize: 10, color: COLORS.inkSoft, display: "block", marginBottom: 2 }}>
+                            {t("admin_list_name_vi_label", meaningDisplay)}
+                          </label>
+                          <input
+                            value={editNameVi}
+                            onChange={(e) => setEditNameVi(e.target.value)}
+                            placeholder={name}
+                            style={{ ...inputStyle, width: "100%", boxSizing: "border-box", fontSize: 12.5 }}
+                          />
+                        </div>
+                      </div>
+
                       {!editAdminOnly && (
                         <>
                           <div style={{ fontSize: 11, color: COLORS.inkSoft, marginBottom: 6 }}>{t("admin_allowed_tiers_label", meaningDisplay)}</div>
@@ -8711,7 +8783,14 @@ function AdminPanel({ isAdmin, allListNamesInUse, meaningDisplay, characterList,
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
-                      <div style={{ flex: "1 1 160px", fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>{name}</div>
+                      <div style={{ flex: "1 1 160px" }}>
+                        <div style={{ fontSize: 13, color: COLORS.ink, fontWeight: 600 }}>{name}</div>
+                        {(setting && (setting.name_en || setting.name_vi)) && (
+                          <div style={{ fontSize: 10.5, color: COLORS.metadata }}>
+                            {[setting.name_en && `EN: ${setting.name_en}`, setting.name_vi && `VI: ${setting.name_vi}`].filter(Boolean).join(" · ")}
+                          </div>
+                        )}
+                      </div>
                       <div style={{ fontSize: 12, color: COLORS.inkSoft }}>
                         {isOpen
                           ? t("admin_open_to_all", meaningDisplay)
