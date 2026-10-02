@@ -1009,6 +1009,10 @@ const UI_TEXT = {
   word_need_pinyin_meaning: { vi: "Vui lòng điền pinyin và nghĩa của từ.", en: "Please fill in the word's pinyin and meaning." },
   word_exists: (word) => ({ vi: `Từ "${word}" đã có trong kho dữ liệu.`, en: `Word "${word}" already exists in storage.` }),
   word_added_success: (word) => ({ vi: `Đã thêm từ "${word}"!`, en: `Added word "${word}"!` }),
+  word_added_success_no_components: (word) => ({
+    vi: `Đã thêm từ "${word}"! (một số chữ trong từ chưa có đủ bộ thủ cấu thành nên từ này sẽ không xuất hiện trong chế độ Ghép bộ thủ)`,
+    en: `Added word "${word}"! (some of its characters don't have components assigned yet, so this word won't appear in Combine Radicals mode)`,
+  }),
 
   // Rename-list panel
   rename_toggle: { vi: "Đổi tên danh sách", en: "Rename List" },
@@ -6742,10 +6746,13 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       setMessage({ type: "error", text: t("word_need_2_chars", meaningDisplay) });
       return;
     }
-    if (!allReady) {
-      setMessage({ type: "error", text: t("word_need_components", meaningDisplay) });
-      return;
-    }
+    // Not every real character breaks down into 2+ components -- many
+    // common ones (radicals like 子, 女, 一, 人...) are atomic and will
+    // never satisfy that, which used to block saving ANY word containing
+    // them, permanently, with no way around it. This is now a soft note
+    // (same as the single-character Add form already does) rather than a
+    // hard block: the word saves either way, just won't animate in the
+    // Combine Radicals view for characters missing components.
     if (!pinyin.trim()) {
       setMessage({ type: "error", text: t("word_need_pinyin_meaning", meaningDisplay) });
       return;
@@ -6796,7 +6803,12 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       sv: wantSv ? sv.trim() : "",
       lists: listsToSave,
     });
-    setMessage({ type: "success", text: t("word_added_success", meaningDisplay, word) });
+    setMessage({
+      type: "success",
+      text: allReady
+        ? t("word_added_success", meaningDisplay, word)
+        : t("word_added_success_no_components", meaningDisplay, word),
+    });
     setWordInput("");
     setPinyin("");
     setMeaning("");
