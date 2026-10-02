@@ -432,7 +432,7 @@ const UI_TEXT = {
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
   tab_vocab: { vi: "Từ vựng", en: "Words" },
-  tab_library: { vi: "Thư viện", en: "Library" },
+  tab_library: { vi: "📚 Thư viện", en: "📚 Library" },
   lib_group_public: { vi: "Công khai", en: "Public" },
   lib_group_personal: { vi: "Cá nhân", en: "Personal" },
   tab_management: { vi: "⚙️ Tài khoản", en: "⚙️ Account" },
@@ -481,6 +481,22 @@ const UI_TEXT = {
     en: `Delete list "${n}"? The items inside won't be deleted, just removed from this list.`,
   }),
   mgmt_item_count: (n) => ({ vi: `${n} mục`, en: `${n} item${n === 1 ? "" : "s"}` }),
+  mgmt_list_op_error: {
+    vi: "Có lỗi xảy ra, vui lòng thử lại.",
+    en: "Something went wrong — please try again.",
+  },
+  mgmt_list_op_none_found: {
+    vi: 'Không có mục cá nhân nào dùng danh sách này -- có thể danh sách này chỉ tồn tại trong nội dung công khai (Public). Việc đổi tên/xóa ở đây chỉ áp dụng cho các mục trong thư viện cá nhân của bạn.',
+    en: "No personal items use this list — it may only exist on Public (official) content. Renaming/deleting here only affects items in your own personal library.",
+  },
+  mgmt_list_op_renamed: (n) => ({
+    vi: `Đã đổi tên cho ${n} mục.`,
+    en: `Renamed ${n} item${n === 1 ? "" : "s"}.`,
+  }),
+  mgmt_list_op_deleted: (n) => ({
+    vi: `Đã gỡ danh sách khỏi ${n} mục.`,
+    en: `Removed the list from ${n} item${n === 1 ? "" : "s"}.`,
+  }),
   suggest_revision_button: { vi: "Đề xuất chỉnh sửa cho quản trị viên", en: "Suggest a revision to admin" },
   copy_to_personal_button: { vi: "Sao chép vào thư viện cá nhân", en: "Copy to my personal library" },
   copy_to_personal_title: { vi: "Sao chép vào thư viện cá nhân của bạn", en: "Copy to my personal library" },
@@ -11965,6 +11981,7 @@ function AccountManagementTab({ tier, lookupCount, lookupLimit, courseName, mean
 
 function LibraryManagementTab({ userId, isAdmin, characterList, wordList, bushouList, decks, onDecksChanged, meaningDisplay }) {
   const myDecks = (decks || []).filter((d) => d.userId === userId);
+  const [listOpMessage, setListOpMessage] = useState(null);
 
   // Personal deck editor -- same shape as the admin deck editor, but every
   // deck this creates is tagged with user_id, and only decks this user owns
@@ -12096,33 +12113,77 @@ function LibraryManagementTab({ userId, isAdmin, characterList, wordList, bushou
     );
   }
 
+  // Fetches every one of the user's own rows per table and filters for the
+  // list membership client-side (rather than using Supabase's .contains()
+  // filter) -- .contains() needs the "lists" column's exact storage type
+  // (jsonb vs a real Postgres array) to match how supabase-js serializes
+  // the value, and a mismatch there fails or silently returns zero rows.
+  // Any such error used to be swallowed by `continue`, so a rename could
+  // silently touch nothing and look like the button just didn't work.
   async function bulkRenameList(oldName, newName) {
+    let touched = 0;
+    let hadError = false;
     for (const { table, key } of CUSTOM_TABLES) {
-      const { data, error } = await supabase.from(table).select(`${key}, lists`).eq("user_id", userId).contains("lists", [oldName]);
-      if (error || !data) continue;
-      for (const row of data) {
-        const newLists = row.lists.map((l) => (l === oldName ? newName : l));
-        await supabase.from(table).update({ lists: newLists }).eq("user_id", userId).eq(key, row[key]);
+      const { data, error } = await supabase.from(table).select(`${key}, lists`).eq("user_id", userId);
+      if (error) {
+        hadError = true;
+        continue;
+      }
+      for (const row of data || []) {
+        const lists = row.lists || [];
+        if (!lists.includes(oldName)) continue;
+        const newLists = lists.map((l) => (l === oldName ? newName : l));
+        const { error: updateError } = await supabase.from(table).update({ lists: newLists }).eq("user_id", userId).eq(key, row[key]);
+        if (updateError) hadError = true;
+        else touched += 1;
       }
     }
     await loadMyLists();
+    if (hadError) {
+      setListOpMessage({ type: "error", text: t("mgmt_list_op_error", meaningDisplay) });
+    } else if (touched === 0) {
+      // This list has no items in the CURRENT user's own custom_* rows --
+      // most likely it's a list that only exists on official/public
+      // content, which this Personal-lists rename deliberately never
+      // touches (renaming it here would do nothing to what Public shows).
+      setListOpMessage({ type: "error", text: t("mgmt_list_op_none_found", meaningDisplay) });
+    } else {
+      setListOpMessage({ type: "success", text: t("mgmt_list_op_renamed", meaningDisplay, touched) });
+    }
+    setTimeout(() => setListOpMessage(null), 4000);
   }
 
   async function bulkDeleteList(name) {
+    let touched = 0;
+    let hadError = false;
     for (const { table, key } of CUSTOM_TABLES) {
-      const { data, error } = await supabase.from(table).select(`${key}, lists`).eq("user_id", userId).contains("lists", [name]);
-      if (error || !data) continue;
-      for (const row of data) {
-        const newLists = row.lists.filter((l) => l !== name);
-        await supabase.from(table).update({ lists: newLists }).eq("user_id", userId).eq(key, row[key]);
+      const { data, error } = await supabase.from(table).select(`${key}, lists`).eq("user_id", userId);
+      if (error) {
+        hadError = true;
+        continue;
+      }
+      for (const row of data || []) {
+        const lists = row.lists || [];
+        if (!lists.includes(name)) continue;
+        const newLists = lists.filter((l) => l !== name);
+        const { error: updateError } = await supabase.from(table).update({ lists: newLists }).eq("user_id", userId).eq(key, row[key]);
+        if (updateError) hadError = true;
+        else touched += 1;
       }
     }
     await loadMyLists();
+    if (hadError) {
+      setListOpMessage({ type: "error", text: t("mgmt_list_op_error", meaningDisplay) });
+    } else {
+      setListOpMessage({ type: "success", text: t("mgmt_list_op_deleted", meaningDisplay, touched) });
+    }
+    setTimeout(() => setListOpMessage(null), 4000);
   }
 
   function handleRenameList(name) {
-    const next = window.prompt(t("mgmt_rename_prompt", meaningDisplay), displayListName(name, meaningDisplay));
-    if (!next || !next.trim() || next.trim() === name) return;
+    const currentDisplay = displayListName(name, meaningDisplay);
+    const next = window.prompt(t("mgmt_rename_prompt", meaningDisplay), currentDisplay);
+    if (!next || !next.trim() || next.trim() === currentDisplay) return;
     bulkRenameList(name, next.trim());
   }
 
@@ -12255,6 +12316,19 @@ function LibraryManagementTab({ userId, isAdmin, characterList, wordList, bushou
       <div style={{ fontSize: 12.5, fontWeight: 600, color: COLORS.gold, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
         {t("mgmt_my_lists_title", meaningDisplay)}
       </div>
+      {listOpMessage && (
+        <div
+          style={{
+            textAlign: "center",
+            fontSize: 12,
+            fontWeight: 600,
+            marginBottom: 10,
+            color: listOpMessage.type === "error" ? COLORS.error : COLORS.seal,
+          }}
+        >
+          {listOpMessage.text}
+        </div>
+      )}
       <div style={{ fontSize: 12, color: COLORS.inkSoft, marginBottom: 14, lineHeight: 1.5 }}>{t("mgmt_lists_description", meaningDisplay)}</div>
 
       {myLists === null ? (
