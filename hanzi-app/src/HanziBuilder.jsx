@@ -929,6 +929,10 @@ const UI_TEXT = {
     vi: `Chữ "${char}" đã có trong kho dữ liệu.`,
     en: `Character "${char}" already exists in storage.`,
   }),
+  add_char_added_to_list: (char, lists) => ({
+    vi: `Chữ "${char}" đã có sẵn -- đã thêm vào danh sách: ${lists}.`,
+    en: `"${char}" already existed -- added it to the list(s): ${lists}.`,
+  }),
   add_no_components_note: {
     vi: ' (chưa có bộ thủ cấu thành nên sẽ không xuất hiện trong chế độ Chơi — dùng nút "🔍 Tự động điền" hoặc thêm bộ thủ thủ công trước khi lưu)',
     en: ' (no components assigned yet, so it won\'t appear in Play mode — use "🔍 Auto-fill" or add components manually before saving)',
@@ -5367,6 +5371,11 @@ function AddTab({
   onViewPremium,
   onQuotaUpdate,
   meaningDisplay,
+  isAdmin,
+  officialCharKeys,
+  officialWordKeys,
+  onPromoteCharacter,
+  onPromoteWord,
 }) {
   const [charInput, setCharInput] = useState("");
   const [meaning, setMeaning] = useState("");
@@ -5580,12 +5589,30 @@ function AddTab({
         setMessage({ type: "error", text: t("add_need_list", meaningDisplay) });
         return;
       }
-      if (characterList.some((c) => c.char === charInput.trim())) {
-        setMessage({ type: "error", text: t("add_char_exists", meaningDisplay, charInput.trim()) });
+      const trimmedChar = charInput.trim();
+      const listsToSave = selectedLists;
+      const existing = characterList.find((c) => c.char === trimmedChar);
+      if (existing) {
+        // The character is already in storage (official or personal) --
+        // rather than hard-blocking, add the newly-picked list(s) onto its
+        // existing list membership, since "add this character to a new
+        // list" is almost always what's actually wanted here, not a
+        // duplicate-character warning that leaves the user stuck.
+        const mergedLists = Array.from(new Set([...(existing.lists || getLists(existing)), ...listsToSave]));
+        const isOfficialChar = officialCharKeys ? officialCharKeys.has(trimmedChar) : false;
+        if (isAdmin && isOfficialChar && onPromoteCharacter) {
+          // Admin editing an official character: write straight to the
+          // shared official_characters row, same as the per-card edit form
+          // does, so this doesn't just create an invisible personal
+          // override that the Public tab ignores.
+          onPromoteCharacter({ ...existing, lists: mergedLists });
+        } else if (onUpdateCharacter) {
+          onUpdateCharacter(trimmedChar, { lists: mergedLists });
+        }
+        setMessage({ type: "success", text: t("add_char_added_to_list", meaningDisplay, trimmedChar, listsToSave.join(", ")) });
+        resetForm();
         return;
       }
-      const listsToSave = selectedLists;
-      const trimmedChar = charInput.trim();
       onAddCharacter({
         char: trimmedChar,
         meaning: wantMeaningEn ? meaning.trim() : "",
@@ -6739,11 +6766,27 @@ function AddWordPanel({ characterList, wordList, customWords, bushouList, onAddC
       setMessage({ type: "error", text: t("add_need_list", meaningDisplay) });
       return;
     }
-    if (wordList.some((w) => w.word === word)) {
-      setMessage({ type: "error", text: t("word_exists", meaningDisplay, word) });
+    const listsToSave = selectedLists;
+    const existingWord = wordList.find((w) => w.word === word);
+    if (existingWord) {
+      // Already in storage (official or personal) -- add the newly-picked
+      // list(s) onto its existing membership instead of hard-blocking, same
+      // as the character form: "add this to a new list" is what's wanted.
+      const mergedLists = Array.from(new Set([...(existingWord.lists || []), ...listsToSave]));
+      const isOfficialWord = officialWordKeys ? officialWordKeys.has(word) : false;
+      if (isAdmin && isOfficialWord && onPromoteWord) {
+        onPromoteWord({ ...existingWord, lists: mergedLists });
+      } else if (onAddWord) {
+        onAddWord({ ...existingWord, lists: mergedLists });
+      }
+      setMessage({ type: "success", text: t("add_char_added_to_list", meaningDisplay, word, listsToSave.join(", ")) });
+      setWordInput("");
+      setPinyin("");
+      setMeaning("");
+      setMeaningVi("");
+      setSv("");
       return;
     }
-    const listsToSave = selectedLists;
     onAddWord({
       word,
       chars,
@@ -12542,6 +12585,11 @@ function LibraryTab(props) {
           onViewPremium={onViewPremium}
           onQuotaUpdate={onQuotaUpdate}
           meaningDisplay={meaningDisplay}
+          isAdmin={isAdmin}
+          officialCharKeys={officialCharKeys}
+          officialWordKeys={officialWordKeys}
+          onPromoteCharacter={onPromoteCharacter}
+          onPromoteWord={onPromoteWord}
         />
       ) : subTab === "manage" && group === "personal" ? (
         <LibraryManagementTab
