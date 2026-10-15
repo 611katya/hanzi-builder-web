@@ -420,6 +420,7 @@ const UI_TEXT = {
   home_status_lookups: (used, limit) => ({ vi: `${used}/${limit} lượt tra cứu đã dùng kỳ này`, en: `${used}/${limit} lookups used this period` }),
   home_card_radicals_desc: { vi: "Ghép chữ từ bộ thủ →", en: "Build characters from parts →" },
   home_card_flashcards_desc: { vi: "Ôn tập theo phương pháp lặp lại →", en: "Spaced-repetition review →" },
+  home_card_bushou_desc: { vi: "Chọn một bộ thủ, xem các chữ thông dụng chứa nó →", en: "Pick a radical, see the common characters that use it →" },
   home_card_writing_desc: { vi: "Luyện nét bút, viết theo gợi ý, và viết từ trí nhớ →", en: "Practice stroke order, write from hints, and write from memory →" },
   home_hw_step_trace: { vi: "1. Nối điểm", en: "1. Trace" },
   home_hw_step_recall: { vi: "2. Nhớ lại", en: "2. Recall" },
@@ -3267,6 +3268,7 @@ function HomeTab({ setTab, userId, tier, lookupCount, lookupLimit, onRequireAuth
         <CombineRadicalsPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
         <FlashcardsPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
         <HandwritingPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
+        <BushouPreviewCard setTab={setTab} meaningDisplay={meaningDisplay} />
       </div>
     </div>
   );
@@ -3382,6 +3384,68 @@ function FlashcardsPreviewCard({ setTab, meaningDisplay }) {
         </div>
       </div>
       <div style={{ fontSize: 11, color: "#E3E9EC" }}>{t("home_card_flashcards_desc", meaningDisplay)}</div>
+    </div>
+  );
+}
+
+function BushouPreviewCard({ setTab, meaningDisplay }) {
+  const SETS = [
+    { r: "氵", chars: ["河", "海", "湖"] },
+    { r: "扌", chars: ["打", "找", "拉"] },
+    { r: "艹", chars: ["花", "草", "茶"] },
+    { r: "忄", chars: ["快", "怕", "情"] },
+  ];
+  const [setIdx, setSetIdx] = useState(0);
+  const [visible, setVisible] = useState(0); // how many characters are showing
+  const hanFont = "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif";
+
+  useEffect(() => {
+    let timers = [];
+    let cur = 0;
+    function run() {
+      setSetIdx(cur);
+      setVisible(0);
+      [1, 2, 3].forEach((n) => timers.push(setTimeout(() => setVisible(n), 600 + n * 650)));
+      timers.push(setTimeout(() => {
+        cur = (cur + 1) % SETS.length;
+        run();
+      }, 4400));
+    }
+    run();
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const set = SETS[setIdx];
+
+  return (
+    <div
+      className="home-feature-card"
+      onClick={() => setTab("bushou")}
+      style={{ background: "#4F6B63", borderRadius: 14, padding: 18, height: 220, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}
+    >
+      <style>{`@keyframes bushouPop { 0% { transform: translateY(6px) scale(0.8); opacity: 0; } 100% { transform: none; opacity: 1; } }`}</style>
+      <div style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_bushou", meaningDisplay)}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, height: 90 }}>
+        <div
+          key={"r" + setIdx}
+          style={{ width: 58, height: 58, border: "1.5px solid #FBF9EF", borderRadius: 4, display: "grid", placeItems: "center", fontFamily: hanFont, fontSize: 36, color: "#FBF9EF", animation: "bushouPop 0.4s ease both", flex: "none" }}
+        >
+          {set.r}
+        </div>
+        <div style={{ color: "#D5E2DD", fontSize: 18 }}>→</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {set.chars.map((c, i) => (
+            <div
+              key={setIdx + "-" + c}
+              style={{ width: 40, height: 40, background: "rgba(251,249,239,0.14)", borderRadius: 4, display: "grid", placeItems: "center", fontFamily: hanFont, fontSize: 24, color: "#FBF9EF", opacity: i < visible ? 1 : 0, animation: i < visible ? "bushouPop 0.4s ease both" : "none" }}
+            >
+              {c}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: "#D5E2DD" }}>{t("home_card_bushou_desc", meaningDisplay)}</div>
     </div>
   );
 }
