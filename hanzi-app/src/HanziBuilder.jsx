@@ -447,6 +447,13 @@ const UI_TEXT = {
   bushou_all: { vi: "Xem tất cả", en: "Show all" },
   bushou_load_error: { vi: "Không tải được dữ liệu bộ thủ.", en: "Couldn't load the bushou data." },
   bushou_footer: { vi: "Xếp theo tần suất trong 3.500 chữ giản thể thông dụng nhất (Jun Da). Phân tích chữ từ CJK-Decomp; nghĩa từ CC-CEDICT. Số trong mỗi ô = thứ hạng tần suất.", en: "Ranked by frequency among the 3,500 most common simplified characters (Jun Da corpus). Decompositions from CJK-Decomp; definitions from CC-CEDICT. Number in each square = frequency rank." },
+  bushou_breakdown: { vi: "Tách bộ", en: "Break down" },
+  bushou_save: { vi: "Lưu", en: "Save" },
+  bushou_saved: { vi: "✓ Đã lưu", en: "✓ Saved" },
+  bushou_no_parts: { vi: "Không có dữ liệu phân tích", en: "No breakdown available" },
+  bushou_find_with: { vi: "Xem các chữ có thành phần này", en: "See characters with this component" },
+  bushou_list_placeholder: { vi: "Tên danh sách cá nhân…", en: "Personal list name…" },
+  bushou_save_confirm: { vi: "Lưu vào danh sách", en: "Save to list" },
   tab_library: { vi: "📚 Thư viện", en: "📚 Library" },
   lib_group_public: { vi: "Công khai", en: "Public" },
   lib_group_personal: { vi: "Cá nhân", en: "Personal" },
@@ -2661,6 +2668,13 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   const overrideCharKeys = useMemo(() => new Set(customChars.map((c) => c.char)), [customChars]);
   const overrideWordKeys = useMemo(() => new Set(customWords.map((w) => w.word)), [customWords]);
 
+  const personalCharListNames = useMemo(() => {
+    const set = new Set();
+    customChars.forEach((c) => getLists(c).forEach((l) => set.add(l)));
+    customWords.forEach((w) => (w.lists || []).forEach((l) => set.add(l)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "vi"));
+  }, [customChars, customWords]);
+
   const findBushou = useCallback(
     (ch) => bushouList.find((b) => b.char === ch) || { char: ch, pinyin: "—", meaning: "unknown", sv: "—" },
     [bushouList]
@@ -2775,7 +2789,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             goToAddNewCards={goToAddNewCards}
           />
         ) : tab === "bushou" ? (
-          <BushouFinderTab meaningDisplay={meaningDisplay} />
+          <BushouFinderTab meaningDisplay={meaningDisplay} characterList={characterList} personalListNames={personalCharListNames} userId={userId} onAddCharacter={addCharacterRow} onRequireAuth={onRequireAuth} />
         ) : tab === "library" ? (
           <LibraryTab
             bushouList={bushouList}
@@ -3028,7 +3042,91 @@ function bushouTone(s) {
   }).join(" / ");
 }
 
-function BushouFinderTab({ meaningDisplay }) {
+function BushouResultCard({ c, info, compIndex, characterList, personalListNames, userId, onAddCharacter, onRequireAuth, meaningDisplay, hanFont, onPickComponent }) {
+  const [p, m, r] = info;
+  const [showParts, setShowParts] = useState(false);
+  const [showSave, setShowSave] = useState(false);
+  const [listName, setListName] = useState("");
+  const [saved, setSaved] = useState(false);
+  const existing = (characterList || []).find((x) => x.char === c);
+  // Prefer the app's own breakdown when this character is already in the
+  // library; otherwise fall back to the decomposition data.
+  const parts = existing && existing.components && existing.components.length ? existing.components : (compIndex[c] || []);
+  const listId = "bushou-lists-" + c;
+
+  async function save() {
+    const name = listName.trim();
+    if (!name) return;
+    if (!userId) { onRequireAuth && onRequireAuth(); return; }
+    const base = existing || { char: c, pinyin: bushouTone(p), meaning: m, sv: "", components: parts };
+    const lists = Array.from(new Set([...(existing ? getLists(existing) : []), name]));
+    await onAddCharacter({ ...base, components: base.components && base.components.length ? base.components : parts, lists });
+    setSaved(true);
+    setShowSave(false);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  const smallBtn = { fontSize: 11.5, fontWeight: 600, padding: "4px 8px", borderRadius: 6, border: `1px solid ${COLORS.grid}`, background: COLORS.card, color: COLORS.seal, cursor: "pointer" };
+
+  return (
+    <div style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: 10, display: "grid", gap: 6, textAlign: "center", alignContent: "start" }}>
+      <div style={{
+        position: "relative", aspectRatio: "1", border: `1.5px solid ${COLORS.seal}`, display: "grid", placeItems: "center",
+        background: `linear-gradient(${COLORS.grid},${COLORS.grid}) center/100% 1px no-repeat, linear-gradient(${COLORS.grid},${COLORS.grid}) center/1px 100% no-repeat`,
+      }}>
+        <span style={{ position: "absolute", top: 3, left: 5, fontSize: 10, color: COLORS.metadata }}>#{r}</span>
+        <b style={{ fontFamily: hanFont, fontWeight: 400, fontSize: 44, lineHeight: 1, color: COLORS.ink }}>{c}</b>
+      </div>
+      <div style={{ fontWeight: 600, fontSize: 15, color: COLORS.ink }}>{bushouTone(p)}</div>
+      <div style={{ fontSize: 12.5, color: COLORS.metadata, lineHeight: 1.3, overflowWrap: "anywhere" }}>{m}</div>
+
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+        <button type="button" style={smallBtn} onClick={() => setShowParts(!showParts)}>{t("bushou_breakdown", meaningDisplay)}</button>
+        <button type="button" style={smallBtn} onClick={() => setShowSave(!showSave)}>{saved ? t("bushou_saved", meaningDisplay) : t("bushou_save", meaningDisplay)}</button>
+      </div>
+
+      {showParts && (
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap", paddingTop: 2 }}>
+          {parts.length === 0 ? (
+            <span style={{ fontSize: 12, color: COLORS.metadata }}>{t("bushou_no_parts", meaningDisplay)}</span>
+          ) : (
+            parts.map((x, i) => (
+              <React.Fragment key={x + i}>
+                {i > 0 && <span style={{ color: COLORS.metadata }}>+</span>}
+                <button type="button" onClick={() => onPickComponent(x)} title={t("bushou_find_with", meaningDisplay)}
+                  style={{ fontFamily: hanFont, fontSize: 22, minWidth: 34, height: 34, border: `1px solid ${COLORS.grid}`, borderRadius: 6, background: COLORS.chipBg, color: COLORS.ink, cursor: "pointer" }}>
+                  {x}
+                </button>
+              </React.Fragment>
+            ))
+          )}
+        </div>
+      )}
+
+      {showSave && (
+        <div style={{ display: "grid", gap: 6 }}>
+          <input
+            list={listId}
+            value={listName}
+            onChange={(e) => setListName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") save(); }}
+            placeholder={t("bushou_list_placeholder", meaningDisplay)}
+            style={{ width: "100%", boxSizing: "border-box", fontSize: 13, padding: "6px 8px", border: `1px solid ${COLORS.grid}`, borderRadius: 6 }}
+          />
+          <datalist id={listId}>
+            {(personalListNames || []).map((n) => <option key={n} value={n} />)}
+          </datalist>
+          <button type="button" onClick={save} disabled={!listName.trim()}
+            style={{ fontSize: 13, fontWeight: 600, padding: "6px 8px", border: 0, borderRadius: 6, background: COLORS.seal, color: "#fff", cursor: "pointer", opacity: listName.trim() ? 1 : 0.5 }}>
+            {t("bushou_save_confirm", meaningDisplay)}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BushouFinderTab({ meaningDisplay, characterList, personalListNames, userId, onAddCharacter, onRequireAuth }) {
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(false);
   const [input, setInput] = useState(() => { try { return localStorage.getItem("bushou") || "氵"; } catch (e) { return "氵"; } });
@@ -3040,6 +3138,15 @@ function BushouFinderTab({ meaningDisplay }) {
     import("./bushouData.js").then((m) => { if (alive) setData(m.default); }).catch(() => { if (alive) setLoadError(true); });
     return () => { alive = false; };
   }, []);
+
+  // Inverted lookup: character -> the components it contains, built once
+  // from the radical index (which maps component -> characters).
+  const compIndex = useMemo(() => {
+    if (!data) return {};
+    const m = {};
+    Object.keys(data.idx).forEach((k) => data.idx[k].forEach((ch) => { (m[ch] = m[ch] || []).push(k); }));
+    return m;
+  }, [data]);
 
   function go(raw) {
     const q = [...(raw || "").trim()][0];
@@ -3114,22 +3221,9 @@ function BushouFinderTab({ meaningDisplay }) {
         </div> : null
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
-          {list.slice(0, shown).map((c) => {
-            const [p, m, r] = data.info[c];
-            return (
-              <div key={c} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: 10, display: "grid", gap: 6, textAlign: "center" }}>
-                <div style={{
-                  position: "relative", aspectRatio: "1", border: `1.5px solid ${COLORS.seal}`, display: "grid", placeItems: "center",
-                  background: `linear-gradient(${COLORS.grid},${COLORS.grid}) center/100% 1px no-repeat, linear-gradient(${COLORS.grid},${COLORS.grid}) center/1px 100% no-repeat`,
-                }}>
-                  <span style={{ position: "absolute", top: 3, left: 5, fontSize: 10, color: COLORS.metadata }}>#{r}</span>
-                  <b style={{ fontFamily: hanFont, fontWeight: 400, fontSize: 44, lineHeight: 1, color: COLORS.ink }}>{c}</b>
-                </div>
-                <div style={{ fontWeight: 600, fontSize: 15, color: COLORS.ink }}>{bushouTone(p)}</div>
-                <div style={{ fontSize: 12.5, color: COLORS.metadata, lineHeight: 1.3, overflowWrap: "anywhere" }}>{m}</div>
-              </div>
-            );
-          })}
+          {list.slice(0, shown).map((c) => (
+            <BushouResultCard key={c} c={c} info={data.info[c]} compIndex={compIndex} characterList={characterList} personalListNames={personalListNames} userId={userId} onAddCharacter={onAddCharacter} onRequireAuth={onRequireAuth} meaningDisplay={meaningDisplay} hanFont={hanFont} onPickComponent={go} />
+          ))}
         </div>
       ))}
 
