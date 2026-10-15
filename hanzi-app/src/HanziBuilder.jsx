@@ -3426,19 +3426,19 @@ function BushouPreviewCard({ setTab, meaningDisplay }) {
     >
       <style>{`@keyframes bushouPop { 0% { transform: translateY(6px) scale(0.8); opacity: 0; } 100% { transform: none; opacity: 1; } }`}</style>
       <div style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_bushou", meaningDisplay)}</div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, height: 90 }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, height: 110 }}>
         <div
           key={"r" + setIdx}
-          style={{ width: 58, height: 58, border: "1.5px solid #FBF9EF", borderRadius: 4, display: "grid", placeItems: "center", fontFamily: hanFont, fontSize: 36, color: "#FBF9EF", animation: "bushouPop 0.4s ease both", flex: "none" }}
+          style={{ width: 46, height: 46, border: "1.5px solid #FBF9EF", borderRadius: 4, display: "grid", placeItems: "center", fontFamily: hanFont, fontSize: 30, color: "#FBF9EF", animation: "bushouPop 0.4s ease both", flex: "none" }}
         >
           {set.r}
         </div>
-        <div style={{ color: "#D5E2DD", fontSize: 18 }}>→</div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ color: "#D5E2DD", fontSize: 14, lineHeight: 1 }}>↓</div>
+        <div style={{ display: "flex", gap: 5 }}>
           {set.chars.map((c, i) => (
             <div
               key={setIdx + "-" + c}
-              style={{ width: 40, height: 40, background: "rgba(251,249,239,0.14)", borderRadius: 4, display: "grid", placeItems: "center", fontFamily: hanFont, fontSize: 24, color: "#FBF9EF", opacity: i < visible ? 1 : 0, animation: i < visible ? "bushouPop 0.4s ease both" : "none" }}
+              style={{ width: 36, height: 36, background: "rgba(251,249,239,0.14)", borderRadius: 4, display: "grid", placeItems: "center", fontFamily: hanFont, fontSize: 21, color: "#FBF9EF", opacity: i < visible ? 1 : 0, animation: i < visible ? "bushouPop 0.4s ease both" : "none" }}
             >
               {c}
             </div>
