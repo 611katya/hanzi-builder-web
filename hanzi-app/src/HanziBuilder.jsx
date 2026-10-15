@@ -432,6 +432,20 @@ const UI_TEXT = {
   tab_radicals: { vi: "Bộ thủ", en: "Radicals" },
   tab_hanzi: { vi: "Hán tự", en: "Characters" },
   tab_vocab: { vi: "Từ vựng", en: "Words" },
+  tab_bushou: { vi: "🧩 Chữ theo bộ thủ", en: "🧩 Characters by Bushou" },
+  bushou_title: { vi: "Tìm chữ theo bộ thủ", en: "Characters by Bushou" },
+  bushou_intro: { vi: "Nhập một bộ thủ hoặc thành phần để xem các chữ thông dụng nhất chứa nó, mỗi lần 10 chữ.", en: "Enter a radical or component to see the most common characters that contain it, 10 at a time." },
+  bushou_input_label: { vi: "Bộ thủ hoặc thành phần", en: "Radical or component" },
+  bushou_find: { vi: "Tìm", en: "Find" },
+  bushou_common: { vi: "Bộ thủ thường gặp", en: "Common radicals" },
+  bushou_showing: (a, b) => ({ vi: `Hiển thị ${a} / ${b} chữ thông dụng`, en: `Showing ${a} of ${b} common character${b > 1 ? "s" : ""}` }),
+  bushou_shown_as: (k) => ({ vi: `(hiển thị dạng ${k}, dạng dùng bên trong chữ)`, en: `(shown as ${k}, the form used inside characters)` }),
+  bushou_also_try: { vi: "thử thêm", en: "also try" },
+  bushou_none: { vi: "Không tìm thấy chữ thông dụng nào cho", en: "No common characters found for" },
+  bushou_more: { vi: "Xem thêm 10 chữ", en: "Show 10 more" },
+  bushou_all: { vi: "Xem tất cả", en: "Show all" },
+  bushou_load_error: { vi: "Không tải được dữ liệu bộ thủ.", en: "Couldn't load the bushou data." },
+  bushou_footer: { vi: "Xếp theo tần suất trong 3.500 chữ giản thể thông dụng nhất (Jun Da). Phân tích chữ từ CJK-Decomp; nghĩa từ CC-CEDICT. Số trong mỗi ô = thứ hạng tần suất.", en: "Ranked by frequency among the 3,500 most common simplified characters (Jun Da corpus). Decompositions from CJK-Decomp; definitions from CC-CEDICT. Number in each square = frequency rank." },
   tab_library: { vi: "📚 Thư viện", en: "📚 Library" },
   lib_group_public: { vi: "Công khai", en: "Public" },
   lib_group_personal: { vi: "Cá nhân", en: "Personal" },
@@ -1970,7 +1984,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
   // riskier rewrite for the same end result.
   function parsePathToState(pathname) {
     const parts = pathname.replace(/^\/|\/$/g, "").split("/").filter(Boolean);
-    const validTabs = ["home", "play", "flashcards", "writing", "library", "management", "admin"];
+    const validTabs = ["home", "play", "flashcards", "writing", "bushou", "library", "management", "admin"];
     const t = validTabs.includes(parts[0]) ? parts[0] : "home";
     let lg = "public", ls = "radicals", ms = "account";
     if (t === "library") {
@@ -2759,6 +2773,8 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             meaningDisplay={meaningDisplay}
             goToAddNewCards={goToAddNewCards}
           />
+        ) : tab === "bushou" ? (
+          <BushouFinderTab meaningDisplay={meaningDisplay} />
         ) : tab === "library" ? (
           <LibraryTab
             bushouList={bushouList}
@@ -2990,12 +3006,151 @@ function MeaningDisplayToggle({ value, onChange }) {
 }
 
 
+/* ============================================================
+   CHARACTERS BY BUSHOU — type a radical/component, see the most
+   common characters containing it. Data lives in bushouData.js and is
+   loaded on demand so it doesn't weigh down the main bundle.
+   ============================================================ */
+const BUSHOU_ALIAS = {"水":"氵","手":"扌","人":"亻","言":"讠","心":"忄","金":"钅","食":"饣","糸":"纟","示":"礻","衣":"衤","犬":"犭","火":"灬","刀":"刂","艸":"艹","竹":"⺮","攵":"⺙","攴":"⺙","网":"罒","邑":"阝","阜":"阝","⻖":"阝","⻏":"阝","辵":"辶","足":"⻊","玉":"王","肉":"月","丝":"纟","糹":"纟","訁":"讠","釒":"钅","飠":"饣"};
+const BUSHOU_PAIRS = {"氵":"水","水":"氵","扌":"手","手":"扌","亻":"人","人":"亻","忄":"心","心":"忄","灬":"火","火":"灬","刂":"刀","刀":"刂","言":"讠","讠":"言"};
+const BUSHOU_CHIPS = "氵扌亻口木艹讠忄女土日月辶宀纟钅心火灬王石目禾米竹虫贝车马鸟鱼雨阝刂力又⺙彳疒广门山田".split("");
+const BUSHOU_VOWELS = {a:"āáǎàa",e:"ēéěèe",i:"īíǐìi",o:"ōóǒòo",u:"ūúǔùu","ü":"ǖǘǚǜü"};
+function bushouTone(s) {
+  return (s || "").split(/[\s\/]+/).map((syl) => {
+    const m = syl.match(/^([a-z:ü]+)([1-5])$/i);
+    if (!m) return syl;
+    const w = m[1].replace(/u:|v/g, "ü"), tn = +m[2] - 1;
+    let i = w.search(/[ae]/);
+    if (i < 0) i = w.indexOf("ou");
+    if (i < 0) { for (let k = w.length - 1; k >= 0; k--) if (BUSHOU_VOWELS[w[k]]) { i = k; break; } }
+    return i < 0 ? w : w.slice(0, i) + BUSHOU_VOWELS[w[i]][tn] + w.slice(i + 1);
+  }).join(" / ");
+}
+
+function BushouFinderTab({ meaningDisplay }) {
+  const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState(false);
+  const [input, setInput] = useState(() => { try { return localStorage.getItem("bushou") || "氵"; } catch (e) { return "氵"; } });
+  const [query, setQuery] = useState(input);
+  const [shown, setShown] = useState(10);
+
+  useEffect(() => {
+    let alive = true;
+    import("./bushouData.js").then((m) => { if (alive) setData(m.default); }).catch(() => { if (alive) setLoadError(true); });
+    return () => { alive = false; };
+  }, []);
+
+  function go(raw) {
+    const q = [...(raw || "").trim()][0];
+    if (!q) return;
+    setInput(q);
+    setQuery(q);
+    setShown(10);
+    try { localStorage.setItem("bushou", q); } catch (e) {}
+  }
+
+  const q = [...(query || "")][0];
+  let key = q, list = [];
+  if (data && q) {
+    key = data.idx[q] ? q : (BUSHOU_ALIAS[q] && data.idx[BUSHOU_ALIAS[q]] ? BUSHOU_ALIAS[q] : q);
+    list = data.idx[key] || [];
+  }
+  const alt = data && q && BUSHOU_PAIRS[q] && data.idx[BUSHOU_PAIRS[q]] ? BUSHOU_PAIRS[q] : null;
+  const hanFont = "'Noto Serif SC', 'STKaiti', 'Kaiti SC', serif";
+
+  return (
+    <div style={{ maxWidth: 820, margin: "0 auto", display: "grid", gap: 20 }}>
+      <div>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: COLORS.ink }}>{t("bushou_title", meaningDisplay)}</h2>
+        <p style={{ margin: "4px 0 0", color: COLORS.metadata, fontSize: 14 }}>{t("bushou_intro", meaningDisplay)}</p>
+      </div>
+
+      <form onSubmit={(e) => { e.preventDefault(); go(input); }} style={{ display: "flex", gap: 10 }}>
+        <input
+          value={input}
+          maxLength={2}
+          autoComplete="off"
+          aria-label={t("bushou_input_label", meaningDisplay)}
+          onChange={(e) => setInput(e.target.value)}
+          style={{ flex: 1, minWidth: 0, fontFamily: hanFont, fontSize: 26, padding: "8px 14px", border: `1.5px solid ${COLORS.grid}`, borderRadius: 8, background: COLORS.card, color: COLORS.ink, outline: "none" }}
+        />
+        <button type="submit" style={{ fontSize: 15, fontWeight: 600, padding: "0 20px", border: 0, borderRadius: 8, background: COLORS.seal, color: "#fff", cursor: "pointer" }}>
+          {t("bushou_find", meaningDisplay)}
+        </button>
+      </form>
+
+      <div>
+        <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: COLORS.metadata, fontWeight: 600, marginBottom: 8 }}>{t("bushou_common", meaningDisplay)}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {BUSHOU_CHIPS.map((c) => (
+            <button key={c} type="button" onClick={() => go(c)} aria-pressed={c === key}
+              style={{ fontFamily: hanFont, fontSize: 18, minWidth: 40, height: 40, padding: "0 6px", border: `1px solid ${c === key ? COLORS.seal : COLORS.grid}`, background: c === key ? COLORS.seal : COLORS.card, color: c === key ? "#fff" : COLORS.ink, borderRadius: 6, cursor: "pointer" }}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loadError && <div style={{ color: COLORS.error }}>{t("bushou_load_error", meaningDisplay)}</div>}
+      {!data && !loadError && <div style={{ color: COLORS.metadata }}>…</div>}
+
+      {data && list.length > 0 && (
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", color: COLORS.metadata }}>
+          <span style={{ fontFamily: hanFont, fontSize: 32, color: COLORS.seal, lineHeight: 1 }}>{key}</span>
+          <span>{t("bushou_showing", meaningDisplay, Math.min(shown, list.length), list.length)}</span>
+          {key !== q && <span>{t("bushou_shown_as", meaningDisplay, key)}</span>}
+          {alt && (
+            <button type="button" onClick={() => go(alt)} style={{ fontFamily: hanFont, color: COLORS.seal, background: COLORS.chipBg, border: 0, borderRadius: 4, padding: "1px 8px", fontSize: 16, cursor: "pointer" }}>
+              {t("bushou_also_try", meaningDisplay)} {alt}
+            </button>
+          )}
+        </div>
+      )}
+
+      {data && (list.length === 0 ? (
+        q ? <div style={{ padding: 28, textAlign: "center", color: COLORS.metadata, border: `1.5px dashed ${COLORS.grid}`, borderRadius: 8 }}>
+          {t("bushou_none", meaningDisplay)} <b style={{ fontFamily: hanFont }}>{q}</b>
+        </div> : null
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
+          {list.slice(0, shown).map((c) => {
+            const [p, m, r] = data.info[c];
+            return (
+              <div key={c} style={{ background: COLORS.card, border: `1px solid ${COLORS.hairline}`, borderRadius: 8, padding: 10, display: "grid", gap: 6, textAlign: "center" }}>
+                <div style={{
+                  position: "relative", aspectRatio: "1", border: `1.5px solid ${COLORS.seal}`, display: "grid", placeItems: "center",
+                  background: `linear-gradient(${COLORS.grid},${COLORS.grid}) center/100% 1px no-repeat, linear-gradient(${COLORS.grid},${COLORS.grid}) center/1px 100% no-repeat`,
+                }}>
+                  <span style={{ position: "absolute", top: 3, left: 5, fontSize: 10, color: COLORS.metadata }}>#{r}</span>
+                  <b style={{ fontFamily: hanFont, fontWeight: 400, fontSize: 44, lineHeight: 1, color: COLORS.ink }}>{c}</b>
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: COLORS.ink }}>{bushouTone(p)}</div>
+                <div style={{ fontSize: 12.5, color: COLORS.metadata, lineHeight: 1.3, overflowWrap: "anywhere" }}>{m}</div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      {data && shown < list.length && (
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+          <button type="button" onClick={() => setShown(shown + 10)} style={{ fontSize: 15, fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: `1.5px solid ${COLORS.seal}`, background: COLORS.seal, color: "#fff", cursor: "pointer" }}>{t("bushou_more", meaningDisplay)}</button>
+          <button type="button" onClick={() => setShown(10000)} style={{ fontSize: 15, fontWeight: 600, padding: "10px 20px", borderRadius: 8, border: `1.5px solid ${COLORS.seal}`, background: "transparent", color: COLORS.seal, cursor: "pointer" }}>{t("bushou_all", meaningDisplay)}</button>
+        </div>
+      )}
+
+      <div style={{ fontSize: 12.5, color: COLORS.metadata }}>{t("bushou_footer", meaningDisplay)}</div>
+    </div>
+  );
+}
+
 function Tabs({ tab, setTab, isAdmin, meaningDisplay, unreadForUser, unreadForAdmin }) {
   const items = [
     { id: "home", label: t("tab_home", meaningDisplay) },
     { id: "play", label: t("tab_play", meaningDisplay) },
     { id: "flashcards", label: t("tab_flashcards", meaningDisplay) },
     { id: "writing", label: t("tab_writing", meaningDisplay) },
+    { id: "bushou", label: t("tab_bushou", meaningDisplay) },
     { id: "library", label: t("tab_library", meaningDisplay) },
     { id: "management", label: t("tab_management", meaningDisplay), badge: unreadForUser },
   ];
