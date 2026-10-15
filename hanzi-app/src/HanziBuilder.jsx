@@ -3045,6 +3045,14 @@ function bushouTone(s) {
   }).join(" / ");
 }
 
+// The index lists every component at every depth (e.g. 惊 -> 口 京 亠 小 忄).
+// Keep only the top-level ones: drop a component if it is already contained
+// inside another component of the same character (口 亠 小 are inside 京).
+function bushouTopParts(c, compIndex) {
+  const ks = compIndex[c] || [];
+  return ks.filter((k) => !ks.some((o) => o !== k && (compIndex[o] || []).includes(k) && !(compIndex[k] || []).includes(o)));
+}
+
 function BushouResultCard({ c, info, compIndex, characterList, bushouList, personalListNames, userId, onAddCharacter, onAddBushou, onQuotaUpdate, onRequireAuth, meaningDisplay, hanFont, onPickComponent }) {
   const [p, m, r] = info;
   const [showParts, setShowParts] = useState(false);
@@ -3056,7 +3064,7 @@ function BushouResultCard({ c, info, compIndex, characterList, bushouList, perso
   const existing = (characterList || []).find((x) => x.char === c);
   // Prefer the app's own breakdown when this character is already in the
   // library; otherwise fall back to the decomposition data.
-  const parts = existing && existing.components && existing.components.length ? existing.components : (compIndex[c] || []);
+  const parts = existing && existing.components && existing.components.length ? existing.components : bushouTopParts(c, compIndex);
   const listId = "bushou-lists-" + c;
 
   async function save() {
