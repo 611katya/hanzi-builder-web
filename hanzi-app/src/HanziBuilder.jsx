@@ -3048,12 +3048,26 @@ function bushouTone(s) {
 // The index lists every component at every depth (e.g. 惊 -> 口 京 亠 小 忄).
 // Keep only the top-level ones: drop a component if it is already contained
 // inside another component of the same character (口 亠 小 are inside 京).
-function bushouTopParts(c, compIndex) {
+function bushouTopParts(c, compIndex, data) {
   const ks = compIndex[c] || [];
-  return ks.filter((k) => !ks.some((o) => o !== k && (compIndex[o] || []).includes(k) && !(compIndex[k] || []).includes(o)));
+  let top = ks.filter((k) => !ks.some((o) => o !== k && (compIndex[o] || []).includes(k) && !(compIndex[k] || []).includes(o)));
+  // Some rare intermediate pieces (e.g. 㝴 in 冠 = 冖+元+寸) have no
+  // decomposition of their own, so containment can't be detected. When a
+  // character has at least three other parts, drop one such piece: rare
+  // (not itself a common character, used by at most 2 common characters)
+  // and with no known parts of its own.
+  if (data && top.length >= 4) {
+    const isRare = (k) => !data.info[k] && (data.idx[k] || []).length <= 2 && !(compIndex[k] || []).length;
+    const rareList = top.filter(isRare);
+    if (rareList.length) {
+      const drop = rareList[rareList.length - 1];
+      top = top.filter((k) => k !== drop);
+    }
+  }
+  return top;
 }
 
-function BushouResultCard({ c, info, compIndex, characterList, bushouList, personalListNames, userId, onAddCharacter, onAddBushou, onQuotaUpdate, onRequireAuth, meaningDisplay, hanFont, onPickComponent }) {
+function BushouResultCard({ c, info, data, compIndex, characterList, bushouList, personalListNames, userId, onAddCharacter, onAddBushou, onQuotaUpdate, onRequireAuth, meaningDisplay, hanFont, onPickComponent }) {
   const [p, m, r] = info;
   const [showParts, setShowParts] = useState(false);
   const [showSave, setShowSave] = useState(false);
@@ -3064,7 +3078,7 @@ function BushouResultCard({ c, info, compIndex, characterList, bushouList, perso
   const existing = (characterList || []).find((x) => x.char === c);
   // Prefer the app's own breakdown when this character is already in the
   // library; otherwise fall back to the decomposition data.
-  const parts = existing && existing.components && existing.components.length ? existing.components : bushouTopParts(c, compIndex);
+  const parts = existing && existing.components && existing.components.length ? existing.components : bushouTopParts(c, compIndex, data);
   const listId = "bushou-lists-" + c;
 
   async function save() {
@@ -3290,7 +3304,7 @@ function BushouFinderTab({ meaningDisplay, characterList, bushouList, personalLi
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
           {list.slice(0, shown).map((c) => (
-            <BushouResultCard key={c} c={c} info={data.info[c]} compIndex={compIndex} characterList={characterList} bushouList={bushouList} personalListNames={personalListNames} userId={userId} onAddCharacter={onAddCharacter} onAddBushou={onAddBushou} onQuotaUpdate={onQuotaUpdate} onRequireAuth={onRequireAuth} meaningDisplay={meaningDisplay} hanFont={hanFont} onPickComponent={go} />
+            <BushouResultCard key={c} c={c} info={data.info[c]} data={data} compIndex={compIndex} characterList={characterList} bushouList={bushouList} personalListNames={personalListNames} userId={userId} onAddCharacter={onAddCharacter} onAddBushou={onAddBushou} onQuotaUpdate={onQuotaUpdate} onRequireAuth={onRequireAuth} meaningDisplay={meaningDisplay} hanFont={hanFont} onPickComponent={go} />
           ))}
         </div>
       ))}
