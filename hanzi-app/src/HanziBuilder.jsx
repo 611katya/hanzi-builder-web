@@ -3568,7 +3568,6 @@ function HandwritingPreviewCard({ setTab, meaningDisplay }) {
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: "#FBF9EF" }}>{t("tab_writing", meaningDisplay)}</span>
-        <span ref={labelRef} style={{ fontSize: 10, color: "#DCE3E8" }}>{t("home_hw_step_trace", meaningDisplay)}</span>
       </div>
       <div style={{ display: "flex", justifyContent: "center", position: "relative", height: 90, alignItems: "center" }}>
         <svg ref={svgRef} width="70" height="70" viewBox="0 0 60 60">
