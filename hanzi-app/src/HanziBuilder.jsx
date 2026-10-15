@@ -3141,7 +3141,7 @@ function BushouResultCard({ c, info, compIndex, characterList, bushouList, perso
 
       <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
         <button type="button" style={smallBtn} onClick={() => setShowParts(!showParts)}>{t("bushou_breakdown", meaningDisplay)}</button>
-        <button type="button" style={smallBtn} onClick={() => setShowSave(!showSave)}>{saved ? t("bushou_saved", meaningDisplay) : t("bushou_save", meaningDisplay)}</button>
+        <button type="button" style={smallBtn} onClick={() => { if (!userId) { onRequireAuth && onRequireAuth(); return; } setShowSave(!showSave); }}>{saved ? t("bushou_saved", meaningDisplay) : t("bushou_save", meaningDisplay)}</button>
       </div>
 
       {showParts && (
@@ -3162,7 +3162,7 @@ function BushouResultCard({ c, info, compIndex, characterList, bushouList, perso
         </div>
       )}
 
-      {showSave && (
+      {showSave && userId && (
         <div style={{ display: "grid", gap: 6 }}>
           <input
             list={listId}
