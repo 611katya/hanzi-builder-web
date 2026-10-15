@@ -453,6 +453,9 @@ const UI_TEXT = {
   bushou_no_parts: { vi: "Không có dữ liệu phân tích", en: "No breakdown available" },
   bushou_find_with: { vi: "Xem các chữ có thành phần này", en: "See characters with this component" },
   bushou_list_placeholder: { vi: "Tên danh sách cá nhân…", en: "Personal list name…" },
+  bushou_saving: { vi: "Đang tra và lưu…", en: "Looking up & saving…" },
+  bushou_limit_reached: { vi: "Đã hết lượt tra cứu, không thể lưu thêm chữ mới.", en: "Lookup limit reached, can't save new characters." },
+  bushou_save_failed: { vi: "Không lưu được. Vui lòng thử lại.", en: "Couldn't save. Please try again." },
   bushou_save_confirm: { vi: "Lưu vào danh sách", en: "Save to list" },
   tab_library: { vi: "📚 Thư viện", en: "📚 Library" },
   lib_group_public: { vi: "Công khai", en: "Public" },
@@ -2789,7 +2792,7 @@ function HanziBuilderApp({ userId, userEmail, onRequireAuth }) {
             goToAddNewCards={goToAddNewCards}
           />
         ) : tab === "bushou" ? (
-          <BushouFinderTab meaningDisplay={meaningDisplay} characterList={characterList} personalListNames={personalCharListNames} userId={userId} onAddCharacter={addCharacterRow} onRequireAuth={onRequireAuth} />
+          <BushouFinderTab meaningDisplay={meaningDisplay} characterList={characterList} bushouList={bushouList} personalListNames={personalCharListNames} userId={userId} onAddCharacter={addCharacterRow} onAddBushou={addBushouRow} onQuotaUpdate={(count, limit) => { setLookupCount(count); if (typeof limit === "number") setLookupLimit(limit); }} onRequireAuth={onRequireAuth} />
         ) : tab === "library" ? (
           <LibraryTab
             bushouList={bushouList}
@@ -3042,12 +3045,14 @@ function bushouTone(s) {
   }).join(" / ");
 }
 
-function BushouResultCard({ c, info, compIndex, characterList, personalListNames, userId, onAddCharacter, onRequireAuth, meaningDisplay, hanFont, onPickComponent }) {
+function BushouResultCard({ c, info, compIndex, characterList, bushouList, personalListNames, userId, onAddCharacter, onAddBushou, onQuotaUpdate, onRequireAuth, meaningDisplay, hanFont, onPickComponent }) {
   const [p, m, r] = info;
   const [showParts, setShowParts] = useState(false);
   const [showSave, setShowSave] = useState(false);
   const [listName, setListName] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const existing = (characterList || []).find((x) => x.char === c);
   // Prefer the app's own breakdown when this character is already in the
   // library; otherwise fall back to the decomposition data.
@@ -3056,14 +3061,68 @@ function BushouResultCard({ c, info, compIndex, characterList, personalListNames
 
   async function save() {
     const name = listName.trim();
-    if (!name) return;
+    if (!name || saving) return;
     if (!userId) { onRequireAuth && onRequireAuth(); return; }
-    const base = existing || { char: c, pinyin: bushouTone(p), meaning: m, sv: "", components: parts };
-    const lists = Array.from(new Set([...(existing ? getLists(existing) : []), name]));
-    await onAddCharacter({ ...base, components: base.components && base.components.length ? base.components : parts, lists });
-    setSaved(true);
-    setShowSave(false);
-    setTimeout(() => setSaved(false), 3000);
+    setSaving(true);
+    setSaveError("");
+    try {
+      let base = existing || { char: c, pinyin: bushouTone(p), meaning: m, meaning_vi: "", sv: "", components: parts };
+      // Only spend a lookup when something is actually missing: Vietnamese
+      // meaning and Sino-Vietnamese reading are not in the radical data.
+      if (!base.meaning_vi || !base.sv) {
+        const authHeaders = await getAuthHeaders();
+        if (!authHeaders) { onRequireAuth && onRequireAuth(); setSaving(false); return; }
+        const response = await fetch("/.netlify/functions/lookup-character", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify({ char: c }),
+        });
+        if (!response.ok) {
+          const errBody = await response.json().catch(() => ({}));
+          if (response.status === 403 && (errBody.error === "LIMIT_REACHED" || errBody.error === "DISABLED")) {
+            onQuotaUpdate && onQuotaUpdate(errBody.lookup_count, errBody.lookup_limit);
+            setSaveError(t("bushou_limit_reached", meaningDisplay));
+            setSaving(false);
+            return;
+          }
+          throw new Error(errBody.error || `Lookup failed (${response.status})`);
+        }
+        const data = await response.json();
+        // The server counts this lookup; mirror its numbers in the quota badge.
+        if (typeof data.lookup_count === "number") onQuotaUpdate && onQuotaUpdate(data.lookup_count, data.lookup_limit);
+        const text = (data.content || []).map((blk) => blk.text || "").join("");
+        const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+        base = {
+          ...base,
+          pinyin: base.pinyin || parsed.pinyin || bushouTone(p),
+          meaning: base.meaning || parsed.meaning || m,
+          meaning_vi: base.meaning_vi || parsed.meaning_vi || "",
+          sv: base.sv || parsed.sino_vietnamese || "",
+        };
+        if ((!base.components || base.components.length === 0) && Array.isArray(parsed.components)) {
+          base.components = parsed.components.filter((x) => x && x.char).map((x) => x.char);
+        }
+        // Register any component the library doesn't know yet, as Add does.
+        if (Array.isArray(parsed.components) && onAddBushou) {
+          parsed.components.forEach((comp) => {
+            if (!comp || !comp.char) return;
+            const known = (bushouList || []).some((bu) => bu.char === comp.char);
+            if (!known && comp.pinyin && comp.meaning && comp.sino_vietnamese) {
+              onAddBushou({ char: comp.char, pinyin: comp.pinyin, meaning: comp.meaning, sv: comp.sino_vietnamese });
+            }
+          });
+        }
+      }
+      const lists = Array.from(new Set([...(existing ? getLists(existing) : []), name]));
+      await onAddCharacter({ ...base, components: base.components && base.components.length ? base.components : parts, lists });
+      setSaved(true);
+      setShowSave(false);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error("Bushou save failed:", err);
+      setSaveError(t("bushou_save_failed", meaningDisplay));
+    }
+    setSaving(false);
   }
 
   const smallBtn = { fontSize: 11.5, fontWeight: 600, padding: "4px 8px", borderRadius: 6, border: `1px solid ${COLORS.grid}`, background: COLORS.card, color: COLORS.seal, cursor: "pointer" };
@@ -3116,17 +3175,18 @@ function BushouResultCard({ c, info, compIndex, characterList, personalListNames
           <datalist id={listId}>
             {(personalListNames || []).map((n) => <option key={n} value={n} />)}
           </datalist>
-          <button type="button" onClick={save} disabled={!listName.trim()}
+          <button type="button" onClick={save} disabled={!listName.trim() || saving}
             style={{ fontSize: 13, fontWeight: 600, padding: "6px 8px", border: 0, borderRadius: 6, background: COLORS.seal, color: "#fff", cursor: "pointer", opacity: listName.trim() ? 1 : 0.5 }}>
-            {t("bushou_save_confirm", meaningDisplay)}
+            {saving ? t("bushou_saving", meaningDisplay) : t("bushou_save_confirm", meaningDisplay)}
           </button>
+          {saveError && <div style={{ fontSize: 12, color: COLORS.error }}>{saveError}</div>}
         </div>
       )}
     </div>
   );
 }
 
-function BushouFinderTab({ meaningDisplay, characterList, personalListNames, userId, onAddCharacter, onRequireAuth }) {
+function BushouFinderTab({ meaningDisplay, characterList, bushouList, personalListNames, userId, onAddCharacter, onAddBushou, onQuotaUpdate, onRequireAuth }) {
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(false);
   const [input, setInput] = useState(() => { try { return localStorage.getItem("bushou") || "氵"; } catch (e) { return "氵"; } });
@@ -3222,7 +3282,7 @@ function BushouFinderTab({ meaningDisplay, characterList, personalListNames, use
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 12 }}>
           {list.slice(0, shown).map((c) => (
-            <BushouResultCard key={c} c={c} info={data.info[c]} compIndex={compIndex} characterList={characterList} personalListNames={personalListNames} userId={userId} onAddCharacter={onAddCharacter} onRequireAuth={onRequireAuth} meaningDisplay={meaningDisplay} hanFont={hanFont} onPickComponent={go} />
+            <BushouResultCard key={c} c={c} info={data.info[c]} compIndex={compIndex} characterList={characterList} bushouList={bushouList} personalListNames={personalListNames} userId={userId} onAddCharacter={onAddCharacter} onAddBushou={onAddBushou} onQuotaUpdate={onQuotaUpdate} onRequireAuth={onRequireAuth} meaningDisplay={meaningDisplay} hanFont={hanFont} onPickComponent={go} />
           ))}
         </div>
       ))}
